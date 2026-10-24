@@ -45,6 +45,8 @@ mix local.hex --force && mix local.rebar --force
 cd runtime && mix deps.get && mix test
 ```
 
+**Full walkthrough:** [docs/USAGE.md](docs/USAGE.md) (Cursor chat, CLI tools, hand-edited Elixir).
+
 ## Cursor workflow
 
 ```bash
