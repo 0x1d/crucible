@@ -1,0 +1,7 @@
+{
+  "description": "Example tool: returns the args map with an echoed flag",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Echo",
+  "name": "echo",
+  "updated_at": "2026-10-24T12:00:00Z"
+}
