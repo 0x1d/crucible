@@ -1,8 +1,8 @@
 {
-  "description": "Composed tool: enriches locally, then calls `echo` via `AgentFn.Registry`.\n  Slug: `pipeline.demo`",
+  "description": "Example flow: Steps.Enrich then AgentFn.Echo.run/1. Slug: pipeline.demo",
   "loaded": true,
   "module": "Elixir.AgentFn.Pipeline.Demo",
-  "moduledoc": "Composed tool: enriches locally, then calls `echo` via `AgentFn.Registry`.\n  Slug: `pipeline.demo`",
+  "moduledoc": "Example flow: local step module, then direct `AgentFn.Echo.run/1`.\n  Slug: `pipeline.demo`",
   "name": "pipeline.demo",
   "specs": [
     "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"

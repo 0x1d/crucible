@@ -1,7 +1,7 @@
-defmodule Runtime.ComposeTest do
+defmodule Runtime.PipelineTest do
   use ExUnit.Case, async: false
 
-  test "pipeline.demo composes deep module and echo registry call" do
+  test "pipeline.demo uses deep module and direct Echo.run" do
     slug = "pipeline.demo"
     Runtime.Compiler.compile_slug!(slug)
 
@@ -12,17 +12,6 @@ defmodule Runtime.ComposeTest do
     assert result["echoed"] == true
     assert result["composed"] == true
     assert result["input"] == "x"
-  end
-
-  test "AgentFn.Compose.pipeline chains tools" do
-    Runtime.Compiler.compile_slug!("echo")
-    Runtime.Compiler.compile_slug!("pipeline.demo")
-
-    assert {:ok, result} =
-             AgentFn.Compose.pipeline(%{"n" => 1}, ["echo", "echo"])
-
-    assert result["echoed"] == true
-    assert result["n"] == 1
   end
 
   test "nested slug resolves module AgentFn.Pipeline.Demo" do

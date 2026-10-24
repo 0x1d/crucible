@@ -42,9 +42,7 @@ Use **deep modules** (`steps/`, `logic/`) and **`AgentLib.*`** for shared code. 
 
 ### When to use `AgentFn.Registry.call/2`
 
-Only when the **slug is dynamic** (comes from `args` at runtime). For static wiring, **`alias` + `OtherTool.run(args)`** is preferred after those modules are compiled (same `load-function` tree or prior load).
-
-`AgentFn.Compose.*` is optional sugar (sequential slug lists). **Do not teach the agent to rely on it**; prefer explicit Elixir in `tool.ex`.
+Only when the **slug is dynamic** (comes from `args` at runtime). For static wiring, use **`alias` + `OtherModule.run(args)`**.
 
 ## Naming
 

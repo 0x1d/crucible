@@ -4,7 +4,7 @@ defmodule AgentFn.Tool do
 
   - **Entry module** for slug `data.pipeline.run` → `AgentFn.Data.Pipeline.Run`
   - **Deep modules** in the same tree (e.g. `AgentFn.Data.Pipeline.Steps.Fetch`) hold logic;
-    call them from `run/1` or compose other tools via `AgentFn.Registry` / `AgentFn.Compose`.
+    call them from `run/1`; use `AgentFn.Registry.call/2` only for dynamic slugs.
   - **Shared** non-tool code → `AgentLib.*` under `functions/lib/`.
   """
 
