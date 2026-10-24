@@ -29,6 +29,9 @@ cd .. && npm install   # only for Cursor host
 
 ## Path A — Cursor Agent SDK (playground, deploy, Slack, …)
 
+**Model:** `bot/agent.ts` defaults to Cursor **Auto** (`model: "auto"`). Change it to a
+fixed id (e.g. `grok-4.5`, `composer-2.5`) or Router (`auto-smart` + `optimize_for`) if needed.
+
 **1. Start the dev server**
 
 ```bash
