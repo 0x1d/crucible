@@ -8,13 +8,8 @@ const repoRoot = path.resolve(
 );
 
 export default defineAgent({
-  model: {
-    id: "grok-4.5",
-    params: [
-      { id: "effort", value: "high" },
-      { id: "fast", value: "true" },
-    ],
-  },
+  // Cursor Auto (server-side model routing). Use auto-smart + optimize_for for Router.
+  model: "auto",
   local: {
     cwd: repoRoot,
   },
