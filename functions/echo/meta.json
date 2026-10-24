@@ -1,7 +1,9 @@
 {
-  "description": "Example tool: returns the args map with an echoed flag",
+  "description": "Example registry tool. Returns the input args map with `\"echoed\" => true`.",
   "loaded": true,
   "module": "Elixir.AgentFn.Echo",
+  "moduledoc": null,
   "name": "echo",
-  "updated_at": "2026-10-24T12:00:00Z"
+  "specs": [],
+  "updated_at": "2026-10-24T14:52:58.004034Z"
 }

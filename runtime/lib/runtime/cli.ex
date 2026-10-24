@@ -1,6 +1,6 @@
 defmodule Runtime.CLI do
   @moduledoc """
-  JSON stdin/stdout control plane for the Agent SDK harness.
+  JSON stdin/stdout control plane for the Alchemist registry (host-agnostic).
   """
 
   alias Runtime.Engine

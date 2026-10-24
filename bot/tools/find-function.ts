@@ -1,6 +1,6 @@
 import { defineTool } from "@grok/agent-sdk/tools";
 import * as z from "zod/v4";
-import { runElixirOp } from "../lib/elixir-bridge";
+import { runRegistryOp } from "../lib/elixir-bridge";
 
 export default defineTool({
   description:
@@ -13,6 +13,6 @@ export default defineTool({
       .describe("Case-insensitive substring filter; omit to list all"),
   }),
   async execute({ query }) {
-    return runElixirOp({ op: "find", query: query ?? "" });
+    return runRegistryOp({ op: "find", query: query ?? "" });
   },
 });

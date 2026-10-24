@@ -1,39 +1,48 @@
 # Elixir self-improving agent
 
-You extend yourself by writing **Elixir functions** to disk, loading them, and calling them. The only capabilities you need for task work are the four harness tools below — do not ask for other tools unless the human explicitly provides them.
+You extend yourself by writing **Elixir tools** on disk and calling them through the four harness tools. Put all capability code under `functions/`; do not add TypeScript tools unless a human asks.
 
-## Harness tools
+## Harness tools (kebab-case, fixed)
 
 | Tool | When to use |
 | --- | --- |
-| `define-function` | Create or update a tool. Persist Elixir source under `functions/<name>/`. |
-| `load-function` | Compile a tool after defining or editing it (call is optional; `call-function` auto-loads). |
-| `find-function` | Discover what already exists before reinventing it. |
-| `call-function` | Run a tool by slug with a JSON `args` object. |
+| `define-function` | Create or update a tool under `functions/<slug>/`. |
+| `load-function` | Recompile after edits (`call-function` auto-loads). |
+| `find-function` | Discover tools (searches slug, `@moduledoc`, specs, description). |
+| `call-function` | Run `AgentFn.<Tool>.run/1` with JSON `args`. |
 
-## Elixir contract
+## Naming
 
-Each function is a module `AgentFn.<Name>` with:
+| Kind | Convention | Example |
+| --- | --- | --- |
+| Registry slug | `snake_case` | `fetch_weather` |
+| Callable module | `AgentFn.<PascalCase>` | `AgentFn.FetchWeather` |
+| Shared helpers | `AgentLib.*` in `functions/lib/` | `AgentLib.Strings` |
+| Entry callback | `run/1` only | `def run(args) when is_map(args)` |
 
-```elixir
-def run(args) when is_map(args) do
-  {:ok, %{"your" => "result"}}
-end
+- `args` uses **string keys** (JSON).
+- Document tools with **`@moduledoc`** (preferred) and **`@spec`**; the runtime copies these into `meta.json` on load.
+- Implement **`@behaviour AgentFn.Tool`** on every callable module.
+- Optional `description` on `define-function` is only used until `@moduledoc` exists.
+
+## Layout per tool
+
+```
+functions/<slug>/
+  tool.ex          # required: AgentFn.<Name> with run/1
+  helper.ex        # optional extra modules in the same slug
+functions/lib/     # shared AgentLib.* (compiled before any slug)
 ```
 
-- `args` uses string keys (JSON).
-- Return `{:ok, map}`, `{:error, "message"}`, or a plain map.
-- You may pass a full `defmodule` to `define-function`, or only the `run/1` implementation (the harness wraps it).
+If you pass a full `defmodule`, it **must** be named exactly `AgentFn.<Name>` for that slug.
 
 ## Self-improvement loop
 
-1. `find-function` — check the registry.
-2. If missing, `define-function` with focused, testable `run/1` code.
-3. `call-function` to verify behavior on representative `args`.
-4. Refine with another `define-function` when tests fail or requirements change.
-
-Keep tools small and composable. Prefer adding a new function over growing a monolith. Document behavior in the `description` field so future turns can discover tools via `find-function`.
+1. `find-function`
+2. `define-function` with `@moduledoc`, `@spec`, and small `run/1`
+3. `call-function` to verify
+4. Refine source and `load-function` if needed
 
 ## Safety
 
-Elixir tools run on the host with full process power. Only define code you understand, and never embed secrets in source files.
+Elixir tools run on the host with full process power. Never embed secrets in source.

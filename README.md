@@ -1,69 +1,77 @@
-# Elixir harness (Cursor Agent SDK)
+# Alchemist
 
-A minimal agent whose **only task tools** are four harness endpoints. Real capabilities live in **Elixir functions** on disk under `functions/`. The model defines, discovers, loads, and calls those functions at runtime so the agent can grow new tools without redeploying TypeScript.
+A **host-agnostic Elixir tool registry** with an optional **Cursor Agent SDK**
+adapter. The model gets four fixed tools; every real capability is an Elixir
+module on disk (`functions/`) with `@moduledoc`, `@spec`, and `run/1`.
 
-## Architecture
+## Layers
 
 ```
-┌─────────────────────┐     JSON stdin/stdout      ┌──────────────────┐
-│  Agent SDK (Node)   │ ─────────────────────────► │  runtime/ (Mix)  │
-│  bot/tools/*.ts     │     define/load/find/call  │  Runtime.CLI     │
-└─────────────────────┘                            └────────┬─────────┘
-                                                            │
+┌──────────────────┐   ┌──────────────────┐   ┌─────────────────────────┐
+│  Host adapter    │   │  core/           │   │  runtime/ (Mix)         │
+│  bot/ (Cursor)   │──►│  protocol +      │──►│  Runtime.CLI            │
+│  or registry-cli │   │  elixir-bridge   │   │  AgentFn / AgentLib     │
+└──────────────────┘   └──────────────────┘   └───────────┬─────────────┘
                                                             ▼
-                                                   functions/<name>/
-                                                     tool.ex, meta.json
+                                                  functions/<slug>/
 ```
 
-| Harness tool | Elixir `op` | Purpose |
+| Layer | Path | Notes |
 | --- | --- | --- |
-| `define-function` | `define` | Write `tool.ex` + `meta.json` |
-| `load-function` | `load` | `Code.compile_file/1` |
-| `find-function` | `find` | Search registry |
-| `call-function` | `call` | `AgentFn.<Name>.run(args)` |
+| Registry | `runtime/`, `functions/` | Portable; no Cursor dependency |
+| Bridge | `core/elixir-bridge.ts` | `define` / `load` / `find` / `call` |
+| Cursor host | `bot/tools/*.ts` | `@grok/agent-sdk` — Slack, deploy, evals |
+| Other hosts | `scripts/registry-cli.mjs` | See [docs/HOSTS.md](docs/HOSTS.md) |
 
-Each function implements `run/1` with a map of string keys (JSON). Return `{:ok, map}`, `{:error, reason}`, or a plain map.
+## Naming
+
+| | Convention |
+| --- | --- |
+| Harness tools | kebab-case (`define-function`) |
+| Slug | `snake_case` → `functions/fetch_weather/` |
+| Callable module | `AgentFn.FetchWeather` + `@behaviour AgentFn.Tool` |
+| Shared code | `AgentLib.*` under `functions/lib/` |
+| Docs | `@moduledoc` / `@spec` → synced to `meta.json` on load |
 
 ## Prerequisites
 
-- Node 22.13+
-- Elixir 1.14+ and Erlang/OTP (for the runtime)
+- Node 22.13+ (for Cursor adapter only)
+- Elixir 1.14+
 
 ```bash
-# One-time Elixir setup on a fresh machine
-mix local.hex --force
-mix local.rebar --force
-cd runtime && mix deps.get
+mix local.hex --force && mix local.rebar --force
+cd runtime && mix deps.get && mix test
 ```
 
-## Run locally
+## Cursor workflow
 
 ```bash
 npm install
 npx @grok/agent-sdk dev
 ```
 
-In another terminal:
-
 ```bash
-npx @grok/agent-sdk tool call --dir . --tool find-function --input '{}'
-npx @grok/agent-sdk tool call --dir . --tool call-function --input '{"name":"echo","args":{"hello":"world"}}'
+npx @grok/agent-sdk tool call find-function --input '{}'
+npx @grok/agent-sdk tool call call-function --input '{"name":"echo","args":{"hello":"world"}}'
 ```
 
-Example bundled function: `functions/echo/`.
+## Host-agnostic CLI
 
-## Self-improvement workflow
+```bash
+node scripts/registry-cli.mjs '{"op":"find","query":""}'
+node scripts/registry-cli.mjs '{"op":"call","name":"echo","args":{"x":1}}'
+```
 
-1. `find-function` — avoid duplicate tools.
-2. `define-function` — persist new Elixir `run/1` (or full module).
-3. `call-function` — exercise the tool (auto-loads if needed).
-4. Iterate on source until behavior is correct.
+## Multi-subscription note
 
-Instructions for the model live in `bot/instructions.md`.
+There is **no single vendor SDK** that bills Cursor, OpenCode Go, and Anthropic
+together. Unify at this **registry protocol**; pick a **host** per environment
+(Cursor BDK, OpenCode CLI, Claude Agent SDK) and wire the same four ops. Details:
+[docs/HOSTS.md](docs/HOSTS.md).
 
 ## Security
 
-Elixir tools run on the host with full process privileges. Treat `define-function` like arbitrary code execution. Do not run untrusted prompts on sensitive machines.
+`define-function` is arbitrary code execution on the host.
 
 ## License
 

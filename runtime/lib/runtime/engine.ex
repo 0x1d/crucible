@@ -1,36 +1,41 @@
 defmodule Runtime.Engine do
   @moduledoc false
 
+  alias Runtime.Compiler
   alias Runtime.Registry
 
   def define(name, source, description) do
     {:ok, meta} = Registry.write_definition(name, source, description)
-    %{ok: true, function: meta}
+
+    try do
+      slug = meta["name"]
+      module = Compiler.compile_slug!(slug)
+      Registry.refresh_metadata!(slug, module)
+      Registry.mark_loaded(slug, true)
+      %{ok: true, function: Registry.load_meta(slug)}
+    rescue
+      e in ArgumentError -> %{ok: false, error: Exception.message(e)}
+    catch
+      :throw, {:error, message} -> %{ok: false, error: message}
+    end
   end
 
   def load(name) do
     slug = Registry.sanitize(name)
-    source_path = Registry.source_path(slug)
 
-    unless File.exists?(source_path) do
-      throw({:error, "function not found: #{slug}"})
+    try do
+      module = Compiler.compile_slug!(slug)
+      Registry.refresh_metadata!(slug, module)
+      Registry.mark_loaded(slug, true)
+
+      %{
+        ok: true,
+        function: Registry.load_meta(slug),
+        module: Atom.to_string(module)
+      }
+    catch
+      :throw, {:error, message} -> %{ok: false, error: message}
     end
-
-    compiled = Code.compile_file(source_path)
-
-    module =
-      case compiled do
-        [{mod, _}] -> mod
-        [] -> Registry.module_name(slug)
-      end
-
-    Registry.mark_loaded(slug, true)
-
-    %{
-      ok: true,
-      function: Registry.load_meta(slug),
-      module: Atom.to_string(module)
-    }
   end
 
   def find(query) when is_binary(query) do
@@ -42,6 +47,8 @@ defmodule Runtime.Engine do
         q == "" or
           String.contains?(String.downcase(meta["name"] || ""), q) or
           String.contains?(String.downcase(meta["description"] || ""), q) or
+          String.contains?(String.downcase(meta["moduledoc"] || ""), q) or
+          String.contains?(specs_blob(meta), q) or
           String.contains?(String.downcase(meta["module"] || ""), q)
       end)
 
@@ -53,7 +60,7 @@ defmodule Runtime.Engine do
     module = Registry.module_name(slug)
 
     try do
-      unless Code.ensure_loaded?(module) do
+      unless Code.ensure_loaded?(module) and function_exported?(module, :run, 1) do
         load(slug)
       end
 
@@ -80,5 +87,11 @@ defmodule Runtime.Engine do
 
   def call(_name, _args) do
     %{ok: false, error: "args must be a JSON object"}
+  end
+
+  defp specs_blob(meta) do
+    (meta["specs"] || [])
+    |> Enum.join(" ")
+    |> String.downcase()
   end
 end

@@ -1,6 +1,6 @@
 import { defineTool } from "@grok/agent-sdk/tools";
 import * as z from "zod/v4";
-import { runElixirOp } from "../lib/elixir-bridge";
+import { runRegistryOp } from "../lib/elixir-bridge";
 
 export default defineTool({
   description:
@@ -14,6 +14,6 @@ export default defineTool({
       .describe("JSON object passed to run/1"),
   }),
   async execute({ name, args }) {
-    return runElixirOp({ op: "call", name, args });
+    return runRegistryOp({ op: "call", name, args });
   },
 });

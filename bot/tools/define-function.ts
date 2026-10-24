@@ -1,10 +1,10 @@
 import { defineTool } from "@grok/agent-sdk/tools";
 import * as z from "zod/v4";
-import { runElixirOp } from "../lib/elixir-bridge";
+import { runRegistryOp } from "../lib/elixir-bridge";
 
 export default defineTool({
   description:
-    "Persist a new Elixir tool on disk. Provide either a full defmodule or just a run/1 body. Every tool must implement run(args) returning {:ok, map}, {:error, message}, or a plain map.",
+    "Persist a new Elixir tool on disk. Prefer @moduledoc and @spec on AgentFn.<Name> with @behaviour AgentFn.Tool. Provide a full defmodule or only run/1 (wrapper adds behaviour). Returns {:ok, map}, {:error, message}, or a plain map.",
   effect: "write",
   inputSchema: z.object({
     name: z
@@ -19,7 +19,7 @@ export default defineTool({
       .describe("Short summary stored in the registry for find-function"),
   }),
   async execute({ name, source, description }) {
-    return runElixirOp({
+    return runRegistryOp({
       op: "define",
       name,
       source,

@@ -73,16 +73,43 @@ defmodule Runtime.Registry do
 
     File.write!(source_path(slug), full_source)
 
-    meta = %{
-      "name" => slug,
-      "module" => Atom.to_string(module),
-      "description" => description,
-      "updated_at" => DateTime.utc_now() |> DateTime.to_iso8601(),
-      "loaded" => false
-    }
+    meta =
+      %{
+        "name" => slug,
+        "module" => Atom.to_string(module),
+        "description" => description,
+        "updated_at" => DateTime.utc_now() |> DateTime.to_iso8601(),
+        "loaded" => false
+      }
+      |> write_meta_file(slug)
 
-    File.write!(meta_path(slug), Jason.encode!(meta, pretty: true))
     {:ok, meta}
+  end
+
+  def refresh_metadata!(slug, module) do
+    docs = Runtime.Metadata.extract(module, slug)
+    meta = load_meta(slug)
+
+    description =
+      case docs["moduledoc"] do
+        doc when is_binary(doc) and doc != "" -> doc
+        _ -> meta["description"]
+      end
+
+    updated =
+      meta
+      |> Map.put("module", Atom.to_string(module))
+      |> Map.put("description", description)
+      |> Map.put("moduledoc", docs["moduledoc"])
+      |> Map.put("specs", docs["specs"])
+      |> Map.put("updated_at", DateTime.utc_now() |> DateTime.to_iso8601())
+
+    write_meta_file(slug, updated)
+  end
+
+  defp write_meta_file(slug, meta) do
+    File.write!(meta_path(slug), Jason.encode!(meta, pretty: true))
+    meta
   end
 
   def mark_loaded(name, loaded) do
@@ -97,11 +124,16 @@ defmodule Runtime.Registry do
     trimmed = String.trim(source)
 
     if String.starts_with?(trimmed, "defmodule ") do
+      unless String.contains?(trimmed, "defmodule #{inspect(module)}") do
+        raise ArgumentError,
+              "defmodule must be named #{inspect(module)} to match the registry slug"
+      end
+
       trimmed
     else
       """
       defmodule #{inspect(module)} do
-        @moduledoc false
+        @behaviour AgentFn.Tool
 
       #{indent(trimmed, 2)}
       end
