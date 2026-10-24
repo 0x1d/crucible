@@ -6,42 +6,63 @@ You extend yourself by writing **Elixir tools** on disk and calling them through
 
 | Tool | When to use |
 | --- | --- |
-| `define-function` | Create or update a tool under `functions/<slug>/`. |
+| `define-function` | Create or update a tool under `functions/…/`. |
 | `load-function` | Recompile after edits (`call-function` auto-loads). |
 | `find-function` | Discover tools (searches slug, `@moduledoc`, specs, description). |
-| `call-function` | Run `AgentFn.<Tool>.run/1` with JSON `args`. |
+| `call-function` | Run the entry module’s `run/1` with JSON `args`. |
 
 ## Naming
 
 | Kind | Convention | Example |
 | --- | --- | --- |
-| Registry slug | `snake_case` | `fetch_weather` |
-| Callable module | `AgentFn.<PascalCase>` | `AgentFn.FetchWeather` |
+| Registry slug | `snake_case` segments joined by `.` | `pipeline.demo`, `data.fetch.normalize` |
+| On disk | `functions/<segment>/<segment>/…/` | `functions/pipeline/demo/tool.ex` |
+| Entry module | `AgentFn.<Segments>` | `AgentFn.Pipeline.Demo` |
+| Deep modules | same tree, no `run/1` | `AgentFn.Pipeline.Demo.Steps.Enrich` |
 | Shared helpers | `AgentLib.*` in `functions/lib/` | `AgentLib.Strings` |
-| Entry callback | `run/1` only | `def run(args) when is_map(args)` |
+| Entry callback | `run/1` on the entry module only | `def run(args) when is_map(args)` |
 
 - `args` uses **string keys** (JSON).
-- Document tools with **`@moduledoc`** (preferred) and **`@spec`**; the runtime copies these into `meta.json` on load.
-- Implement **`@behaviour AgentFn.Tool`** on every callable module.
-- Optional `description` on `define-function` is only used until `@moduledoc` exists.
+- Document with **`@moduledoc`** and **`@spec`** (synced to `meta.json` on load).
+- **`@behaviour AgentFn.Tool`** on every entry module.
 
-## Layout per tool
+## Layout (flat or deep)
 
 ```
-functions/<slug>/
-  tool.ex          # required: AgentFn.<Name> with run/1
-  helper.ex        # optional extra modules in the same slug
-functions/lib/     # shared AgentLib.* (compiled before any slug)
+functions/pipeline/demo/
+  tool.ex                 # AgentFn.Pipeline.Demo — only module with run/1
+  steps/enrich.ex         # AgentFn.Pipeline.Demo.Steps.Enrich
+  logic/transform.ex      # more nested modules as needed
+functions/lib/            # AgentLib.* shared across slugs
 ```
 
-If you pass a full `defmodule`, it **must** be named exactly `AgentFn.<Name>` for that slug.
+Only **one** `run/1` entry point per slug (the entry module). Everything else is plain modules.
+
+## Composition (higher-order)
+
+Call other registry tools from Elixir:
+
+```elixir
+AgentFn.Registry.call("echo", args)
+AgentFn.Registry.list()
+```
+
+Chain tools (each step must return a **map**):
+
+```elixir
+AgentFn.Compose.pipeline(%{"n" => 1}, ["echo", "other.slug"])
+AgentFn.Compose.if_then("echo", fn a -> a["go"] end, args)
+AgentFn.Compose.map_each(args, "items", "echo")
+```
+
+Prefer **deep modules** for logic and **Registry/Compose** for reuse across slugs. Build new slugs that orchestrate existing ones instead of duplicating code.
 
 ## Self-improvement loop
 
 1. `find-function`
-2. `define-function` with `@moduledoc`, `@spec`, and small `run/1`
+2. `define-function` (use dot slugs for namespaces)
 3. `call-function` to verify
-4. Refine source and `load-function` if needed
+4. Split into `steps/` modules when `tool.ex` grows
 
 ## Safety
 

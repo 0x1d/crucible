@@ -9,7 +9,7 @@ defmodule Runtime.Compiler do
 
     if File.dir?(lib_root) do
       lib_root
-      |> source_files_in_dir()
+      |> source_files_recursive()
       |> compile_files()
     end
 
@@ -26,7 +26,7 @@ defmodule Runtime.Compiler do
       throw({:error, "function not found: #{slug}"})
     end
 
-    files = source_files_in_dir(dir)
+    files = source_files_recursive(dir)
 
     if files == [] do
       throw({:error, "no .ex sources in #{slug}"})
@@ -45,12 +45,14 @@ defmodule Runtime.Compiler do
     entry
   end
 
-  defp source_files_in_dir(dir) do
+  defp source_files_recursive(dir) do
     dir
-    |> Path.join("*.ex")
+    |> Path.join("**/*.ex")
     |> Path.wildcard()
     |> Enum.sort_by(fn path ->
-      if Path.basename(path) == "tool.ex", do: {1, path}, else: {0, path}
+      depth = path |> Path.dirname() |> String.split("/") |> length()
+      tool? = if Path.basename(path) == "tool.ex", do: 1, else: 0
+      {depth + tool?, path}
     end)
   end
 

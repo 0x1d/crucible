@@ -9,7 +9,9 @@ export default defineTool({
   inputSchema: z.object({
     name: z
       .string()
-      .describe("Slug name, e.g. greet_user or fetch_weather"),
+      .describe(
+        "Registry slug: snake_case, dot namespaces allowed (e.g. pipeline.demo, data.fetch)",
+      ),
     source: z
       .string()
       .describe("Elixir source for run/1 or a complete defmodule block"),

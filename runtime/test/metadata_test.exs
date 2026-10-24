@@ -4,7 +4,7 @@ defmodule Runtime.MetadataTest do
   test "extracts moduledoc and specs from AgentFn.Echo" do
     slug = "echo"
     module = Runtime.Compiler.compile_slug!(slug)
-    meta = Runtime.Metadata.extract(module)
+    meta = Runtime.Metadata.extract(module, slug)
 
     assert is_binary(meta["moduledoc"])
     assert String.contains?(meta["moduledoc"], "echoed")

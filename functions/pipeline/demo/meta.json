@@ -1,0 +1,11 @@
+{
+  "description": "Composed tool: enriches locally, then calls `echo` via `AgentFn.Registry`.\n  Slug: `pipeline.demo`",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Pipeline.Demo",
+  "moduledoc": "Composed tool: enriches locally, then calls `echo` via `AgentFn.Registry`.\n  Slug: `pipeline.demo`",
+  "name": "pipeline.demo",
+  "specs": [
+    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-10-24T14:54:19.703418Z"
+}

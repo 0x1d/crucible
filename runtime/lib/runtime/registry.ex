@@ -7,59 +7,96 @@ defmodule Runtime.Registry do
   end
 
   def function_dir(name) do
-    Path.join(functions_root(), sanitize(name))
+    Path.join([functions_root() | slug_path_segments(name)])
   end
 
   def meta_path(name), do: Path.join(function_dir(name), "meta.json")
   def source_path(name), do: Path.join(function_dir(name), "tool.ex")
 
+  @doc """
+  Canonical slug: dot-separated segments, each `snake_case`.
+  Examples: `echo`, `fetch_weather`, `data.pipeline.normalize`
+  """
   def sanitize(name) when is_binary(name) do
-    slug =
+    parts =
       name
       |> String.downcase()
-      |> String.replace(~r/[^a-z0-9_]+/u, "_")
-      |> String.trim("_")
+      |> String.split(".")
+      |> Enum.map(&segment_sanitize/1)
+      |> Enum.reject(&(&1 == ""))
 
-    if slug == "" do
-      raise ArgumentError, "invalid function name"
+    case parts do
+      [] -> raise ArgumentError, "invalid function name"
+      _ -> Enum.join(parts, ".")
     end
+  end
 
-    slug
+  def slug_path_segments(name) do
+    sanitize(name) |> String.split(".")
   end
 
   def module_name(name) do
-    segment =
-      sanitize(name)
-      |> String.split("_")
-      |> Enum.map(&Macro.camelize/1)
-      |> Enum.join()
+    parts =
+      slug_path_segments(name)
+      |> Enum.map(&segment_to_module_part/1)
 
-    Module.concat([AgentFn, segment])
+    Module.concat([AgentFn | parts])
   end
 
   def list_all do
     root = functions_root()
 
     if File.dir?(root) do
-      root
-      |> File.ls!()
-      |> Enum.filter(fn entry ->
-        path = Path.join(root, entry)
-        File.dir?(path) and File.exists?(Path.join(path, "meta.json"))
-      end)
-      |> Enum.map(&load_meta/1)
+      walk_for_tools(root, [])
       |> Enum.sort_by(& &1["name"])
     else
       []
     end
   end
 
+  defp walk_for_tools(dir, rel_segments) do
+    meta =
+      if File.exists?(Path.join(dir, "meta.json")) do
+        slug = Enum.join(rel_segments, ".")
+        [load_meta(slug)]
+      else
+        []
+      end
+
+    children =
+      case File.ls(dir) do
+        {:ok, entries} ->
+          Enum.flat_map(entries, fn entry ->
+            if entry == "lib" and rel_segments == [] do
+              []
+            else
+              child = Path.join(dir, entry)
+
+              if File.dir?(child) do
+                walk_for_tools(child, rel_segments ++ [entry])
+              else
+                []
+              end
+            end
+          end)
+
+        {:error, _} ->
+          []
+      end
+
+    meta ++ children
+  end
+
   def load_meta(name) do
-    path = meta_path(sanitize(name))
+    slug = sanitize(name)
+    path = meta_path(slug)
 
     case File.read(path) do
-      {:ok, body} -> Jason.decode!(body)
-      {:error, _} -> %{"name" => sanitize(name), "loaded" => false}
+      {:ok, body} ->
+        Jason.decode!(body) |> Map.put("name", slug)
+
+      {:error, _} ->
+        %{"name" => slug, "loaded" => false}
     end
   end
 
@@ -141,6 +178,19 @@ defmodule Runtime.Registry do
       |> String.trim_trailing()
       |> Kernel.<>("\n")
     end
+  end
+
+  defp segment_sanitize(part) do
+    part
+    |> String.replace(~r/[^a-z0-9_]+/u, "_")
+    |> String.trim("_")
+  end
+
+  defp segment_to_module_part(segment) do
+    segment
+    |> String.split("_")
+    |> Enum.map(&Macro.camelize/1)
+    |> Enum.join()
   end
 
   defp indent(text, spaces) do

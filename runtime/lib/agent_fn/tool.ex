@@ -1,10 +1,11 @@
 defmodule AgentFn.Tool do
   @moduledoc """
-  Behaviour for tools invoked via `call-function`.
+  Behaviour for registry entry modules (`run/1`).
 
-  Only modules named `AgentFn.<ToolName>` (matching the registry slug) should
-  implement this callback. Shared helpers belong under `AgentLib.*` in
-  `functions/lib/` and must not implement `run/1`.
+  - **Entry module** for slug `data.pipeline.run` → `AgentFn.Data.Pipeline.Run`
+  - **Deep modules** in the same tree (e.g. `AgentFn.Data.Pipeline.Steps.Fetch`) hold logic;
+    call them from `run/1` or compose other tools via `AgentFn.Registry` / `AgentFn.Compose`.
+  - **Shared** non-tool code → `AgentLib.*` under `functions/lib/`.
   """
 
   @type args :: map()
