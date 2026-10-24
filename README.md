@@ -28,8 +28,10 @@ module on disk (`functions/`) with `@moduledoc`, `@spec`, and `run/1`.
 | | Convention |
 | --- | --- |
 | Harness tools | kebab-case (`define-function`) |
-| Slug | `snake_case` → `functions/fetch_weather/` |
-| Callable module | `AgentFn.FetchWeather` + `@behaviour AgentFn.Tool` |
+| Slug | `snake_case` with `.` namespaces → `functions/data/pipeline/` |
+| Entry module | `AgentFn.Data.Pipeline` + `run/1` |
+| Deep modules | `AgentFn.Data.Pipeline.Steps.*` (any depth under the slug tree) |
+| Composition | `AgentFn.Registry.call/2`, `AgentFn.Compose.pipeline/2` |
 | Shared code | `AgentLib.*` under `functions/lib/` |
 | Docs | `@moduledoc` / `@spec` → synced to `meta.json` on load |
 

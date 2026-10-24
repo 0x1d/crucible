@@ -1,12 +1,10 @@
 defmodule AgentFn.Compose do
   @moduledoc """
-  Higher-order helpers for chaining registry tools.
+  Optional sequential helpers over `AgentFn.Registry.call/2`.
 
-      AgentFn.Compose.pipeline(%{"n" => 1}, ["echo", "echo"])
-
-  Each step receives the **result map** of the previous `{:ok, map}` and must
-  return `{:ok, map}` or `{:error, reason}` from its own `run/1` when invoked
-  via `AgentFn.Registry.call/2`.
+  **Prefer native orchestration:** `with`, direct `OtherModule.run/1`, `Task`, etc.
+  in the Elixir the agent writes. This module exists for small dynamic slug lists,
+  not as the primary composition model.
   """
 
   alias AgentFn.Registry

@@ -1,10 +1,9 @@
 defmodule AgentFn.Registry do
   @moduledoc """
-  Call other registry tools from Elixir (composition / higher-order workflows).
+  Invoke another registry slug by name (dynamic dispatch).
 
-      AgentFn.Registry.call("echo", %{"msg" => "hi"})
-
-  Slugs use dot namespaces: `"data.pipeline.normalize"` → `AgentFn.Data.Pipeline.Normalize`.
+  For static composition, prefer `alias AgentFn.Echo` and `Echo.run(args)` in your
+  own modules after compile. Use `call/2` when the slug comes from runtime data.
   """
 
   alias Runtime.Engine
