@@ -47,14 +47,15 @@ npx @grok/agent-sdk dev
 ## Documentation
 
 - [Documentation index](docs/index.md) — goal-oriented reading paths
-- [Using the harness](docs/guides/usage.md) — setup, harness tools, and registry workflows
-- [Domain language](docs/concepts/domain-language.md) — canonical product and implementation terms
-- [Host adapters](docs/reference/hosts.md) — integrating Cursor, CLI, and other hosts
+- [Getting started](docs/guides/getting-started.md) — install, validate, first call
+- [Architecture](docs/concepts/architecture.md) — components, lifecycle, composition
+- [Registry protocol](docs/reference/protocol.md) — operation contracts
 
 ## Security
 
 `define` accepts arbitrary Elixir source and executes with the privileges of the
-long-lived BEAM process on the host. Restrict registry access to trusted users and inputs.
+long-lived BEAM process on the host. Restrict registry access to trusted users and
+inputs. See [Security boundary](docs/reference/security.md).
 
 ## License
 

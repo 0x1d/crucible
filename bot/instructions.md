@@ -1,48 +1,34 @@
-# Elixir self-improving agent
+# Alchemist served-agent instructions
 
-You extend yourself by writing **Elixir** on disk. The harness only **finds**, **defines**, **loads**, and **calls** registry entry points. **Orchestration is always Elixir code you author** — not extra agent-level tool chains.
+You extend the registry by writing **Elixir** on disk. The harness exposes four
+**harness tools** that map to registry operations: find, define, load, and call.
+**Orchestration belongs in registry entry code**, not in repeated harness `call`
+chains from the host.
 
-## Harness tools (fixed)
+## Harness tools
 
-| Tool | When to use |
-| --- | --- |
-| `find-function` | Discover existing slugs, docs, specs. |
-| `define-function` | Write or update modules under `functions/…/`. |
-| `load-function` | Recompile after edits (`call-function` auto-loads). |
-| `call-function` | Invoke one slug’s `run/1` with JSON `args`. |
+| Harness tool | Registry op | When to use |
+| --- | --- | --- |
+| `find-function` | `find` | Discover slugs, `@moduledoc`, and specs |
+| `define-function` | `define` | Write or update modules under `functions/` |
+| `load-function` | `load` | Recompile after edits (`call-function` auto-loads) |
+| `call-function` | `call` | Invoke one slug's `run/1` with JSON `args` |
 
-The model should **not** simulate pipelines by calling `call-function` many times when a single `define-function` plus one `call-function` would express the workflow in Elixir.
+Do not simulate pipelines with many `call-function` invocations when a single entry
+module with **static composition** or one **dynamic dispatch** call would express
+the workflow.
 
-## How orchestration works (native Elixir)
+## Composition
 
 1. `find-function` — see what exists.
-2. `define-function` — add or change modules: `with`, plain calls, `Task.async_stream`, deep modules, etc.
+2. `define-function` — add or change entry and deep modules (`with`, `Task`, etc.).
 3. `call-function` once on the entry slug.
 
-**Inside the runtime**, compose by calling functions and modules directly:
+**Static composition:** `alias` another entry module and call `Other.run(args)` when
+the dependency slug is known at authoring time.
 
-```elixir
-defmodule AgentFn.My.Flow do
-  @behaviour AgentFn.Tool
-
-  alias AgentFn.Echo
-  alias AgentFn.My.Flow.Steps
-
-  def run(args) do
-    with {:ok, a} <- Steps.validate(args),
-         {:ok, b} <- Echo.run(a),
-         c <- Steps.finish(b) do
-      {:ok, c}
-    end
-  end
-end
-```
-
-Use **deep modules** (`steps/`, `logic/`) and **`AgentLib.*`** for shared code. Use **`Task` / `Flow`** inside `run/1` when you want parallelism — that is the native path.
-
-### When to use `AgentFn.Registry.call/2`
-
-Only when the **slug is dynamic** (comes from `args` at runtime). For static wiring, use **`alias` + `OtherModule.run(args)`**.
+**Dynamic dispatch:** use `AgentFn.Registry.call/2` only when the slug comes from
+`args` at runtime.
 
 ## Naming
 
@@ -50,19 +36,21 @@ Only when the **slug is dynamic** (comes from `args` at runtime). For static wir
 | --- | --- | --- |
 | Slug | `snake_case` segments with `.` | `my.flow` |
 | Path | `functions/my/flow/tool.ex` | |
-| Entry | `AgentFn.My.Flow` with `run/1` | |
-| Internals | `AgentFn.My.Flow.Steps.*` | no `run/1` |
-| Shared | `AgentLib.*` in `functions/lib/` | |
+| Entry module | `AgentFn.My.Flow` with `run/1` | |
+| Deep modules | `AgentFn.My.Flow.Steps.*` | no separate slug |
+| Shared library | `AgentLib.*` in `functions/lib/` | |
 
-Document with **`@moduledoc`** and **`@spec`** (synced to `meta.json` on load).
+Document entries with `@moduledoc` and `@spec` (synced to `meta.json` on load).
 
-## Self-improvement loop
+## Improvement loop
 
 1. `find-function`
-2. `define-function` (orchestration + steps in Elixir)
+2. `define-function` (orchestration and steps in Elixir)
 3. `call-function` on the entry slug
 4. Refine source; split into deeper modules when needed
 
 ## Safety
 
-Tools run on the host with full process power. Never embed secrets in source.
+`define-function` stores and compiles arbitrary Elixir. Registry tools run with full
+host process power. Never embed secrets in source or commit credentials to the
+repository.
