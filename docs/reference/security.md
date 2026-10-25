@@ -37,9 +37,10 @@ credential vault inside the registry.
 
 ## Future hardening
 
-Stronger isolation (separate OS users, containers, network policy) would be an
-architectural addition on top of the current one-shot Mix design. No such layer
-ships in this repository today.
+Connection tasks isolate a crashed `run/1` from the listen socket. They do not
+provide an operating-system sandbox. Stronger isolation (separate OS users,
+containers, network policy) would be an architectural addition on top of the
+long-lived BEAM. No such layer ships in this repository today.
 
 ## Related reading
 

@@ -12,8 +12,9 @@ these operations.
 | `find` | `find-function` | Search discovered entries by metadata |
 | `call` | `call-function` | Invoke an entry's `run/1` with a JSON object |
 
-Every request is a JSON object with an `op` field. The Mix control plane reads one
-request from stdin and prints one JSON response on stdout.
+Every request is a JSON object with an `op` field. The live interface is one
+length-prefixed JSON request and one length-prefixed JSON response on a TCP
+connection to the long-lived BEAM.
 
 ## Slug mapping
 
@@ -169,21 +170,43 @@ before `apply(module, :run, [args])`.
 
 ## Node bridge behavior
 
-`core/elixir-bridge.ts` runs `mix compile` in `runtime/`, then `mix run --no-start`
-with `Runtime.CLI.run_stdio()`, passing the request JSON on stdin. It sets
+`core/elixir-bridge.ts` runs `mix compile` in `runtime/` when runtime sources
+change. Mix does not serve requests. The process that stays up is
+`elixir --no-halt` with
+`Application.ensure_all_started(:runtime, :permanent)`. The bridge sets
 `AGENT_FUNCTIONS_DIR` to the repository `functions/` directory unless the
-environment already overrides it.
+environment already overrides it, and `ALCHEMIST_STATE_DIR` to `runtime/.alchemist`
+unless that variable is already set.
 
-Non-zero Mix exit codes and non-JSON stdout surface as `{ "ok": false, "error": "..." }`
-to the host adapter.
+The live interface is TCP on `127.0.0.1`. Each request is one JSON object framed
+with a 4-byte big-endian length, matching `:gen_tcp` `packet: 4`. The response
+uses the same framing. `port` and `pid` in the state directory identify the
+running VM. The bridge writes `stamp` there after a successful boot.
+
+A transport failure replaces the recorded VM and retries the operation once.
+Non-JSON responses surface as `{ "ok": false, "error": "..." }` to the host
+adapter. `Runtime.CLI.run_stdio/0` reads one JSON request from stdin; it is a
+debug helper, not the path the bridge uses.
+
+## Failure behavior
+
+- The acceptor owns the listen socket. Accept errors exit that task. The
+  application supervisor allows 3 restarts in 5 seconds, then stops. Because the
+  application is permanent, the VM exits and the bridge boots a new one.
+- Each connection is a temporary task that owns its socket. `run/1` runs there.
+  `exit/1` from `run/1` becomes `{ "ok": false, "error": "..." }` on that
+  connection. A linked process that dies takes down that task only.
+- `define` and `load` run on `Runtime.Server` so compilation stays
+  single-threaded. That process does not own the listen socket, so a compile
+  does not block accept.
 
 ## Limitations (current)
 
-- One request per Mix process; no batching or streaming.
+- One JSON request per connection; no batching or streaming.
 - No built-in sandbox: `define` and `call` execute with host process privileges.
 - `loaded` in `meta.json` is bookkeeping, not a live compile cache across requests.
 - Dynamic `AgentFn.Registry.call/2` re-enters the same engine and may trigger
-  nested loads in the same process.
+  nested loads in the same VM.
 
 ## Related reading
 

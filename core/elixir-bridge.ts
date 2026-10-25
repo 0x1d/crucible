@@ -160,7 +160,7 @@ function spawnVm(): Promise<ChildProcess> {
   for (const ebin of ebinPaths()) {
     args.push("-pa", ebin);
   }
-  args.push("-e", "Application.ensure_all_started(:runtime)");
+  args.push("-e", "Application.ensure_all_started(:runtime, :permanent)");
 
   const env: NodeJS.ProcessEnv = {
     ...process.env,

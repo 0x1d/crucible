@@ -2,8 +2,10 @@ defmodule Runtime.CLI do
   @moduledoc """
   JSON dispatch for the Alchemist registry.
 
-  Hosts talk to `Runtime.Server`, which stays up for the life of the BEAM.
-  `run_stdio/0` is a single-request debug helper.
+  Hosts send one length-prefixed JSON request per connection. The acceptor task
+  owns the listen socket. `define` and `load` compile on `Runtime.Server`.
+  `call` runs `run/1` in the connection task. `run_stdio/0` is a single-request
+  debug helper, not the live interface.
   """
 
   alias Runtime.Engine

@@ -2,17 +2,37 @@
 
 The `runtime/` Mix project is Alchemist's **Mix control plane**: it validates slugs,
 compiles registry entry trees, maintains `meta.json`, and invokes `run/1`. Hosts
-never call these modules directly; they send JSON to `Runtime.Server` through the
-Node bridge or an equivalent TCP client.
+never call these modules directly. They send length-prefixed JSON to the
+acceptor on `127.0.0.1` through the Node bridge or an equivalent TCP client.
 
-The bridge boots a **long-lived BEAM** running `Runtime.Server` on `127.0.0.1`.
+The bridge boots a **long-lived BEAM** with `elixir --no-halt` and
+`Application.ensure_all_started(:runtime, :permanent)`. Mix only compiles.
 Compiled entry modules stay loaded in that VM until it restarts.
+
+## Supervision
+
+`Runtime.Application` starts a `one_for_one` supervisor (3 restarts in 5
+seconds). Children, in start order:
+
+| Child | Restart | Owns | Role |
+| --- | --- | --- | --- |
+| `Runtime.TaskSupervisor` | supervisor | connection tasks | One temporary task per client |
+| `Runtime.Server` | permanent | no sockets | Serializes `define` and `load` |
+| `Runtime.Acceptor` | permanent task | listen socket | `Runtime.Server.accept/0` |
+
+The acceptor calls `Task.Supervisor.start_child/2` and then
+`:gen_tcp.controlling_process/2`. The connection task decodes one
+length-prefixed JSON request and encodes the response. `call` runs `run/1` in
+that task. Accept errors exit the acceptor instead of retrying in place. A
+connection crash closes its socket and leaves the acceptor up. If the
+supervisor gives up, the permanent application exits the VM.
 
 ## Module responsibilities
 
 | Module | Responsibility |
 | --- | --- |
-| `Runtime.Server` | TCP listener; dispatches requests to `Runtime.CLI` inside the BEAM |
+| `Runtime.Application` | Supervisor for the task supervisor, serializer, and acceptor |
+| `Runtime.Server` | Accept loop (in the acceptor task) and compile serialization (GenServer) |
 | `Runtime.CLI` | Operation dispatch for `define`, `load`, `find`, `call` |
 | `Runtime.Engine` | Orchestrates compile, metadata refresh, search, and `run/1` invocation |
 | `Runtime.Compiler` | Compiles `functions/lib` and per-slug `.ex` trees; validates entry module |
@@ -26,15 +46,17 @@ Compiled entry modules stay loaded in that VM until it restarts.
 ```mermaid
 sequenceDiagram
   participant Bridge as Node bridge
-  participant Beam as Runtime.Server
-  participant Engine as Runtime.Engine
+  participant Acceptor as Acceptor task
+  participant Conn as Connection task
+  participant Server as Runtime.Server
 
   Bridge->>Bridge: mix compile when runtime sources change
-  Bridge->>Beam: elixir --no-halt (boot if needed)
-  Bridge->>Beam: TCP JSON request
-  Beam->>Engine: Runtime.CLI.dispatch
-  Engine-->>Beam: result map
-  Beam-->>Bridge: TCP JSON response
+  Bridge->>Acceptor: elixir --no-halt (boot if needed)
+  Bridge->>Acceptor: length-prefixed JSON
+  Acceptor->>Conn: start_child and controlling_process
+  Conn->>Server: serialize define or load
+  Conn->>Conn: run/1 for call
+  Conn-->>Bridge: length-prefixed JSON
 ```
 
 ## Source and metadata layout
@@ -67,11 +89,12 @@ node scripts/registry-cli.mjs '{"op":"call","name":"echo","args":{}}'
 | Variable | Effect |
 | --- | --- |
 | `AGENT_FUNCTIONS_DIR` | Path to the capability tree (set by the Node bridge for registry calls) |
-| `ALCHEMIST_STATE_DIR` | Bridge/server state (`port`, `pid`, `stamp`; default `runtime/.alchemist`) |
+| `ALCHEMIST_STATE_DIR` | Live node files (`port`, `pid`) and the bridge's `stamp` (default `runtime/.alchemist`) |
 
 ## Limitations
 
 - One BEAM per bridge state directory; stale PIDs are replaced on the next boot.
+- The acceptor restarts on the same port when it can. A dead VM is replaced by the bridge.
 - `"loaded"` in `meta.json` is disk bookkeeping; live code lives in the BEAM until restart.
 - No sandbox: compilation and `run/1` use the host OS identity. See
   [Security boundary](../docs/reference/security.md).
