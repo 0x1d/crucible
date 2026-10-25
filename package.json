@@ -5,6 +5,7 @@
   "description": "agent project: elixir-harness-tmp",
   "scripts": {
     "check": "tsc --noEmit",
+    "check:docs": "node scripts/check-docs.mjs",
     "dev": "agent-sdk dev"
   },
   "dependencies": {
