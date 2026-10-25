@@ -9,8 +9,9 @@ Alchemist splits **portable registry** from **agent host**:
 | Host adapter | `bot/` (Cursor today) | Map model tool calls → registry ops |
 
 The model only needs four tools (`define-function`, `load-function`,
-`find-function`, `call-function`). Any environment that can run `mix` and
-invoke JSON can use the same registry without `@grok/agent-sdk`.
+`find-function`, `call-function`). Any host that can send the registry JSON
+to the running BEAM can use the same registry without `@grok/agent-sdk`.
+Mix only fetches deps and compiles.
 
 ## Cursor (this repo)
 

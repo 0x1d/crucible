@@ -1,5 +1,5 @@
 import type { ToolExecuteResult } from "@grok/agent-sdk";
-import { type ChildProcess, spawn } from "node:child_process";
+import { type ChildProcess, spawn, spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import net from "node:net";
@@ -29,8 +29,8 @@ function stateDir(): string {
 }
 
 /**
- * Send one registry op to the long-lived BEAM.
- * The first call starts `mix run --no-halt` (the OTP app). Later calls reuse it.
+ * Send one registry op to Runtime.Server on the long-lived BEAM.
+ * Mix compiles when sources change. The process that stays up is elixir.
  */
 export async function runRegistryOp(
   request: RegistryRequest,
@@ -87,6 +87,7 @@ async function boot(force: boolean): Promise<Vm> {
 
     await stopRecorded();
     clearStateFiles();
+    ensureCompiled();
     child = await spawnVm();
     const vm = await waitForReady(child);
     fs.writeFileSync(path.join(stateDir(), "stamp"), sourceStamp());
@@ -113,22 +114,67 @@ function healthyVm(): Vm | null {
   return vm;
 }
 
+function ensureCompiled(): void {
+  const stamp = sourceStamp();
+  const runtimeBeam = path.join(
+    runtimeDir,
+    "_build",
+    "dev",
+    "lib",
+    "runtime",
+    "ebin",
+    "Elixir.Runtime.Server.beam",
+  );
+  if (readBuildStamp() === stamp && fs.existsSync(runtimeBeam)) return;
+
+  const compile = spawnSync("mix", ["compile"], {
+    cwd: runtimeDir,
+    encoding: "utf8",
+    env: { ...process.env, MIX_ENV: "dev" },
+  });
+  if (compile.status !== 0) {
+    const detail = (compile.stderr || compile.stdout || "mix compile failed").trim();
+    throw new Error(detail);
+  }
+  fs.mkdirSync(path.dirname(buildStampPath()), { recursive: true });
+  fs.writeFileSync(buildStampPath(), stamp);
+}
+
+function ebinPaths(): string[] {
+  const root = path.join(runtimeDir, "_build", "dev", "lib");
+  if (!fs.existsSync(root)) {
+    throw new Error("mix compile did not produce runtime/_build/dev/lib");
+  }
+  return fs
+    .readdirSync(root, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => path.join(root, entry.name, "ebin"))
+    .filter((dir) => fs.existsSync(dir));
+}
+
 function spawnVm(): Promise<ChildProcess> {
   const dir = stateDir();
   fs.mkdirSync(dir, { recursive: true });
   const logFd = fs.openSync(path.join(dir, "boot.log"), "w");
+  const args = ["--no-halt"];
+  for (const ebin of ebinPaths()) {
+    args.push("-pa", ebin);
+  }
+  args.push("-e", "Application.ensure_all_started(:runtime)");
+
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    AGENT_FUNCTIONS_DIR: functionsDir,
+    ALCHEMIST_STATE_DIR: dir,
+  };
+  delete env.MIX_ENV;
 
   return new Promise((resolve, reject) => {
-    const child = spawn("mix", ["run", "--no-halt"], {
+    const child = spawn("elixir", args, {
       cwd: runtimeDir,
       detached: true,
       stdio: ["ignore", "ignore", logFd],
-      env: {
-        ...process.env,
-        MIX_ENV: "dev",
-        AGENT_FUNCTIONS_DIR: functionsDir,
-        ALCHEMIST_STATE_DIR: dir,
-      },
+      env,
     });
     fs.closeSync(logFd);
     child.once("error", (error) => {
@@ -282,6 +328,18 @@ function readVm(): Vm | null {
     if (!Number.isInteger(port) || port <= 0) return null;
     if (!Number.isInteger(pid) || pid <= 0) return null;
     return { port, pid };
+  } catch {
+    return null;
+  }
+}
+
+function buildStampPath(): string {
+  return path.join(runtimeDir, "_build", "dev", ".source-stamp");
+}
+
+function readBuildStamp(): string | null {
+  try {
+    return fs.readFileSync(buildStampPath(), "utf8").trim();
   } catch {
     return null;
   }

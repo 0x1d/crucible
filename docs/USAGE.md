@@ -7,7 +7,7 @@ lives in Elixir, not in repeated tool calls.
 ## Mental model
 
 ```
-You / agent  →  host (Cursor BDK or registry-cli)  →  four ops  →  Mix runtime  →  functions/
+You / agent  →  host (Cursor BDK or registry-cli)  →  four ops  →  BEAM (Runtime.Server)  →  functions/
 ```
 
 | Harness tool | Registry `op` | What it does |

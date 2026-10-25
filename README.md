@@ -8,8 +8,8 @@ module on disk (`functions/`) with `@moduledoc`, `@spec`, and `run/1`.
 
 ```
 ┌──────────────────┐   ┌──────────────────┐   ┌─────────────────────────┐
-│  Host adapter    │   │  core/           │   │  runtime/ (Mix)         │
-│  bot/ (Cursor)   │──►│  protocol +      │──►│  Runtime.CLI            │
+│  Host adapter    │   │  core/           │   │  runtime/ (OTP)         │
+│  bot/ (Cursor)   │──►│  protocol +      │──►│  Runtime.Server         │
 │  or registry-cli │   │  elixir-bridge   │   │  AgentFn / AgentLib     │
 └──────────────────┘   └──────────────────┘   └───────────┬─────────────┘
                                                             ▼

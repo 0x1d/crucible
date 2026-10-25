@@ -1,6 +1,6 @@
 /**
  * Host-agnostic registry operations. Any agent host (Cursor BDK, OpenCode,
- * Claude Code, a Go wrapper) can forward these four ops to the Mix runtime.
+ * Claude Code, a Go wrapper) can forward these four ops to Runtime.Server.
  */
 export const REGISTRY_OPS = ["define", "load", "find", "call"] as const;
 
