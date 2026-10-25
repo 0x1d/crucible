@@ -24,11 +24,57 @@ function blankMarkdown(match) {
   return match.replace(/[^\r\n]/g, " ");
 }
 
+function withoutCodeSpans(source) {
+  let output = "";
+  let copiedThrough = 0;
+
+  for (let opening = 0; opening < source.length; opening += 1) {
+    if (source[opening] !== "`") {
+      continue;
+    }
+
+    let delimiterLength = 1;
+    while (source[opening + delimiterLength] === "`") {
+      delimiterLength += 1;
+    }
+
+    let search = opening + delimiterLength;
+    let closing = -1;
+    while (search < source.length) {
+      const candidate = source.indexOf("`", search);
+      if (candidate === -1) {
+        break;
+      }
+
+      let candidateLength = 1;
+      while (source[candidate + candidateLength] === "`") {
+        candidateLength += 1;
+      }
+      if (candidateLength === delimiterLength) {
+        closing = candidate + candidateLength;
+        break;
+      }
+      search = candidate + candidateLength;
+    }
+
+    if (closing !== -1) {
+      output += source.slice(copiedThrough, opening);
+      output += blankMarkdown(source.slice(opening, closing));
+      copiedThrough = closing;
+      opening = closing - 1;
+    } else {
+      opening += delimiterLength - 1;
+    }
+  }
+
+  return output + source.slice(copiedThrough);
+}
+
 function markdownWithoutIgnoredRegions(source) {
   const withoutComments = source.replace(/<!--[\s\S]*?(?:-->|$)/g, blankMarkdown);
   let fence = null;
 
-  return withoutComments.replace(/^.*(?:\r?\n|$)/gm, (line) => {
+  const withoutFences = withoutComments.replace(/^.*(?:\r?\n|$)/gm, (line) => {
     if (fence !== null) {
       const closing = line.match(/^ {0,3}(`+|~+)[ \t]*(?:\r?\n)?$/);
       if (
@@ -52,6 +98,8 @@ function markdownWithoutIgnoredRegions(source) {
 
     return line;
   });
+
+  return withoutCodeSpans(withoutFences);
 }
 
 function closingBracket(source, opening) {
@@ -140,40 +188,85 @@ function inlineLinkDestination(source, openingParen) {
   return null;
 }
 
+function normalizedReference(label) {
+  return label.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
 function linkTargets(source) {
   const markdown = markdownWithoutIgnoredRegions(source);
+  const definitions = new Map();
+  const definitionPattern =
+    /^\s{0,3}\[([^\]]+)\]:[ \t]*(<[^>\n]+>|[^\s\n]+)[^\n]*(?:\n|$)/gm;
+
+  const markdownWithoutDefinitions = markdown.replace(
+    definitionPattern,
+    (definition, label, target) => {
+      const key = normalizedReference(label);
+      if (!definitions.has(key)) {
+        definitions.set(key, target);
+      }
+      return blankMarkdown(definition);
+    },
+  );
+
   const targets = [];
 
-  for (let index = 0; index < markdown.length; index += 1) {
-    const isImage = markdown[index] === "!" && markdown[index + 1] === "[";
+  for (let index = 0; index < markdownWithoutDefinitions.length; index += 1) {
+    const isImage =
+      markdownWithoutDefinitions[index] === "!" &&
+      markdownWithoutDefinitions[index + 1] === "[";
     const opening = isImage ? index + 1 : index;
-    if (markdown[opening] !== "[") {
+    if (markdownWithoutDefinitions[opening] !== "[") {
       continue;
     }
 
-    const labelEnd = closingBracket(markdown, opening);
-    if (labelEnd === -1 || markdown[labelEnd + 1] !== "(") {
+    const labelEnd = closingBracket(markdownWithoutDefinitions, opening);
+    if (labelEnd === -1) {
       continue;
     }
 
-    const destination = inlineLinkDestination(markdown, labelEnd + 1);
-    if (destination !== null) {
+    if (markdownWithoutDefinitions[labelEnd + 1] === "(") {
+      const destination = inlineLinkDestination(
+        markdownWithoutDefinitions,
+        labelEnd + 1,
+      );
+      if (destination === null) {
+        continue;
+      }
       targets.push({
         isImage,
-        line: lineAt(markdown, index),
+        line: lineAt(markdownWithoutDefinitions, index),
         target: destination.target,
       });
       index = destination.end;
+      continue;
     }
-  }
 
-  const references = /^\s{0,3}\[[^\]]+]:\s*(<[^>\n]+>|[^\s\n]+)/gm;
-  for (const match of markdown.matchAll(references)) {
-    targets.push({
-      isImage: false,
-      line: lineAt(markdown, match.index),
-      target: match[1],
-    });
+    let referenceLabel = markdownWithoutDefinitions.slice(opening + 1, labelEnd);
+    let referenceEnd = labelEnd;
+    if (markdownWithoutDefinitions[labelEnd + 1] === "[") {
+      referenceEnd = closingBracket(markdownWithoutDefinitions, labelEnd + 1);
+      if (referenceEnd === -1) {
+        continue;
+      }
+      const explicitLabel = markdownWithoutDefinitions.slice(
+        labelEnd + 2,
+        referenceEnd,
+      );
+      if (explicitLabel !== "") {
+        referenceLabel = explicitLabel;
+      }
+    }
+
+    const target = definitions.get(normalizedReference(referenceLabel));
+    if (target !== undefined) {
+      targets.push({
+        isImage,
+        line: lineAt(markdownWithoutDefinitions, index),
+        target,
+      });
+    }
+    index = referenceEnd;
   }
 
   return targets;

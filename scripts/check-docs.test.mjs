@@ -71,3 +71,66 @@ test("does not count an image as the required README entry link", () => {
   assert.equal(result.status, 1);
   assert.match(result.stderr, /README\.md:1: missing required link to docs\/index\.md/);
 });
+
+test("does not count an unused reference definition as the README entry link", () => {
+  const result = runChecker({
+    "README.md": "# Project\n\n[documentation]: docs/index.md\n",
+    "docs/index.md": validIndex,
+  });
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /README\.md:1: missing required link to docs\/index\.md/);
+});
+
+test("does not count an image-only reference use as the README entry link", () => {
+  const result = runChecker({
+    "README.md": [
+      "# Project",
+      "",
+      "![Documentation][documentation]",
+      "",
+      "[documentation]: docs/index.md",
+      "",
+    ].join("\n"),
+    "docs/index.md": validIndex,
+  });
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /README\.md:1: missing required link to docs\/index\.md/);
+});
+
+test("counts a real reference link as the README entry link", () => {
+  const result = runChecker({
+    "README.md": [
+      "# Project",
+      "",
+      "[Documentation][documentation]",
+      "",
+      "[documentation]: docs/index.md",
+      "",
+    ].join("\n"),
+    "docs/index.md": validIndex,
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test("ignores link-like text in single-backtick code spans", () => {
+  const result = runChecker({
+    "README.md": `${readmeLink}\nUse \`[pseudo](missing-single.md)\` here.\n`,
+    "docs/index.md": validIndex,
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stderr, "");
+});
+
+test("ignores link-like text in multi-backtick code spans", () => {
+  const result = runChecker({
+    "README.md": `${readmeLink}\nUse \`\`[pseudo](missing-multi.md) with \` code\`\` here.\n`,
+    "docs/index.md": validIndex,
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stderr, "");
+});
