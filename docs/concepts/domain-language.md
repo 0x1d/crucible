@@ -33,4 +33,4 @@ boundaries.
 | Harness tool | A host-visible alias that submits one registry protocol operation. It is not a capability implementation. |
 | `AgentFn.Tool` | The Elixir behaviour that declares the `run/1` callback for entry modules. It is not a host-visible tool or a registry entry. |
 | `runtime/` | The Mix project containing the control-plane modules and CLI. |
-| Long-lived BEAM | The `elixir` process started by the Node bridge to run `Runtime.Server`. It serves many registry operations until restart (for example when `runtime/` sources change or the bridge recovers from a transport error). |
+| Long-lived BEAM | The `elixir --no-halt` process started by the Node bridge. It runs the runtime application: a task supervisor, `Runtime.Server` (compile serializer), and a permanent acceptor. It serves many registry operations until restart (for example when `runtime/` sources change, the supervisor hits its restart limit, or the bridge recovers from a transport error). |

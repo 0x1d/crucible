@@ -41,6 +41,7 @@ test("registry ops share one started Erlang VM", { timeout: 180_000 }, async () 
   assert.doesNotMatch(command, /run_stdio/);
   assert.doesNotMatch(command, /\bmix\b/);
   assert.match(command, /elixir/);
+  assert.match(command, /ensure_all_started\(:runtime, :permanent\)/);
 
   const environ = fs.readFileSync(`/proc/${pid}/environ`).toString("utf8");
   assert.ok(environ.includes(stateDir));

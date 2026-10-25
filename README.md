@@ -21,9 +21,13 @@ flowchart LR
 ```
 
 The registry protocol operations are `define`, `load`, `find`, and `call`. The Node
-bridge keeps one local BEAM process running so compiled entry modules stay loaded
-across operations. Model-facing harness tools in the Cursor adapter map one-to-one
-to those operations; other hosts can call the same operations through
+bridge uses Mix only to compile `runtime/`. The process that stays up is
+`elixir --no-halt`, with the runtime application started as permanent, so compiled
+entry modules stay loaded across operations. That application supervises connection
+tasks, a compile serializer, and a permanent acceptor. Live node files (`port`,
+`pid`, and the bridge's `stamp`) are under `runtime/.alchemist/` unless
+`ALCHEMIST_STATE_DIR` is set. Model-facing harness tools in the Cursor adapter map
+one-to-one to those operations; other hosts can call the same operations through
 `scripts/registry-cli.mjs` or a thin wrapper.
 
 ## Quick start

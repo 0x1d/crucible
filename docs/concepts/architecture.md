@@ -42,17 +42,46 @@ that VM and sends each operation as a TCP request.
 sequenceDiagram
   participant Adapter as Host adapter
   participant Bridge as Node bridge
-  participant Beam as Runtime.Server
-  participant Engine as Runtime.Engine
+  participant Acceptor as Acceptor task
+  participant Conn as Connection task
+  participant Server as Runtime.Server
 
   Adapter->>Bridge: RegistryRequest JSON
   Bridge->>Bridge: mix compile (when runtime sources change)
-  Bridge->>Beam: TCP RPC (boot VM if needed)
-  Beam->>Engine: Runtime.CLI.dispatch
-  Engine-->>Beam: result map
-  Beam-->>Bridge: JSON response
+  Bridge->>Acceptor: TCP connect (boot VM if needed)
+  Acceptor->>Conn: start_child and controlling_process
+  Conn->>Server: serialize define or load
+  Conn->>Conn: run/1 for call
+  Conn-->>Bridge: length-prefixed JSON
   Bridge-->>Adapter: ToolExecuteResult
 ```
+
+## Supervision
+
+`Runtime.Application` is a named `one_for_one` supervisor (3 restarts in 5
+seconds). Children start in this order:
+
+| Child | Restart | Role |
+| --- | --- | --- |
+| `Runtime.TaskSupervisor` | permanent supervisor | Temporary task per accepted socket |
+| `Runtime.Server` | permanent GenServer | Serializes `define` and `load`. Does not own a socket |
+| `Runtime.Acceptor` | permanent `Task` | Owns the loopback listen socket and accepts |
+
+The acceptor hands each client to `Task.Supervisor.start_child/2`, then
+`:gen_tcp.controlling_process/2` so the task owns the socket. The task reads one
+4-byte length-prefixed JSON frame, dispatches it, and closes the socket. `call`
+runs `run/1` in that task. `define` and `load` compile inside `Runtime.Server` so
+`Code.require_file/2` stays single-threaded.
+
+An acceptor crash restarts under the supervisor. Repeated accept failures stop
+the application instead of looping in the acceptor. The bridge starts the
+application with `Application.ensure_all_started(:runtime, :permanent)`, so a
+supervisor that gives up exits the VM. The next registry call boots a new one.
+A connection crash closes that socket and leaves the acceptor and serializer
+running.
+
+Shutdown stops children in reverse: the listen socket closes, then the
+serializer, then in-flight connection tasks.
 
 Implications:
 

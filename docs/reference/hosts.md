@@ -57,7 +57,7 @@ No single vendor SDK bills across Cursor, OpenCode, and Anthropic. Unify at the
 ## Anthropic (direct)
 
 - **API / Agent SDK:** [Claude Agent SDK](https://docs.anthropic.com/en/docs/agents) or Messages API with tool definitions.
-- **Registry:** Same four operations via `registry-cli.mjs` or a small TCP client around `Runtime.Server`.
+- **Registry:** Same four operations. The live interface is a 4-byte length-prefixed JSON socket on `127.0.0.1` (see [Registry protocol](./protocol.md)). `registry-cli.mjs` reaches it through the Node bridge. `Runtime.CLI.run_stdio/0` is a single-request debug helper, not the host interface.
 
 ## Go multi-agent wrappers (community)
 

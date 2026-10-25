@@ -57,36 +57,82 @@ defmodule Runtime.Engine do
 
   def call(name, args) when is_map(args) do
     slug = Registry.sanitize(name)
+
+    case ensure_ready(slug) do
+      {:ok, module} -> invoke(module, slug, args)
+      {:error, message} -> %{ok: false, error: message}
+    end
+  end
+
+  def call(_name, _args) do
+    %{ok: false, error: "args must be a JSON object"}
+  end
+
+  # Compiles only when the entry is not already loaded. The caller, which is
+  # the connection task for a socket request, runs run/1.
+  defp ensure_ready(slug) do
     module = Registry.module_name(slug)
 
-    try do
-      unless Code.ensure_loaded?(module) and function_exported?(module, :run, 1) do
-        load(slug)
-      end
+    cond do
+      ready?(module) ->
+        {:ok, module}
 
-      result =
+      Process.whereis(Runtime.Server) ->
+        Runtime.Server.serialize(fn -> load_ready(slug) end)
+
+      true ->
+        load_ready(slug)
+    end
+  end
+
+  defp load_ready(slug) do
+    module = Registry.module_name(slug)
+
+    if ready?(module) do
+      {:ok, module}
+    else
+      case load(slug) do
+        %{ok: true} ->
+          loaded = Registry.module_name(slug)
+          if ready?(loaded), do: {:ok, loaded}, else: {:error, "function #{slug} has no run/1"}
+
+        %{ok: false, error: message} ->
+          {:error, message}
+      end
+    end
+  end
+
+  defp ready?(module) do
+    Code.ensure_loaded?(module) and function_exported?(module, :run, 1)
+  end
+
+  defp invoke(module, slug, args) do
+    result =
+      try do
         case apply(module, :run, [args]) do
           {:ok, value} -> %{ok: true, result: value}
           {:error, message} -> %{ok: false, error: to_string(message)}
           value when is_map(value) -> %{ok: true, result: value}
           other -> %{ok: true, result: other}
         end
+      rescue
+        e in UndefinedFunctionError ->
+          %{ok: false, error: "function #{slug} has no run/1: #{Exception.message(e)}"}
 
-      Map.put(result, :function, slug)
-    rescue
-      e in UndefinedFunctionError ->
-        %{ok: false, error: "function #{slug} has no run/1: #{Exception.message(e)}"}
+        e in ArgumentError ->
+          %{ok: false, error: Exception.message(e)}
 
-      e in ArgumentError ->
-        %{ok: false, error: Exception.message(e)}
-    catch
-      :throw, {:error, message} ->
-        %{ok: false, error: message}
-    end
-  end
+        exception ->
+          %{ok: false, error: Exception.message(exception)}
+      catch
+        :throw, {:error, message} ->
+          %{ok: false, error: message}
 
-  def call(_name, _args) do
-    %{ok: false, error: "args must be a JSON object"}
+        :exit, reason ->
+          %{ok: false, error: "exit: #{inspect(reason)}"}
+      end
+
+    Map.put(result, :function, slug)
   end
 
   defp specs_blob(meta) do
