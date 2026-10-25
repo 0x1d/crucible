@@ -16,6 +16,14 @@ npm run check
 
 Run the CLI under Node, never Bun.
 
+## Git commits
+
+Use [Conventional Commits](https://www.conventionalcommits.org/): lowercase type,
+optional scope in parentheses, imperative subject, no trailing period.
+
+Examples: `feat(bot): add search tool`, `fix(nix): correct flake inputs`,
+`docs: update README prerequisites`.
+
 ## Layout
 
 - `bot/instructions.md` is the always-on prompt. Keep it short.
