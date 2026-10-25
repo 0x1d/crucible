@@ -20,20 +20,160 @@ function lineAt(source, index) {
   return source.slice(0, index).split("\n").length;
 }
 
-function linkTargets(source) {
-  const targets = [];
-  const patterns = [
-    /!?\[[^\]]*]\(\s*(<[^>\n]+>|[^\s)\n]+)(?:\s+["'][^"'\n]*["'])?\s*\)/g,
-    /^\s*\[[^\]]+]:\s*(<[^>\n]+>|[^\s\n]+)/gm,
-  ];
+function blankMarkdown(match) {
+  return match.replace(/[^\r\n]/g, " ");
+}
 
-  for (const pattern of patterns) {
-    for (const match of source.matchAll(pattern)) {
-      targets.push({
-        target: match[1],
-        line: lineAt(source, match.index),
-      });
+function markdownWithoutIgnoredRegions(source) {
+  const withoutComments = source.replace(/<!--[\s\S]*?(?:-->|$)/g, blankMarkdown);
+  let fence = null;
+
+  return withoutComments.replace(/^.*(?:\r?\n|$)/gm, (line) => {
+    if (fence !== null) {
+      const closing = line.match(/^ {0,3}(`+|~+)[ \t]*(?:\r?\n)?$/);
+      if (
+        closing &&
+        closing[1][0] === fence.character &&
+        closing[1].length >= fence.length
+      ) {
+        fence = null;
+      }
+      return blankMarkdown(line);
     }
+
+    const opening = line.match(/^ {0,3}(`{3,}|~{3,})/);
+    if (opening) {
+      fence = {
+        character: opening[1][0],
+        length: opening[1].length,
+      };
+      return blankMarkdown(line);
+    }
+
+    return line;
+  });
+}
+
+function closingBracket(source, opening) {
+  let depth = 0;
+
+  for (let index = opening; index < source.length; index += 1) {
+    if (source[index] === "\\") {
+      index += 1;
+    } else if (source[index] === "[") {
+      depth += 1;
+    } else if (source[index] === "]") {
+      depth -= 1;
+      if (depth === 0) {
+        return index;
+      }
+    }
+  }
+
+  return -1;
+}
+
+function skipWhitespace(source, start) {
+  let index = start;
+  while (index < source.length && /\s/.test(source[index])) {
+    index += 1;
+  }
+  return index;
+}
+
+function linkClosingParen(source, start) {
+  let index = skipWhitespace(source, start);
+  if (source[index] === ")") {
+    return index;
+  }
+
+  const opener = source[index];
+  const closer = opener === "(" ? ")" : opener;
+  if (opener !== "'" && opener !== '"' && opener !== "(") {
+    return -1;
+  }
+
+  index += 1;
+  for (; index < source.length; index += 1) {
+    if (source[index] === "\\") {
+      index += 1;
+    } else if (source[index] === closer) {
+      index = skipWhitespace(source, index + 1);
+      return source[index] === ")" ? index : -1;
+    }
+  }
+
+  return -1;
+}
+
+function inlineLinkDestination(source, openingParen) {
+  let index = skipWhitespace(source, openingParen + 1);
+
+  if (source[index] === "<") {
+    const start = index + 1;
+    index = source.indexOf(">", start);
+    if (index === -1) {
+      return null;
+    }
+    const end = linkClosingParen(source, index + 1);
+    return end === -1 ? null : { end, target: source.slice(start, index) };
+  }
+
+  const start = index;
+  let depth = 0;
+  for (; index < source.length; index += 1) {
+    if (source[index] === "\\") {
+      index += 1;
+    } else if (source[index] === "(") {
+      depth += 1;
+    } else if (source[index] === ")") {
+      if (depth === 0) {
+        return { end: index, target: source.slice(start, index) };
+      }
+      depth -= 1;
+    } else if (/\s/.test(source[index]) && depth === 0) {
+      const end = linkClosingParen(source, index);
+      return end === -1 ? null : { end, target: source.slice(start, index) };
+    }
+  }
+
+  return null;
+}
+
+function linkTargets(source) {
+  const markdown = markdownWithoutIgnoredRegions(source);
+  const targets = [];
+
+  for (let index = 0; index < markdown.length; index += 1) {
+    const isImage = markdown[index] === "!" && markdown[index + 1] === "[";
+    const opening = isImage ? index + 1 : index;
+    if (markdown[opening] !== "[") {
+      continue;
+    }
+
+    const labelEnd = closingBracket(markdown, opening);
+    if (labelEnd === -1 || markdown[labelEnd + 1] !== "(") {
+      continue;
+    }
+
+    const destination = inlineLinkDestination(markdown, labelEnd + 1);
+    if (destination !== null) {
+      targets.push({
+        isImage,
+        line: lineAt(markdown, index),
+        target: destination.target,
+      });
+      index = destination.end;
+    }
+  }
+
+  const references = /^\s{0,3}\[[^\]]+]:\s*(<[^>\n]+>|[^\s\n]+)/gm;
+  for (const match of markdown.matchAll(references)) {
+    targets.push({
+      isImage: false,
+      line: lineAt(markdown, match.index),
+      target: match[1],
+    });
   }
 
   return targets;
@@ -107,9 +247,9 @@ if (!existsSync(indexPath)) {
 const readmePath = path.join(root, "README.md");
 if (existsSync(readmePath)) {
   const readme = readFileSync(readmePath, "utf8");
-  const linksToIndex = linkTargets(readme).some(({ target }) => {
+  const linksToIndex = linkTargets(readme).some(({ isImage, target }) => {
     const local = localPath(target);
-    return local !== null && resolvedTarget("README.md", local) === indexPath;
+    return !isImage && local !== null && resolvedTarget("README.md", local) === indexPath;
   });
   if (!linksToIndex) {
     report("README.md", 1, "missing required link to docs/index.md");

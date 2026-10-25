@@ -6,6 +6,7 @@
   "scripts": {
     "check": "tsc --noEmit",
     "check:docs": "node scripts/check-docs.mjs",
+    "test:check-docs": "node --test scripts/check-docs.test.mjs",
     "dev": "agent-sdk dev"
   },
   "dependencies": {
