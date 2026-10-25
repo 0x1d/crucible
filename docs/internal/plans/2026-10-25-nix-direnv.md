@@ -15,7 +15,7 @@
 - No auto `npm install` / `mix deps.get` in the hook — reminders only
 - `shell.nix` is canonical; flake must not duplicate package lists
 - Non-Nix users ignore these files; do not break existing npm/mix docs
-- Spec: `docs/superpowers/specs/2026-10-25-nix-direnv-design.md`
+- Spec: `docs/internal/specs/2026-10-25-nix-direnv-design.md`
 
 ---
 

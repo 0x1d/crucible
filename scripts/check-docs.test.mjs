@@ -134,3 +134,17 @@ test("ignores link-like text in multi-backtick code spans", () => {
   assert.equal(result.status, 0, result.stderr);
   assert.equal(result.stderr, "");
 });
+
+test("requires lowercase markdown filenames under docs/", () => {
+  const result = runChecker({
+    "README.md": readmeLink,
+    "docs/index.md": validIndex,
+    "docs/BAD.md": "# Bad\n",
+  });
+
+  assert.equal(result.status, 1);
+  assert.match(
+    result.stderr,
+    /docs\/BAD\.md:1: documentation filenames under docs\/ must be lowercase/,
+  );
+});

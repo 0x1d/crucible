@@ -111,14 +111,13 @@ defmodule Runtime.Registry do
     File.write!(source_path(slug), full_source)
 
     meta =
-      %{
+      write_meta_file(slug, %{
         "name" => slug,
         "module" => Atom.to_string(module),
         "description" => description,
         "updated_at" => DateTime.utc_now() |> DateTime.to_iso8601(),
         "loaded" => false
-      }
-      |> write_meta_file(slug)
+      })
 
     {:ok, meta}
   end

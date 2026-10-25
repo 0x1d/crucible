@@ -310,6 +310,13 @@ for (const file of markdownFiles) {
   const lines = source.split("\n");
   const internal = file.startsWith("docs/internal/");
 
+  if (file.startsWith("docs/")) {
+    const basename = path.basename(file);
+    if (basename !== basename.toLowerCase()) {
+      report(file, 1, "documentation filenames under docs/ must be lowercase");
+    }
+  }
+
   for (const { target, line } of linkTargets(source)) {
     const local = localPath(target);
     if (local !== null && !existsSync(resolvedTarget(file, local))) {

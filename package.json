@@ -4,7 +4,8 @@
   "type": "module",
   "description": "Alchemist host-independent Elixir capability registry",
   "scripts": {
-    "check": "tsc --noEmit",
+    "check": "npm run check:types && npm run check:docs",
+    "check:types": "tsc --noEmit",
     "check:docs": "node scripts/check-docs.mjs",
     "test:check-docs": "node --test scripts/check-docs.test.mjs",
     "dev": "agent-sdk dev"

@@ -9,7 +9,7 @@ defmodule Runtime.Engine do
 
     try do
       slug = meta["name"]
-      module = Compiler.compile_slug!(slug)
+      module = Compiler.compile_slug!(slug, reload: true)
       Registry.refresh_metadata!(slug, module)
       Registry.mark_loaded(slug, true)
       %{ok: true, function: Registry.load_meta(slug)}
@@ -24,7 +24,7 @@ defmodule Runtime.Engine do
     slug = Registry.sanitize(name)
 
     try do
-      module = Compiler.compile_slug!(slug)
+      module = Compiler.compile_slug!(slug, reload: true)
       Registry.refresh_metadata!(slug, module)
       Registry.mark_loaded(slug, true)
 

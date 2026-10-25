@@ -24,3 +24,6 @@ runtime-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
+
+# Live BEAM port/pid written by Runtime.Server.
+/.alchemist/

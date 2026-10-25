@@ -1,6 +1,9 @@
 defmodule Runtime.CLI do
   @moduledoc """
-  JSON stdin/stdout control plane for the Alchemist registry (host-agnostic).
+  JSON dispatch for the Alchemist registry.
+
+  Hosts talk to `Runtime.Server`, which stays up for the life of the BEAM.
+  `run_stdio/0` is a single-request debug helper.
   """
 
   alias Runtime.Engine

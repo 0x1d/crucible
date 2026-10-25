@@ -3,22 +3,22 @@ defmodule Runtime.Compiler do
 
   alias Runtime.Registry
 
-  @spec compile_shared!() :: :ok
-  def compile_shared! do
+  @spec compile_shared!(keyword()) :: :ok
+  def compile_shared!(opts \\ []) do
     lib_root = Path.join(Registry.functions_root(), "lib")
 
     if File.dir?(lib_root) do
       lib_root
       |> source_files_recursive()
-      |> compile_files()
+      |> compile_files(opts)
     end
 
     :ok
   end
 
-  @spec compile_slug!(String.t()) :: module()
-  def compile_slug!(slug) do
-    compile_shared!()
+  @spec compile_slug!(String.t(), keyword()) :: module()
+  def compile_slug!(slug, opts \\ []) do
+    compile_shared!(opts)
 
     dir = Registry.function_dir(slug)
 
@@ -32,7 +32,7 @@ defmodule Runtime.Compiler do
       throw({:error, "no .ex sources in #{slug}"})
     end
 
-    compiled = compile_files(files)
+    compiled = compile_files(files, opts)
 
     expected = Registry.module_name(slug)
 
@@ -56,14 +56,41 @@ defmodule Runtime.Compiler do
     end)
   end
 
-  defp compile_files(paths) do
-    paths
-    |> Enum.flat_map(fn path ->
-      Code.compile_file(path)
-      |> List.wrap()
-      |> Enum.map(fn {mod, _} -> mod end)
-    end)
-    |> Enum.uniq()
+  # require_file/2 compiles a path once per VM. reload unrequires first so
+  # load/define pick up edits. purge_compiler_modules/0 drops the temporary
+  # modules a long-running node would otherwise keep.
+  defp compile_files(paths, opts) do
+    paths = Enum.map(paths, &Path.expand/1)
+    reload? = Keyword.get(opts, :reload, false)
+    if reload?, do: Code.unrequire_files(paths)
+
+    try do
+      compile = fn ->
+        paths
+        |> Enum.flat_map(fn path ->
+          case Code.require_file(path) do
+            nil -> []
+            modules -> Enum.map(modules, &elem(&1, 0))
+          end
+        end)
+        |> Enum.uniq()
+      end
+
+      if reload?, do: allowing_redefinition(compile), else: compile.()
+    after
+      Code.purge_compiler_modules()
+    end
+  end
+
+  defp allowing_redefinition(fun) do
+    previous = Code.get_compiler_option(:ignore_module_conflict)
+    Code.put_compiler_option(:ignore_module_conflict, true)
+
+    try do
+      fun.()
+    after
+      Code.put_compiler_option(:ignore_module_conflict, previous)
+    end
   end
 
   defp validate_entry_module!(slug, expected, entry, compiled) do

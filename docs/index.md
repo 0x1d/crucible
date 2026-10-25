@@ -8,27 +8,29 @@ and metadata live in an Elixir source tree.
 
 ### Evaluate Alchemist
 
-Start with the [product overview](../README.md), then use the
-[domain language](./concepts/domain-language.md) to identify the product and
-implementation boundaries.
+Start with the [product overview](../README.md), then read
+[Architecture](./concepts/architecture.md) and the
+[domain language](./concepts/domain-language.md) for product and implementation
+boundaries.
 
 ### Create a registry entry
 
-Read [Using the harness](./USAGE.md) for the current authoring workflow. Keep
-the [domain language](./concepts/domain-language.md) available for slug, module,
-and composition conventions.
+Follow [Getting started](./guides/getting-started.md) for setup, then
+[Authoring registry entries](./guides/authoring-entries.md) for slug layout,
+composition, and harness operations.
 
 ### Integrate a host
 
-Read [Host adapters](./HOSTS.md) for the current adapter boundary and available
-integration patterns. The operation names and request types are defined in
+Read [Host adapters](./reference/hosts.md) for adapter patterns and deployment
+considerations. Operation shapes are specified in the
+[registry protocol](./reference/protocol.md) and
 [`core/protocol.ts`](../core/protocol.ts).
 
 ### Understand the protocol
 
-Begin with the registry protocol and implementation terms in the
-[domain language](./concepts/domain-language.md), then inspect the operation
-types in [`core/protocol.ts`](../core/protocol.ts).
+Read the [domain language](./concepts/domain-language.md), then the
+[registry protocol](./reference/protocol.md) and
+[architecture](./concepts/architecture.md) request lifecycle.
 
 ### Contribute to the repository
 
@@ -40,11 +42,15 @@ subsystems.
 
 | Document | Audience | Read when |
 | --- | --- | --- |
-| [Product overview](../README.md) | Evaluators and new contributors | Establishing the product boundary, layers, and initial workflows. |
+| [Product overview](../README.md) | Evaluators and new contributors | Establishing scope, quick start, and documentation entry points. |
 | [Documentation index](./index.md) | All readers | Selecting a goal-oriented path through the documentation. |
+| [Architecture](./concepts/architecture.md) | Evaluators and integrators | Understanding components, lifecycle, and composition models. |
 | [Domain language](./concepts/domain-language.md) | All readers and contributors | Interpreting canonical product and implementation terms. |
-| [Using the harness](./USAGE.md) | Registry entry authors and operators | Defining, loading, finding, and calling entries with the current interfaces. |
-| [Host adapters](./HOSTS.md) | Host integrators | Mapping a host environment to the registry protocol. |
+| [Getting started](./guides/getting-started.md) | Operators and authors | Installing dependencies and making the first registry call. |
+| [Authoring registry entries](./guides/authoring-entries.md) | Registry entry authors | Slugs, modules, harness operations, and testing entries. |
+| [Registry protocol](./reference/protocol.md) | Host integrators and contributors | Request and response contracts for all four operations. |
+| [Host adapters](./reference/hosts.md) | Host integrators | Mapping environments to the registry protocol. |
+| [Security boundary](./reference/security.md) | Operators and security reviewers | Current trust model and arbitrary-code risks. |
 | [Mix control-plane notes](../runtime/README.md) | Runtime contributors | Working in the `runtime/` Mix project. |
 | [Repository-agent rules](../AGENTS.md) | Coding agents contributing to the repository | Applying repository commands, layout rules, and contribution constraints. |
 
@@ -55,7 +61,4 @@ than public product documentation.
 
 Files under `docs/internal/` record engineering decisions and implementation
 plans at a point in time. They do not replace current public documentation.
-
-| Record | Scope |
-| --- | --- |
-| [Documentation rewrite plan](./internal/plans/2026-10-25-documentation-rewrite.md) | Planned restructuring of the public documentation set. |
+See the [internal records index](./internal/index.md) for the full list.
