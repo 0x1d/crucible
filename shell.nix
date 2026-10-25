@@ -5,8 +5,8 @@
 pkgs.mkShell {
   packages = with pkgs; [
     nodejs_22
-    elixir
-    erlang
+    beamPackages.elixir
+    beamPackages.erlang
   ];
 
   shellHook = ''

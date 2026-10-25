@@ -49,10 +49,10 @@ cd runtime && mix deps.get && mix test
 
 Optional. Provides Node 22 and Elixir via a shared `shell.nix` (flake wraps the same shell).
 
-1. Install [direnv](https://direnv.net/) (and preferably [nix-direnv](https://github.com/nix-community/nix-direnv) for caching).
+1. Install [direnv](https://direnv.net/) (and preferably [nix-direnv](https://github.com/nix-community/nix-direnv) for caching). Hook it into your shell (e.g. `eval "$(direnv hook bash)"` in `~/.bashrc`).
 2. Enable flakes if you want the primary path (`nix develop` / `use flake`); classic `nix-shell` still works without flakes.
 3. From the repo root: `direnv allow`.
-4. Run the mix/npm steps above if the shell prints `hint:` reminders.
+4. Run any commands shown in `hint:` lines (mix steps from above; for Node, `npm install` under **Cursor workflow** below).
 
 Non-Nix users can ignore `flake.nix`, `shell.nix`, and `.envrc`.
 
