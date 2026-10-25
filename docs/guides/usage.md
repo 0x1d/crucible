@@ -17,7 +17,7 @@ You / agent  →  host (Cursor BDK or registry-cli)  →  four ops  →  BEAM (R
 | `load-function` | `load` | Compile slug tree |
 | `call-function` | `call` | `AgentFn.*.run(args)` |
 
-Model-facing rules for the agent: [`bot/instructions.md`](../bot/instructions.md).
+Model-facing rules for the agent: [`bot/instructions.md`](../../bot/instructions.md).
 
 ## One-time setup
 
@@ -88,7 +88,7 @@ node scripts/registry-cli.mjs '{"op":"define","name":"my.tool","source":"..."}'
 ```
 
 Wire these four commands as custom tools in OpenCode, Claude Code, or any host.
-See [HOSTS.md](./HOSTS.md).
+See [Host adapters](../reference/hosts.md).
 
 ## Path C — You edit Elixir by hand
 
@@ -128,7 +128,7 @@ npm run check
 
 | Doc | Audience |
 | --- | --- |
-| [README.md](../README.md) | Overview, layers, naming |
-| [bot/instructions.md](../bot/instructions.md) | System prompt for the agent |
-| [HOSTS.md](./HOSTS.md) | Cursor vs OpenCode vs Anthropic |
-| [core/protocol.ts](../core/protocol.ts) | JSON op types |
+| [README.md](../../README.md) | Product overview and quick start |
+| [bot/instructions.md](../../bot/instructions.md) | System prompt for the agent |
+| [Host adapters](../reference/hosts.md) | Cursor vs OpenCode vs Anthropic |
+| [core/protocol.ts](../../core/protocol.ts) | JSON op types |

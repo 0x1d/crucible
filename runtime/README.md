@@ -1,21 +1,21 @@
-# Runtime
+# Mix control plane
 
-**TODO: Add description**
+The `runtime/` Mix project validates, compiles, discovers, and invokes registry
+entries under `functions/`. The Node bridge (`core/elixir-bridge.ts`) boots a
+long-lived `elixir` process running `Runtime.Server`, which keeps compiled entry
+modules loaded between registry operations.
 
-## Installation
+## Development
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `runtime` to your list of dependencies in `mix.exs`:
-
-```elixir
-def deps do
-  [
-    {:runtime, "~> 0.1.0"}
-  ]
-end
+```bash
+mix deps.get
+mix test
 ```
 
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at <https://hexdocs.pm/runtime>.
+Registry JSON operations are dispatched through `Runtime.CLI` inside the
+server BEAM. See [Host adapters](../docs/reference/hosts.md) and
+[Domain language](../docs/concepts/domain-language.md) for product boundaries.
 
+Environment variable `AGENT_FUNCTIONS_DIR` overrides the default `functions/`
+directory when set. `ALCHEMIST_STATE_DIR` overrides the bridge state directory
+(default `runtime/.alchemist`).

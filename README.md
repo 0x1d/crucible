@@ -1,92 +1,60 @@
 # Alchemist
 
-A **host-agnostic Elixir tool registry** with an optional **Cursor Agent SDK**
-adapter. The model gets four fixed tools; every real capability is an Elixir
-module on disk (`functions/`) with `@moduledoc`, `@spec`, and `run/1`.
+Alchemist is a host-independent Elixir capability registry. Hosts expose a fixed
+four-operation JSON protocol; capabilities live in an Elixir source tree under
+`functions/`, each entry implemented by an `AgentFn.*` module with `run/1`.
 
-## Layers
+## Architecture
 
+```mermaid
+flowchart LR
+  Host["Host environment"]
+  Adapter["Host adapter or CLI"]
+  Bridge["Node bridge\n(core/elixir-bridge.ts)"]
+  Beam["Long-lived BEAM\n(Runtime.Server)"]
+  Tree["Capability tree\n(functions/)"]
+
+  Host --> Adapter
+  Adapter --> Bridge
+  Bridge --> Beam
+  Beam --> Tree
 ```
-┌──────────────────┐   ┌──────────────────┐   ┌─────────────────────────┐
-│  Host adapter    │   │  core/           │   │  runtime/ (OTP)         │
-│  bot/ (Cursor)   │──►│  protocol +      │──►│  Runtime.Server         │
-│  or registry-cli │   │  elixir-bridge   │   │  AgentFn / AgentLib     │
-└──────────────────┘   └──────────────────┘   └───────────┬─────────────┘
-                                                            ▼
-                                                  functions/<slug>/
-```
 
-| Layer | Path | Notes |
-| --- | --- | --- |
-| Registry | `runtime/`, `functions/` | Portable; no Cursor dependency |
-| Bridge | `core/elixir-bridge.ts` | One BEAM for `define` / `load` / `find` / `call` |
-| Cursor host | `bot/tools/*.ts` | `@grok/agent-sdk` — Slack, deploy, evals |
-| Other hosts | `scripts/registry-cli.mjs` | See [docs/HOSTS.md](docs/HOSTS.md) |
+The registry protocol operations are `define`, `load`, `find`, and `call`. The Node
+bridge keeps one local BEAM process running so compiled entry modules stay loaded
+across operations. Model-facing harness tools in the Cursor adapter map one-to-one
+to those operations; other hosts can call the same operations through
+`scripts/registry-cli.mjs` or a thin wrapper.
 
-## Naming
+## Quick start
 
-| | Convention |
-| --- | --- |
-| Harness tools | kebab-case (`define-function`) |
-| Slug | `snake_case` with `.` namespaces → `functions/data/pipeline/` |
-| Entry module | `AgentFn.Data.Pipeline` + `run/1` |
-| Deep modules | `AgentFn.Data.Pipeline.Steps.*` (any depth under the slug tree) |
-| Dynamic dispatch | `AgentFn.Registry.call/2` (static wiring: direct `run/1` calls) |
-| Shared code | `AgentLib.*` under `functions/lib/` |
-| Docs | `@moduledoc` / `@spec` → synced to `meta.json` on load |
-
-## Prerequisites
-
-- Node 22.13+ (for Cursor adapter only)
-- Elixir 1.14+
+Prerequisites: Node 22.13+ (Cursor adapter only) and Elixir 1.14+.
 
 ```bash
 mix local.hex --force && mix local.rebar --force
-cd runtime && mix deps.get && mix test
+(cd runtime && mix deps.get)
+npm ci
+npm run check
+node scripts/registry-cli.mjs '{"op":"call","name":"echo","args":{"hello":"world"}}'
 ```
 
-### Nix / NixOS
-
-Optional. Provides Node 22 and Elixir via a shared `shell.nix` (flake wraps the same shell).
-
-1. Install [direnv](https://direnv.net/) (and preferably [nix-direnv](https://github.com/nix-community/nix-direnv) for caching). Hook it into your shell (e.g. `eval "$(direnv hook bash)"` in `~/.bashrc`).
-2. Enable flakes if you want the primary path (`nix develop` / `use flake`); classic `nix-shell` still works without flakes.
-3. From the repo root: `direnv allow`.
-4. Run any commands shown in `hint:` lines (mix steps from above; for Node, `npm install` under **Cursor workflow** below).
-
-Non-Nix users can ignore `flake.nix`, `shell.nix`, and `.envrc`.
-
-**Full walkthrough:** [docs/USAGE.md](docs/USAGE.md) (Cursor chat, CLI tools, hand-edited Elixir).
-
-## Cursor workflow
+Optional Cursor development:
 
 ```bash
-npm install
 npx @grok/agent-sdk dev
 ```
 
-```bash
-npx @grok/agent-sdk tool call find-function --input '{}'
-npx @grok/agent-sdk tool call call-function --input '{"name":"echo","args":{"hello":"world"}}'
-```
+## Documentation
 
-## Host-agnostic CLI
-
-```bash
-node scripts/registry-cli.mjs '{"op":"find","query":""}'
-node scripts/registry-cli.mjs '{"op":"call","name":"echo","args":{"x":1}}'
-```
-
-## Multi-subscription note
-
-There is **no single vendor SDK** that bills Cursor, OpenCode Go, and Anthropic
-together. Unify at this **registry protocol**; pick a **host** per environment
-(Cursor BDK, OpenCode CLI, Claude Agent SDK) and wire the same four ops. Details:
-[docs/HOSTS.md](docs/HOSTS.md).
+- [Documentation index](docs/index.md) — goal-oriented reading paths
+- [Using the harness](docs/guides/usage.md) — setup, harness tools, and registry workflows
+- [Domain language](docs/concepts/domain-language.md) — canonical product and implementation terms
+- [Host adapters](docs/reference/hosts.md) — integrating Cursor, CLI, and other hosts
 
 ## Security
 
-`define-function` is arbitrary code execution on the host.
+`define` accepts arbitrary Elixir source and executes with the privileges of the
+long-lived BEAM process on the host. Restrict registry access to trusted users and inputs.
 
 ## License
 
