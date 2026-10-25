@@ -6,3 +6,4 @@ memory
 runtime/_build
 runtime/deps
 runtime/.fetch
+.direnv/
