@@ -2,9 +2,11 @@
   "name": "elixir-harness",
   "private": true,
   "type": "module",
-  "description": "agent project: elixir-harness-tmp",
+  "description": "Alchemist host-independent Elixir capability registry",
   "scripts": {
     "check": "tsc --noEmit",
+    "check:docs": "node scripts/check-docs.mjs",
+    "test:check-docs": "node --test scripts/check-docs.test.mjs",
     "dev": "agent-sdk dev"
   },
   "dependencies": {
