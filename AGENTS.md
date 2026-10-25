@@ -46,3 +46,9 @@ Examples: `feat(bot): add search tool`, `fix(nix): correct flake inputs`,
 - Skills: `node_modules/@grok/agent-sdk/skills/` (`create-agent`, `deploy`, `evals`, `hillclimb`, `debug`)
 - Docs: `npx @grok/agent-sdk docs`
 - LLM docs index: `node_modules/@grok/agent-sdk/dist/docs/llms.txt`
+
+## Cursor Cloud specific instructions
+
+- Node 22, Elixir 1.20.4, and OTP 28 are on `PATH` (`elixir`, `mix`, and `erl` in `/usr/local/bin`). When `node_modules` or `runtime/deps` is missing, run `npm ci` at the repo root and `mix deps.get` in `runtime/`.
+- Unattended product check: `node scripts/registry-cli.mjs '{"op":"call","name":"echo","args":{"hello":"world"}}'` returns `"ok":true` with `"echoed":true`. Also run `npm run check`, `npx @grok/agent-sdk validate --dir .`, and `cd runtime && mix test`.
+- `npx @grok/agent-sdk dev` needs an interactive Cursor login, so the environment does not start it on boot.
