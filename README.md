@@ -19,7 +19,7 @@ module on disk (`functions/`) with `@moduledoc`, `@spec`, and `run/1`.
 | Layer | Path | Notes |
 | --- | --- | --- |
 | Registry | `runtime/`, `functions/` | Portable; no Cursor dependency |
-| Bridge | `core/elixir-bridge.ts` | `define` / `load` / `find` / `call` |
+| Bridge | `core/elixir-bridge.ts` | One BEAM for `define` / `load` / `find` / `call` |
 | Cursor host | `bot/tools/*.ts` | `@grok/agent-sdk` — Slack, deploy, evals |
 | Other hosts | `scripts/registry-cli.mjs` | See [docs/HOSTS.md](docs/HOSTS.md) |
 

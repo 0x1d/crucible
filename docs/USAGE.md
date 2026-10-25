@@ -79,7 +79,7 @@ Nested slugs use dots: `pipeline.demo` → `functions/pipeline/demo/`.
 
 ## Path B — Host-agnostic (no Cursor)
 
-Same registry, JSON stdin to Mix:
+Same registry. Each command talks to one long-lived BEAM (started on first use):
 
 ```bash
 node scripts/registry-cli.mjs '{"op":"find","query":""}'

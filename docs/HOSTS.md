@@ -5,7 +5,7 @@ Alchemist splits **portable registry** from **agent host**:
 | Layer | Location | Responsibility |
 | --- | --- | --- |
 | Registry | `runtime/` + `functions/` | Define, load, find, call Elixir tools |
-| Bridge | `core/elixir-bridge.ts` | JSON ops → Mix CLI |
+| Bridge | `core/elixir-bridge.ts` | JSON ops → one long-lived BEAM |
 | Host adapter | `bot/` (Cursor today) | Map model tool calls → registry ops |
 
 The model only needs four tools (`define-function`, `load-function`,
