@@ -1,7 +1,8 @@
-# elixir-harness-tmp
+# Alchemist
 
-Agent SDK project (`@grok/agent-sdk`). This file is
-for coding agents editing the project. The served agent's prompt is
+This file contains repository-agent rules for coding agents editing Alchemist.
+The [product overview](README.md) and [documentation index](docs/index.md)
+describe the product and its public reading paths. The served agent's prompt is
 `bot/instructions.md`.
 
 ## Loop
