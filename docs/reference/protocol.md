@@ -165,7 +165,7 @@ results (count may be zero).
 
 **Auto-load**
 
-If the entry module is not loaded in the current process, `call` invokes `load`
+If the entry module is not yet loaded on the live BEAM node, `call` invokes `load`
 before `apply(module, :run, [args])`.
 
 ## Node bridge behavior

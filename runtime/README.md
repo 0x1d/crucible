@@ -1,11 +1,15 @@
-# Mix control plane
+# Codex runtime
 
-The `runtime/` Mix project is Alchemist's **Mix control plane**.
-It validates slugs, compiles codex entry trees, maintains `meta.json`, and invokes `run/1`.
-Hosts send length-prefixed JSON to the acceptor on `127.0.0.1` through the Node bridge or an equivalent TCP client.
+Alchemist's **codex runtime** is the `:runtime` OTP application: it validates slugs,
+compiles codex entry trees into the live BEAM, maintains `meta.json`, and invokes
+`run/1`. Hosts never call these modules directly. They send length-prefixed JSON to
+the acceptor on `127.0.0.1` through the Node bridge or an equivalent TCP client.
 
-The bridge starts a **long-lived BEAM** with `elixir --no-halt` and `Application.ensure_all_started(:runtime, :permanent)`.
-Compiled entry modules stay loaded in that VM until it restarts.
+The sources live in the `runtime/` **Mix project**. The Node bridge runs `mix compile`
+there when those sources change; **Mix does not serve codex requests**. The bridge
+boots a **long-lived BEAM** with `elixir --no-halt` and
+`Application.ensure_all_started(:runtime, :permanent)`. Compiled entry modules stay
+loaded in that node until it restarts.
 
 ## Supervision
 
@@ -66,7 +70,7 @@ sequenceDiagram
 | `functions/<slug-path>/meta.json` | Discovery record (`find`); updated on load/define |
 | `functions/lib/**/*.ex` | Shared `AgentLib.*` modules |
 
-Default functions root is `../functions` relative to this project.
+Default functions root is `../functions` relative to this Mix project.
 
 ## Development
 
@@ -91,8 +95,8 @@ node scripts/cli.mjs '{"op":"call","name":"echo","args":{}}'
 
 ## Limitations
 
-- One BEAM per bridge state directory; stale PIDs are replaced on the next boot.
-- The acceptor restarts on the same port when it can. A dead VM is replaced by the bridge.
+- One BEAM node per bridge state directory; stale PIDs are replaced on the next boot.
+- The acceptor restarts on the same port when it can. A dead node is replaced by the bridge.
 - `"loaded"` in `meta.json` is disk bookkeeping; live code lives in the BEAM until restart.
 - No sandbox: compilation and `run/1` use the host OS identity. See
   [Security boundary](../docs/reference/security.md).

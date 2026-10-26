@@ -35,7 +35,7 @@ Read the [domain language](./concepts/domain-language.md), then the
 ### Contribute to the repository
 
 Read the [repository-agent rules](../AGENTS.md) and the
-[Mix control-plane notes](../runtime/README.md) before changing the respective
+[Codex runtime notes](../runtime/README.md) before changing the respective
 subsystems.
 
 ## Public documents
@@ -51,7 +51,7 @@ subsystems.
 | [Codex protocol](./reference/protocol.md) | Host integrators and contributors | Request and response contracts for all four operations. |
 | [Host adapters](./reference/hosts.md) | Host integrators | Mapping environments to the codex protocol. |
 | [Security boundary](./reference/security.md) | Operators and security reviewers | Current trust model and arbitrary-code risks. |
-| [Mix control-plane notes](../runtime/README.md) | Runtime contributors | Working in the `runtime/` Mix project. |
+| [Codex runtime notes](../runtime/README.md) | Runtime contributors | Working on the `:runtime` application and its Mix project. |
 | [Repository-agent rules](../AGENTS.md) | Coding agents contributing to the repository | Applying repository commands, layout rules, and contribution constraints. |
 
 The served-agent prompt in `bot/instructions.md` is an operational input rather

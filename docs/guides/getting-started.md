@@ -28,7 +28,7 @@ npx @grok/agent-sdk validate --dir .
 
 ## First codex call
 
-The host-agnostic CLI forwards JSON operations to the Mix control plane:
+The host-agnostic CLI forwards JSON operations to the codex runtime (via the Node bridge):
 
 ```bash
 node scripts/cli.mjs '{"op":"call","name":"echo","args":{"hello":"world"}}'

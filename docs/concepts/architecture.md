@@ -12,7 +12,7 @@ flowchart LR
   Host["Host environment"]
   Adapter["Host adapter or CLI"]
   Bridge["Node bridge\n(core/elixir-bridge.ts)"]
-  Beam["Long-lived BEAM\n(Runtime.Server)"]
+  Beam["Long-lived BEAM\n(Runtime.Application)"]
   Tree["Capability tree\n(functions/)"]
 
   Host --> Adapter
@@ -26,7 +26,7 @@ flowchart LR
 | Host | Cursor playground, CI, custom agent loop | Supplies inference, channels, and user session |
 | Host adapter | `bot/tools/*.ts` (Cursor) or `scripts/cli.mjs` | Maps host tool calls to codex JSON requests |
 | Node bridge | `core/elixir-bridge.ts` | Compiles `runtime/` when needed, boots BEAM, TCP RPC |
-| Mix control plane | `runtime/` (`Runtime.Server`, `Runtime.Engine`, …) | Validates slugs, compiles sources, discovers metadata, invokes `run/1` |
+| Codex runtime | `:runtime` application (`Runtime.Server`, `Runtime.Engine`, …) built from `runtime/` | Validates slugs, compiles sources into the live BEAM, discovers metadata, invokes `run/1` |
 | Capability tree | `functions/` | Codex entries (`tool.ex`, deep modules, `meta.json`) |
 
 The Cursor Agent SDK adapter in this repository is one host integration. The same
@@ -129,4 +129,4 @@ flowchart TB
 - [Codex protocol reference](../reference/protocol.md)
 - [Authoring codex entries](../guides/authoring-entries.md)
 - [Host adapters](../reference/hosts.md)
-- [Mix control-plane notes](../../runtime/README.md)
+- [Codex runtime notes](../../runtime/README.md)

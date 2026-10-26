@@ -104,17 +104,7 @@ defmodule Runtime.Server do
 
   @impl true
   def handle_call({:serialize, fun}, _from, state) do
-    reply =
-      try do
-        fun.()
-      rescue
-        exception -> %{ok: false, error: Exception.message(exception)}
-      catch
-        :throw, {:error, message} -> %{ok: false, error: message}
-        :exit, reason -> %{ok: false, error: "exit: #{inspect(reason)}"}
-      end
-
-    {:reply, reply, state}
+    {:reply, Runtime.Result.wrap(fun), state}
   end
 
   defp handoff(socket) do
@@ -163,14 +153,7 @@ defmodule Runtime.Server do
   end
 
   defp dispatch(request) do
-    try do
-      route(request)
-    rescue
-      exception -> %{ok: false, error: Exception.message(exception)}
-    catch
-      :throw, {:error, message} -> %{ok: false, error: message}
-      :exit, reason -> %{ok: false, error: "exit: #{inspect(reason)}"}
-    end
+    Runtime.Result.wrap(fn -> route(request) end)
   end
 
   defp route(%{"op" => op} = request) when op in ["define", "load"] do

@@ -15,7 +15,8 @@ boundaries.
 | Harness tool | A model-facing alias for one codex operation, such as `call-function` for `call`. |
 | Host | An environment that exposes the codex protocol. |
 | Host adapter | Code that maps a host's tool API to codex operations. |
-| Mix control plane | The `runtime/` Mix project, which validates, compiles, discovers, and invokes codex entries. |
+| Codex runtime | The `:runtime` OTP application that validates slugs, compiles entry sources into the live BEAM, discovers metadata, and invokes `run/1`. Hosts reach it over TCP; Mix only builds it. |
+| `runtime/` Mix project | Source and tests for the codex runtime (`mix compile`, `mix test`). Not the live service. |
 | Entry module | The `AgentFn.*` module that matches a slug and exports `run/1`. |
 | Deep module | Supporting code beneath one codex entry's source tree. A deep module is part of that entry's implementation rather than a separately addressed codex entry. |
 | Shared library | `AgentLib.*` code under `functions/lib/` that can be used by multiple codex entries. |
@@ -27,10 +28,10 @@ boundaries.
 | Name | Boundary |
 | --- | --- |
 | Codex | The product-level capability tree, metadata, and protocol contract. |
-| `Runtime.Codex` | The Mix control-plane module that maps slugs to filesystem paths and modules, stores metadata, and discovers entries. |
+| `Runtime.Codex` | Codex-runtime module that maps slugs to filesystem paths and modules, stores metadata, and discovers entries. |
 | `AgentFn.Codex` | The Elixir API available to capability code for listing entries and dynamically dispatching a runtime slug. |
 | Codex entry | A capability addressed by a slug and implemented by its matching entry module. |
 | Harness tool | A host-visible alias that submits one codex protocol operation. It is not a capability implementation. |
 | `AgentFn.Tool` | The Elixir behaviour that declares the `run/1` callback for entry modules. It is not a host-visible tool or a codex entry. |
-| `runtime/` | The Mix project containing the control-plane modules and CLI. |
+| `runtime/` | Mix project whose compiled OTP application is the codex runtime. |
 | Long-lived BEAM | The `elixir --no-halt` process started by the Node bridge. It runs the runtime application: a task supervisor, `Runtime.Server` (compile serializer), and a permanent acceptor. It serves many codex operations until restart (for example when `runtime/` sources change, the supervisor hits its restart limit, or the bridge recovers from a transport error). |
