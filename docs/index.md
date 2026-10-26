@@ -1,6 +1,6 @@
 # Alchemist documentation
 
-Alchemist is a host-independent Elixir capability registry. A fixed JSON
+Alchemist is a host-independent Elixir capability codex. A fixed JSON
 protocol gives hosts access to capabilities whose implementation, composition,
 and metadata live in an Elixir source tree.
 
@@ -13,23 +13,23 @@ Start with the [product overview](../README.md), then read
 [domain language](./concepts/domain-language.md) for product and implementation
 boundaries.
 
-### Create a registry entry
+### Create a codex entry
 
 Follow [Getting started](./guides/getting-started.md) for setup, then
-[Authoring registry entries](./guides/authoring-entries.md) for slug layout,
+[Authoring codex entries](./guides/authoring-entries.md) for slug layout,
 composition, and harness operations.
 
 ### Integrate a host
 
 Read [Host adapters](./reference/hosts.md) for adapter patterns and deployment
 considerations. Operation shapes are specified in the
-[registry protocol](./reference/protocol.md) and
+[codex protocol](./reference/protocol.md) and
 [`core/protocol.ts`](../core/protocol.ts).
 
 ### Understand the protocol
 
 Read the [domain language](./concepts/domain-language.md), then the
-[registry protocol](./reference/protocol.md) and
+[codex protocol](./reference/protocol.md) and
 [architecture](./concepts/architecture.md) request lifecycle.
 
 ### Contribute to the repository
@@ -46,10 +46,10 @@ subsystems.
 | [Documentation index](./index.md) | All readers | Selecting a goal-oriented path through the documentation. |
 | [Architecture](./concepts/architecture.md) | Evaluators and integrators | Understanding components, lifecycle, and composition models. |
 | [Domain language](./concepts/domain-language.md) | All readers and contributors | Interpreting canonical product and implementation terms. |
-| [Getting started](./guides/getting-started.md) | Operators and authors | Installing dependencies and making the first registry call. |
-| [Authoring registry entries](./guides/authoring-entries.md) | Registry entry authors | Slugs, modules, harness operations, and testing entries. |
-| [Registry protocol](./reference/protocol.md) | Host integrators and contributors | Request and response contracts for all four operations. |
-| [Host adapters](./reference/hosts.md) | Host integrators | Mapping environments to the registry protocol. |
+| [Getting started](./guides/getting-started.md) | Operators and authors | Installing dependencies and making the first codex call. |
+| [Authoring codex entries](./guides/authoring-entries.md) | Codex entry authors | Slugs, modules, harness operations, and testing entries. |
+| [Codex protocol](./reference/protocol.md) | Host integrators and contributors | Request and response contracts for all four operations. |
+| [Host adapters](./reference/hosts.md) | Host integrators | Mapping environments to the codex protocol. |
 | [Security boundary](./reference/security.md) | Operators and security reviewers | Current trust model and arbitrary-code risks. |
 | [Mix control-plane notes](../runtime/README.md) | Runtime contributors | Working in the `runtime/` Mix project. |
 | [Repository-agent rules](../AGENTS.md) | Coding agents contributing to the repository | Applying repository commands, layout rules, and contribution constraints. |

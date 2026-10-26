@@ -1,7 +1,7 @@
 defmodule Runtime.ServerTest do
   use ExUnit.Case, async: false
 
-  test "application supervises a long-lived registry server" do
+  test "application supervises a long-lived codex server" do
     pid = Process.whereis(Runtime.Server)
     assert is_pid(pid)
     assert Process.alive?(pid)

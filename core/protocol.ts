@@ -1,12 +1,12 @@
 /**
- * Host-agnostic registry operations. Any agent host (Cursor BDK, OpenCode,
+ * Host-agnostic codex operations. Any agent host (Cursor BDK, OpenCode,
  * Claude Code, a Go wrapper) can forward these four ops to Runtime.Server.
  */
-export const REGISTRY_OPS = ["define", "load", "find", "call"] as const;
+export const CODEX_OPS = ["define", "load", "find", "call"] as const;
 
-export type RegistryOp = (typeof REGISTRY_OPS)[number];
+export type CodexOp = (typeof CODEX_OPS)[number];
 
-export type RegistryRequest =
+export type CodexRequest =
   | { op: "define"; name: string; source: string; description?: string }
   | { op: "load"; name: string }
   | { op: "find"; query?: string }

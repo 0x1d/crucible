@@ -1,7 +1,7 @@
 # Mix control plane
 
 The `runtime/` Mix project is Alchemist's **Mix control plane**.
-It validates slugs, compiles registry entry trees, maintains `meta.json`, and invokes `run/1`.
+It validates slugs, compiles codex entry trees, maintains `meta.json`, and invokes `run/1`.
 Hosts send length-prefixed JSON to the acceptor on `127.0.0.1` through the Node bridge or an equivalent TCP client.
 
 The bridge starts a **long-lived BEAM** with `elixir --no-halt` and `Application.ensure_all_started(:runtime, :permanent)`.
@@ -34,9 +34,9 @@ supervisor gives up, the permanent application exits the VM.
 | `Runtime.CLI` | Operation dispatch for `define`, `load`, `find`, `call` |
 | `Runtime.Engine` | Orchestrates compile, metadata refresh, search, and `run/1` invocation |
 | `Runtime.Compiler` | Compiles `functions/lib` and per-slug `.ex` trees; validates entry module |
-| `Runtime.Registry` | Slug sanitization, paths, `meta.json`, discovery walk, `write_definition` |
+| `Runtime.Codex` | Slug sanitization, paths, `meta.json`, discovery walk, `write_definition` |
 | `Runtime.Metadata` | Extracts `@moduledoc` and `@spec` for metadata files |
-| `AgentFn.Registry` | Dynamic dispatch helper (`call/2`, `list/0`) used from entry code |
+| `AgentFn.Codex` | Dynamic dispatch helper (`call/2`, `list/0`) used from entry code |
 | `AgentFn.Tool` | Behaviour marker for entry modules |
 
 ## Lifecycle
@@ -79,14 +79,14 @@ From the repository root:
 
 ```bash
 (cd runtime && mix test)
-node scripts/registry-cli.mjs '{"op":"call","name":"echo","args":{}}'
+node scripts/cli.mjs '{"op":"call","name":"echo","args":{}}'
 ```
 
 ## Environment variables
 
 | Variable | Effect |
 | --- | --- |
-| `AGENT_FUNCTIONS_DIR` | Path to the capability tree (set by the Node bridge for registry calls) |
+| `AGENT_FUNCTIONS_DIR` | Path to the capability tree (set by the Node bridge for codex calls) |
 | `ALCHEMIST_STATE_DIR` | Live node files (`port`, `pid`) and the bridge's `stamp` (default `runtime/.alchemist`) |
 
 ## Limitations
@@ -96,7 +96,7 @@ node scripts/registry-cli.mjs '{"op":"call","name":"echo","args":{}}'
 - `"loaded"` in `meta.json` is disk bookkeeping; live code lives in the BEAM until restart.
 - No sandbox: compilation and `run/1` use the host OS identity. See
   [Security boundary](../docs/reference/security.md).
-- Operation contract: [Registry protocol](../docs/reference/protocol.md).
+- Operation contract: [Codex protocol](../docs/reference/protocol.md).
 
 ## Related reading
 

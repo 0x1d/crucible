@@ -100,25 +100,25 @@ Define these terms and their boundaries:
 
 | Term | Required meaning |
 | --- | --- |
-| Alchemist | The product: a host-independent Elixir capability registry |
-| Registry | The capability tree, metadata, and four-operation contract |
-| Registry entry | A slug-addressed capability implemented by `AgentFn.*.run/1` |
+| Alchemist | The product: a host-independent Elixir capability codex |
+| Codex | The capability tree, metadata, and four-operation contract |
+| Codex entry | A slug-addressed capability implemented by `AgentFn.*.run/1` |
 | Slug | Canonical dot-separated address mapped to a path and module |
-| Registry protocol | JSON operations `define`, `load`, `find`, and `call` |
-| Harness tool | A model-facing alias for one registry operation |
-| Host | An environment exposing the registry protocol |
-| Host adapter | Code mapping a host tool API to registry operations |
+| Codex protocol | JSON operations `define`, `load`, `find`, and `call` |
+| Harness tool | A model-facing alias for one codex operation |
+| Host | An environment exposing the codex protocol |
+| Host adapter | Code mapping a host tool API to codex operations |
 | Mix control plane | `runtime/`, which validates, compiles, discovers, and invokes entries |
 | Entry module | The `AgentFn.*` module matching a slug and exporting `run/1` |
 | Deep module | Supporting code beneath one entry tree |
 | Shared library | `AgentLib.*` code under `functions/lib/` |
 | Static composition | Direct module calls when the dependency is known |
-| Dynamic dispatch | `AgentFn.Registry.call/2` when a slug is runtime data |
+| Dynamic dispatch | `AgentFn.Codex.call/2` when a slug is runtime data |
 
 Add a disambiguation table for:
 
-- product Registry versus `Runtime.Registry` versus `AgentFn.Registry`;
-- registry entry versus harness tool versus `AgentFn.Tool`;
+- product Codex versus `Runtime.Codex` versus `AgentFn.Codex`;
+- codex entry versus harness tool versus `AgentFn.Tool`;
 - `runtime/` project versus one-shot BEAM process.
 
 - [ ] **Step 2: Create `docs/index.md`**
@@ -126,7 +126,7 @@ Add a disambiguation table for:
 Open with the product thesis and provide five reading paths:
 
 1. Evaluate Alchemist.
-2. Create a registry entry.
+2. Create a codex entry.
 3. Integrate a host.
 4. Understand the protocol.
 5. Contribute to the repository.
@@ -145,7 +145,7 @@ that the file contains repository-agent rules, then link `README.md` and
 Keep the package name for compatibility. Replace the temporary description with:
 
 ```json
-"description": "Alchemist host-independent Elixir capability registry"
+"description": "Alchemist host-independent Elixir capability codex"
 ```
 
 - [ ] **Step 5: Verify index and language**
@@ -176,7 +176,7 @@ git commit -m "docs: establish domain language and documentation index"
 - Modify: `core/protocol.ts` only if its comments conflict with the canonical terms
 
 **Interfaces:**
-- Consumes: current behavior in `core/elixir-bridge.ts`, `Runtime.CLI`, `Runtime.Engine`, `Runtime.Compiler`, and `Runtime.Registry`
+- Consumes: current behavior in `core/elixir-bridge.ts`, `Runtime.CLI`, `Runtime.Engine`, `Runtime.Compiler`, and `Runtime.Codex`
 - Produces: accurate conceptual and contract documentation without promising future hardening
 
 - [ ] **Step 1: Write architecture concepts**
@@ -191,7 +191,7 @@ Include Mermaid diagrams for:
 
 State explicitly:
 
-- there is no persistent registry server;
+- there is no persistent codex server;
 - `load` compiles in the current one-shot process;
 - persisted `loaded` metadata reflects the last successful validation, not live
   process state;
@@ -220,7 +220,7 @@ State the current security boundary without mitigation claims:
 - `define` stores arbitrary Elixir;
 - compile-time and runtime code execute with the Mix process's host authority;
 - the bridge currently inherits the host environment;
-- registry access must therefore be restricted to trusted users and inputs;
+- codex access must therefore be restricted to trusted users and inputs;
 - sandboxing and multi-user isolation are future architecture, not current
   behavior.
 
@@ -237,15 +237,15 @@ core/elixir-bridge.ts
 runtime/lib/runtime/cli.ex
 runtime/lib/runtime/engine.ex
 runtime/lib/runtime/compiler.ex
-runtime/lib/runtime/registry.ex
-runtime/lib/agent_fn/registry.ex
+runtime/lib/runtime/codex.ex
+runtime/lib/agent_fn/codex.ex
 ```
 
 - [ ] **Step 5: Commit architecture and protocol**
 
 ```bash
 git add core/protocol.ts docs/concepts/architecture.md docs/reference/protocol.md docs/reference/security.md
-git commit -m "docs: document architecture and registry protocol"
+git commit -m "docs: document architecture and codex protocol"
 ```
 
 Omit `core/protocol.ts` from `git add` when no comment change is needed.
@@ -285,7 +285,7 @@ npx @grok/agent-sdk validate --dir .
 (cd runtime && mix test)
 ```
 
-4. Call the bundled `echo` entry through `registry-cli`.
+4. Call the bundled `echo` entry through `scripts/cli`.
 5. Optional Agent SDK development workflow.
 6. Optional Nix/direnv workflow, linking to the repository files without
    duplicating the dated internal design.
@@ -377,7 +377,7 @@ Remove all Hex publishing boilerplate.
 
 Retitle it `# Alchemist served-agent instructions`. Use canonical terms:
 
-- registry entry;
+- codex entry;
 - harness tool;
 - static composition;
 - dynamic dispatch.
@@ -488,7 +488,7 @@ Run:
 ```bash
 npm run check
 npx @grok/agent-sdk validate --dir .
-node scripts/registry-cli.mjs '{"op":"call","name":"echo","args":{"hello":"world"}}'
+node scripts/cli.mjs '{"op":"call","name":"echo","args":{"hello":"world"}}'
 (cd runtime && mix test)
 ```
 
@@ -496,7 +496,7 @@ Expected:
 
 - documentation and TypeScript checks pass;
 - Agent SDK validation reports no diagnostics;
-- registry CLI returns `ok: true` and `echoed: true`;
+- CLI returns `ok: true` and `echoed: true`;
 - Elixir tests pass.
 
 If Elixir is unavailable in the environment, record that as an environment

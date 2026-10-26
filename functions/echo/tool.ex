@@ -1,6 +1,6 @@
 defmodule AgentFn.Echo do
   @moduledoc """
-  Example registry tool. Returns the input args map with `"echoed" => true`.
+  Example codex entry. Returns the input args map with `"echoed" => true`.
   """
 
   @behaviour AgentFn.Tool

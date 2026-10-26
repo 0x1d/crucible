@@ -105,7 +105,7 @@ Pin a current nixpkgs branch that provides `nodejs_22` and Elixir ≥ 1.14. On N
 
 ```nix
 {
-  description = "Alchemist — Elixir tool registry + Cursor agent adapter";
+  description = "Alchemist — Elixir capability codex + Cursor agent adapter";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";

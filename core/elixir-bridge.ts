@@ -5,7 +5,7 @@ import fs from "node:fs";
 import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { RegistryRequest } from "./protocol.ts";
+import type { CodexRequest } from "./protocol.ts";
 
 const repoRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -29,11 +29,11 @@ function stateDir(): string {
 }
 
 /**
- * Send one registry op to Runtime.Server on the long-lived BEAM.
+ * Send one codex op to Runtime.Server on the long-lived BEAM.
  * Mix compiles when sources change. The process that stays up is elixir.
  */
-export async function runRegistryOp(
-  request: RegistryRequest,
+export async function runCodexOp(
+  request: CodexRequest,
 ): Promise<ToolExecuteResult> {
   try {
     return await callOnce(request, false);
@@ -48,11 +48,8 @@ export async function runRegistryOp(
   }
 }
 
-/** @deprecated Use runRegistryOp */
-export const runElixirOp = runRegistryOp;
-
 async function callOnce(
-  request: RegistryRequest,
+  request: CodexRequest,
   force: boolean,
 ): Promise<ToolExecuteResult> {
   const vm = await ensureVm(force);
@@ -201,7 +198,7 @@ async function waitForReady(child: ChildProcess): Promise<Vm> {
   throw bootError("timed out starting elixir runtime");
 }
 
-function rpc(port: number, request: RegistryRequest): Promise<ToolExecuteResult> {
+function rpc(port: number, request: CodexRequest): Promise<ToolExecuteResult> {
   return new Promise((resolve, reject) => {
     const socket = net.connect({ host: "127.0.0.1", port });
     const body = Buffer.from(JSON.stringify(request), "utf8");
