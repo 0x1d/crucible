@@ -30,6 +30,15 @@ Do not put HTML in commits: no tags, entities, or markup copied from PR tools,
 dashboards, or chat.
 Write the same prose you would in a terminal `git commit`.
 
+## Pull requests
+
+When you author a PR title or description, use plain Markdown only.
+Do not paste HTML from the Cursor UI: no `<div>` footers, `<picture>`/`<img>`
+“Open in Web” or “Open in Cursor” buttons, or other rendered agent CTAs.
+The `<!-- CURSOR_AGENT_PR_BODY_BEGIN -->` … `<!-- CURSOR_AGENT_PR_BODY_END -->`
+wrappers and metadata appended by PR tooling are fine; leave that to the tool.
+Do not hand-author that HTML or copy a full rendered PR comment into a commit.
+
 ## Layout
 
 - `hosts/cursor/` is the Cursor Agent SDK host. Every `agent-sdk` command takes `--dir hosts/cursor`.
