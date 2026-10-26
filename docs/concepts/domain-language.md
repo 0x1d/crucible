@@ -15,7 +15,8 @@ boundaries.
 | Harness tool | A model-facing alias for one registry operation, such as `call-function` for `call`. |
 | Host | An environment that exposes the registry protocol. |
 | Host adapter | Code that maps a host's tool API to registry operations. |
-| Mix control plane | The `runtime/` Mix project, which validates, compiles, discovers, and invokes registry entries. |
+| Registry runtime | The `:runtime` OTP application that validates slugs, compiles entry sources into the live BEAM, discovers metadata, and invokes `run/1`. Hosts reach it over TCP; Mix only builds it. |
+| `runtime/` Mix project | Source and tests for the registry runtime (`mix compile`, `mix test`). Not the live service. |
 | Entry module | The `AgentFn.*` module that matches a slug and exports `run/1`. |
 | Deep module | Supporting code beneath one registry entry's source tree. A deep module is part of that entry's implementation rather than a separately addressed registry entry. |
 | Shared library | `AgentLib.*` code under `functions/lib/` that can be used by multiple registry entries. |
@@ -27,10 +28,10 @@ boundaries.
 | Name | Boundary |
 | --- | --- |
 | Registry | The product-level capability tree, metadata, and protocol contract. |
-| `Runtime.Registry` | The Mix control-plane module that maps slugs to filesystem paths and modules, stores metadata, and discovers entries. |
+| `Runtime.Registry` | Registry-runtime module that maps slugs to filesystem paths and modules, stores metadata, and discovers entries. |
 | `AgentFn.Registry` | The Elixir API available to capability code for listing entries and dynamically dispatching a runtime slug. |
 | Registry entry | A capability addressed by a slug and implemented by its matching entry module. |
 | Harness tool | A host-visible alias that submits one registry protocol operation. It is not a capability implementation. |
 | `AgentFn.Tool` | The Elixir behaviour that declares the `run/1` callback for entry modules. It is not a host-visible tool or a registry entry. |
-| `runtime/` | The Mix project containing the control-plane modules and CLI. |
+| `runtime/` | Mix project whose compiled OTP application is the registry runtime. |
 | Long-lived BEAM | The `elixir --no-halt` process started by the Node bridge. It runs the runtime application: a task supervisor, `Runtime.Server` (compile serializer), and a permanent acceptor. It serves many registry operations until restart (for example when `runtime/` sources change, the supervisor hits its restart limit, or the bridge recovers from a transport error). |

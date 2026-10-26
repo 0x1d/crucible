@@ -102,7 +102,7 @@ node scripts/registry-cli.mjs '{"op":"load","name":"my.entry"}'
 node scripts/registry-cli.mjs '{"op":"call","name":"my.entry","args":{}}'
 ```
 
-Add ExUnit tests under `runtime/test/` when exercising control-plane behavior, or
+Add ExUnit tests under `runtime/test/` when exercising registry-runtime behavior, or
 test modules directly with `mix test` in `runtime/` when logic is pure Elixir.
 
 ## Security

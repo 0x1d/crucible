@@ -4,6 +4,29 @@ Use this document when performing a **full or deep review** of Elixir code in th
 
 Matching an anti-pattern does **not** mean the code must be rewritten. Prefer incremental improvements with clear benefit; cite the linked guide when recommending a change.
 
+Ignore `docs/internal/` unless you are updating historical records.
+
+## Alchemist registry runtime checklist
+
+When reviewing `runtime/`, treat the live service as the **`:runtime` OTP application** (registry runtime) on a long-lived BEAM. The `runtime/` tree is a **Mix project** used to build and test that application — **Mix is not the runtime**.
+
+| ID | Pattern | Prefer |
+| --- | --- | --- |
+| R1 | Mix scaffold (`hello/0`, placeholder `@moduledoc`) in shipped apps | Root module documents the app; no dead APIs |
+| R2 | Duplicated `try/rescue/catch` for JSON error envelopes | `Runtime.Result.wrap/1` (or one helper) |
+| R3 | `Jason.decode!/1` on disk metadata (`meta.json`) | `Jason.decode/1` with fallback record |
+| R4 | Docs name the wrong OTP owner (e.g. BEAM = only `Runtime.Server`) | Match supervision: acceptor, serializer, task supervisor |
+| R5 | `@moduledoc false` on modules hosts/operators read | Brief moduledoc on public-facing modules |
+| R6 | Version skew (`mix.exs` Elixir vs repo AGENTS/README) | Align minimum Elixir with dev environment |
+| R7 | Tests coupled to placeholder doctests | Test real invariants (supervision, protocol) |
+| R8 | Calling the live `:runtime` service a "Mix control plane" | **Registry runtime** for the OTP app; **Mix project** only for `runtime/` builds |
+
+```bash
+(cd runtime && mix test)
+node scripts/registry-cli.mjs '{"op":"call","name":"echo","args":{"hello":"world"}}'
+npm run check
+```
+
 ## How to review
 
 Each linked hexdocs entry follows the same shape: **Problem** (why it hurts), **Example**, **Refactoring** (sometimes **Additional remarks**). The tables below are the working checklist; use detail links only when you need the full example or refactor steps for a finding.

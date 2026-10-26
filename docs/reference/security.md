@@ -13,10 +13,10 @@ that process's operating-system identity and environment.
 
 ## Host environment inheritance
 
-The Node bridge spawns Mix with `env: { ...process.env, ... }`. Registry
-operations therefore inherit environment variables, file-system access, and network
-reachability available to the parent host process unless the host restricts them
-separately.
+The Node bridge runs `mix compile` and spawns `elixir --no-halt` with
+`env: { ...process.env, ... }`. Registry operations therefore inherit environment
+variables, file-system access, and network reachability available to the parent
+host process unless the host restricts them separately.
 
 ## Trust model
 

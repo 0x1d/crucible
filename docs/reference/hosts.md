@@ -2,7 +2,7 @@
 
 A **host** runs the agent loop (inference, tool routing, channels). Alchemist
 supplies a **registry** that stays the same across hosts: four JSON operations
-implemented by the Mix control plane and reached through a thin adapter.
+implemented by the registry runtime on a long-lived BEAM and reached through a thin adapter.
 
 ```mermaid
 flowchart LR
@@ -21,8 +21,9 @@ flowchart LR
 
 | Layer | Location | Responsibility |
 | --- | --- | --- |
-| Registry | `runtime/` + `functions/` | Define, load, find, call registry entries |
-| Bridge | `core/elixir-bridge.ts` | Boot one long-lived BEAM; TCP JSON RPC to `Runtime.Server` |
+| Registry runtime | `runtime/` (OTP app source) | Serve `define`, `load`, `find`, and `call` over TCP |
+| Capability tree | `functions/` | Registry entry source and `meta.json` |
+| Bridge | `core/elixir-bridge.ts` | `mix compile` when needed; boot one long-lived BEAM; TCP JSON RPC |
 | Host adapter | `bot/` (Cursor today) | Map harness tool calls to registry operations |
 
 The model only needs four harness tools (`define-function`, `load-function`,
@@ -46,7 +47,7 @@ No single vendor SDK bills across Cursor, OpenCode, and Anthropic. Unify at the
 
 - **Package:** `@grok/agent-sdk` — playground, deploy, evals, Slack, and related channels.
 - **Adapter:** `bot/tools/*.ts` maps harness tool names to [`core/protocol.ts`](../../core/protocol.ts) requests.
-- **Bridge:** `core/elixir-bridge.ts` compiles `runtime/` when sources change, starts `elixir` with `Runtime.Server`, and sends length-prefixed JSON over TCP.
+- **Bridge:** `core/elixir-bridge.ts` compiles `runtime/` when sources change, starts `elixir --no-halt` with `Application.ensure_all_started(:runtime, :permanent)`, and sends length-prefixed JSON over TCP.
 
 ## OpenCode
 
@@ -78,4 +79,4 @@ agent typically call `registry-cli.mjs` for the capability surface.
 
 - [Getting started](../guides/getting-started.md)
 - [Architecture](../concepts/architecture.md)
-- [Mix control-plane notes](../../runtime/README.md)
+- [Registry runtime notes](../../runtime/README.md)
