@@ -1,12 +1,10 @@
 # Mix control plane
 
-The `runtime/` Mix project is Alchemist's **Mix control plane**: it validates slugs,
-compiles registry entry trees, maintains `meta.json`, and invokes `run/1`. Hosts
-never call these modules directly. They send length-prefixed JSON to the
-acceptor on `127.0.0.1` through the Node bridge or an equivalent TCP client.
+The `runtime/` Mix project is Alchemist's **Mix control plane**.
+It validates slugs, compiles registry entry trees, maintains `meta.json`, and invokes `run/1`.
+Hosts send length-prefixed JSON to the acceptor on `127.0.0.1` through the Node bridge or an equivalent TCP client.
 
-The bridge boots a **long-lived BEAM** with `elixir --no-halt` and
-`Application.ensure_all_started(:runtime, :permanent)`. Mix only compiles.
+The bridge starts a **long-lived BEAM** with `elixir --no-halt` and `Application.ensure_all_started(:runtime, :permanent)`.
 Compiled entry modules stay loaded in that VM until it restarts.
 
 ## Supervision

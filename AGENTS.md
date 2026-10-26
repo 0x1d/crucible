@@ -33,6 +33,15 @@ Examples: `feat(bot): add search tool`, `fix(nix): correct flake inputs`,
 - `evals/` is filesystem evals (`evals/evals.config.ts` required).
   Not `bot/evals/`. That path is ignored.
 
+## Documentation
+
+Public documentation describes components, contracts, paths, and behavior.
+Write one sentence per line, breaking only after the sentence's closing punctuation.
+Keep the prose descriptive.
+State what exists and what it does.
+Omit conversational narrative, including asides about what a build tool is for.
+Name the long-lived process, its supervision tree, and its state files.
+
 ## Do not
 
 - Grow host TypeScript for formatting, classification, or reply composition.
@@ -51,5 +60,5 @@ Examples: `feat(bot): add search tool`, `fix(nix): correct flake inputs`,
 ## Cursor Cloud specific instructions
 
 - Node 22, Elixir 1.20.4, and OTP 28 are on `PATH` (`elixir`, `mix`, and `erl` in `/usr/local/bin`). When `node_modules` or `runtime/deps` is missing, run `npm ci` at the repo root and `mix deps.get` in `runtime/`.
-- Unattended product check: `node scripts/registry-cli.mjs '{"op":"call","name":"echo","args":{"hello":"world"}}'` returns `"ok":true` with `"echoed":true`. That command talks to the long-lived BEAM (`elixir --no-halt`), which supervises a permanent acceptor and one temporary task per call. Mix only compiles. Also run `npm run check`, `npx @grok/agent-sdk validate --dir .`, and `cd runtime && mix test`.
+- Unattended product check: `node scripts/registry-cli.mjs '{"op":"call","name":"echo","args":{"hello":"world"}}'` returns `"ok":true` with `"echoed":true`. The command reaches the long-lived BEAM (`elixir --no-halt`), which supervises a permanent acceptor and one temporary task per call. Also run `npm run check`, `npx @grok/agent-sdk validate --dir .`, and `cd runtime && mix test`.
 - `npx @grok/agent-sdk dev` needs an interactive Cursor login, so the environment does not start it on boot.
