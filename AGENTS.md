@@ -25,6 +25,11 @@ optional scope in parentheses, imperative subject, no trailing period.
 Examples: `feat(bot): add search tool`, `fix(nix): correct flake inputs`,
 `docs: update README prerequisites`.
 
+Commit messages and bodies are plain text only.
+Do not put HTML in commits: no tags, entities, or markup copied from PR tools,
+dashboards, or chat.
+Write the same prose you would in a terminal `git commit`.
+
 ## Layout
 
 - `hosts/cursor/` is the Cursor Agent SDK host. Every `agent-sdk` command takes `--dir hosts/cursor`.
