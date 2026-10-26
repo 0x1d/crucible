@@ -28,7 +28,7 @@ npx @grok/agent-sdk validate --dir .
 
 ## First registry call
 
-The host-agnostic CLI forwards JSON operations to the Mix control plane:
+The host-agnostic CLI forwards JSON operations to the registry runtime (via the Node bridge):
 
 ```bash
 node scripts/registry-cli.mjs '{"op":"call","name":"echo","args":{"hello":"world"}}'

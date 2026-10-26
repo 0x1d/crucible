@@ -26,7 +26,7 @@ flowchart LR
 | Host | Cursor playground, CI, custom agent loop | Supplies inference, channels, and user session |
 | Host adapter | `bot/tools/*.ts` (Cursor) or `scripts/registry-cli.mjs` | Maps host tool calls to registry JSON requests |
 | Node bridge | `core/elixir-bridge.ts` | Compiles `runtime/` when needed, boots BEAM, TCP RPC |
-| Mix control plane | `runtime/` (`Runtime.Server`, `Runtime.Engine`, …) | Validates slugs, compiles sources, discovers metadata, invokes `run/1` |
+| Registry runtime | `:runtime` application (`Runtime.Server`, `Runtime.Engine`, …) built from `runtime/` | Validates slugs, compiles sources into the live BEAM, discovers metadata, invokes `run/1` |
 | Capability tree | `functions/` | Registry entries (`tool.ex`, deep modules, `meta.json`) |
 
 The Cursor Agent SDK adapter in this repository is one host integration. The same
@@ -129,4 +129,4 @@ flowchart TB
 - [Registry protocol reference](../reference/protocol.md)
 - [Authoring registry entries](../guides/authoring-entries.md)
 - [Host adapters](../reference/hosts.md)
-- [Mix control-plane notes](../../runtime/README.md)
+- [Registry runtime notes](../../runtime/README.md)

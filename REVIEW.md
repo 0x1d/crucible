@@ -1,6 +1,8 @@
 # Elixir runtime review checklist
 
-Use this when reviewing `runtime/` (Mix control plane). Ignore `docs/internal/`.
+Use this when reviewing `runtime/` (the `:runtime` OTP application and its Mix project). Ignore `docs/internal/`.
+
+Do not call the live service a "Mix control plane" — Mix is only the build tool.
 
 ## Anti-patterns
 
@@ -13,6 +15,7 @@ Use this when reviewing `runtime/` (Mix control plane). Ignore `docs/internal/`.
 | R5 | `@moduledoc false` on modules hosts/operators read | Brief moduledoc on public-facing modules |
 | R6 | Version skew (`mix.exs` Elixir vs repo AGENTS/README) | Align minimum Elixir with dev environment |
 | R7 | Tests coupled to placeholder doctests | Test real invariants (supervision, protocol) |
+| R8 | Calling the live `:runtime` service a "Mix control plane" | **Registry runtime** for the OTP app; **Mix project** only for `runtime/` builds |
 
 ## Verification
 

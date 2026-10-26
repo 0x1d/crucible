@@ -1,6 +1,6 @@
 defmodule Runtime do
   @moduledoc """
-  Alchemist Mix control plane application.
+  Alchemist registry runtime (`:runtime` OTP application).
 
   Hosts talk to `Runtime.Server` over TCP; see `runtime/README.md` for supervision
   and module responsibilities.
