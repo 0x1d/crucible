@@ -1,18 +1,8 @@
 defmodule Runtime do
   @moduledoc """
-  Documentation for `Runtime`.
+  Alchemist Mix control plane application.
+
+  Hosts talk to `Runtime.Server` over TCP; see `runtime/README.md` for supervision
+  and module responsibilities.
   """
-
-  @doc """
-  Hello world.
-
-  ## Examples
-
-      iex> Runtime.hello()
-      :world
-
-  """
-  def hello do
-    :world
-  end
 end

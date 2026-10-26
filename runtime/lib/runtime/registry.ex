@@ -93,7 +93,10 @@ defmodule Runtime.Registry do
 
     case File.read(path) do
       {:ok, body} ->
-        Jason.decode!(body) |> Map.put("name", slug)
+        case Jason.decode(body) do
+          {:ok, meta} when is_map(meta) -> Map.put(meta, "name", slug)
+          _ -> %{"name" => slug, "loaded" => false}
+        end
 
       {:error, _} ->
         %{"name" => slug, "loaded" => false}

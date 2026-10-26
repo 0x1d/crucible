@@ -12,7 +12,7 @@ flowchart LR
   Host["Host environment"]
   Adapter["Host adapter or CLI"]
   Bridge["Node bridge\n(core/elixir-bridge.ts)"]
-  Beam["Long-lived BEAM\n(Runtime.Server)"]
+  Beam["Long-lived BEAM\n(Runtime.Application)"]
   Tree["Capability tree\n(functions/)"]
 
   Host --> Adapter
