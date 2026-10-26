@@ -6,11 +6,14 @@ Matching an anti-pattern does **not** mean the code must be rewritten. Prefer in
 
 ## How to review
 
-1. Read [What are anti-patterns?](https://elixir.hexdocs.pm/what-anti-patterns.html) for scope and how each entry is structured (Problem, Example, Refactoring).
-2. Scan the categories below while reading modules under review.
-3. For each hit, open the **detail link** for the full example and refactoring guidance.
-4. Record findings with: file/location, anti-pattern name, severity (bug risk / maintainability / performance), and suggested direction (not necessarily a full patch).
-5. After structural changes, run `cd runtime && mix test` and `npm run check` when the review touches the BEAM runtime or cross-language boundaries.
+Each linked hexdocs entry follows the same shape: **Problem** (why it hurts), **Example**, **Refactoring** (sometimes **Additional remarks**). The tables below are the working checklist; use detail links only when you need the full example or refactor steps for a finding.
+
+1. Scan the categories below while reading modules under review.
+2. For each hit, use that row’s **detail link** for examples and refactoring guidance.
+3. Record findings with: file/location, anti-pattern name, severity (bug risk / maintainability / performance), and suggested direction (not necessarily a full patch).
+4. After structural changes, run `cd runtime && mix test` and `npm run check` when the review touches the BEAM runtime or cross-language boundaries.
+
+Background on the catalog (categories, when to fix vs leave): [What are anti-patterns?](https://elixir.hexdocs.pm/what-anti-patterns.html).
 
 For security-sensitive Elixir and web concerns beyond this catalog, see the [Erlang Ecosystem Foundation security resources](https://erlef.github.io/security-wg/).
 
