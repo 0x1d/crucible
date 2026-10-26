@@ -1,9 +1,9 @@
-defmodule Runtime.RegistryTest do
+defmodule Runtime.CodexTest do
   use ExUnit.Case, async: false
 
   test "load_meta tolerates invalid meta.json" do
     root =
-      Path.join(System.tmp_dir!(), "alchemist-registry-#{System.unique_integer([:positive])}")
+      Path.join(System.tmp_dir!(), "alchemist-codex-#{System.unique_integer([:positive])}")
 
     slug_dir = Path.join(root, "bad_meta")
     File.mkdir_p!(slug_dir)
@@ -13,7 +13,7 @@ defmodule Runtime.RegistryTest do
     System.put_env("AGENT_FUNCTIONS_DIR", root)
 
     try do
-      assert Runtime.Registry.load_meta("bad_meta") == %{
+      assert Runtime.Codex.load_meta("bad_meta") == %{
                "name" => "bad_meta",
                "loaded" => false
              }

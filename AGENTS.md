@@ -30,6 +30,7 @@ Examples: `feat(bot): add search tool`, `fix(nix): correct flake inputs`,
 - `bot/instructions.md` is the always-on prompt. Keep it short.
 - `bot/tools/<name>.ts` is one tool per file. The filename is the tool name.
 - `bot/lib/` is shared code. Never discovered.
+- `hosts/claude/` is the Claude Agent SDK example host. `npm run eval:claude` runs its evals.
 - `evals/` is filesystem evals (`evals/evals.config.ts` required).
   Not `bot/evals/`. That path is ignored.
 
@@ -47,7 +48,8 @@ Name the long-lived process, its supervision tree, and its state files.
 - Grow host TypeScript for formatting, classification, or reply composition.
   That stays in instructions/skills. Host code owns auth, idempotency,
   evidence seeding, and side-effect gates.
-- Add npm deps on a first cut. Stick to what `@grok/agent-sdk` already ships.
+- Add npm deps on a first cut. Stick to what `@grok/agent-sdk` and
+  `@anthropic-ai/claude-agent-sdk` already ship.
 - Point `serve` at a parent folder during bring-up. It mounts every sibling.
 
 ## Full codebase review (Elixir)

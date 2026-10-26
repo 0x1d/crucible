@@ -8,9 +8,12 @@
     "check:types": "tsc --noEmit",
     "check:docs": "node scripts/check-docs.mjs",
     "test:check-docs": "node --test scripts/check-docs.test.mjs",
-    "dev": "agent-sdk dev"
+    "dev": "agent-sdk dev",
+    "chat:claude": "node hosts/claude/chat.ts",
+    "eval:claude": "node --test hosts/claude/evals/*.eval.ts"
   },
   "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.3.310",
     "@grok/agent-sdk": "^0.2.29",
     "zod": "^4.6.5"
   },

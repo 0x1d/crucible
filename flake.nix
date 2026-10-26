@@ -15,16 +15,18 @@
         "aarch64-darwin"
       ];
       forAllSystems = nixpkgs.lib.genAttrs systems;
-    in
-    {
-      devShells = forAllSystems (
+      shellFor =
         system:
         let
           pkgs = nixpkgs.legacyPackages.${system};
         in
-        {
-          default = pkgs.callPackage ./shell.nix { inherit pkgs; };
-        }
-      );
+        pkgs.callPackage ./shell.nix { inherit pkgs; };
+    in
+    {
+      devShells = forAllSystems (system: {
+        default = shellFor system;
+      });
+      # Nix clients older than 2.7 look up devShell.<system>.
+      devShell = forAllSystems shellFor;
     };
 }

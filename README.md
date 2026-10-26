@@ -25,7 +25,7 @@ A long-lived BEAM (`elixir --no-halt`) runs the runtime application as permanent
 Compiled entry modules stay loaded across operations.
 `Runtime.Application` supervises connection tasks, a compile serializer, and a permanent acceptor.
 Live node files (`port`, `pid`, and the bridge's `stamp`) are under `runtime/.alchemist/` unless `ALCHEMIST_STATE_DIR` is set.
-Model-facing harness tools in the Cursor adapter map one-to-one to those operations.
+Model-facing harness tools in the Cursor adapter and the Claude Agent SDK host map one-to-one to those operations.
 Other hosts call the same operations through `scripts/cli.mjs` or a thin wrapper.
 
 ## Quick start
@@ -44,6 +44,13 @@ Optional Cursor development:
 
 ```bash
 npx @grok/agent-sdk dev
+```
+
+Optional Claude Agent SDK host:
+
+```bash
+npm run chat:claude
+npm run eval:claude
 ```
 
 ## Documentation

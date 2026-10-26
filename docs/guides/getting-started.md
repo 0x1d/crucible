@@ -63,6 +63,23 @@ npx @grok/agent-sdk tool call call-function \
 
 Served-agent behavior is defined in [`bot/instructions.md`](../../bot/instructions.md).
 
+## Optional: Claude Agent SDK host
+
+The Claude host runs the same four tools through the Claude Code harness.
+It needs Claude Code credentials or `ANTHROPIC_API_KEY`.
+
+```bash
+npm run chat:claude
+```
+
+Run the Claude evals:
+
+```bash
+npm run eval:claude
+```
+
+Host files and options are described in the [Claude host README](../../hosts/claude/README.md).
+
 ## Optional: Nix and direnv
 
 The repository provides `flake.nix`, `shell.nix`, and `.envrc` for reproducible

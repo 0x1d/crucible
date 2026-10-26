@@ -11,5 +11,5 @@
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["bot/**/*", "core/**/*", "evals/**/*"]
+  "include": ["bot/**/*", "core/**/*", "evals/**/*", "hosts/**/*"]
 }
