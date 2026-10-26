@@ -1,8 +1,8 @@
 # Alchemist
 
-Alchemist is a host-independent Elixir capability registry. Hosts expose a fixed
-four-operation JSON protocol; capabilities live in an Elixir source tree under
-`functions/`, each entry implemented by an `AgentFn.*` module with `run/1`.
+Alchemist is a host-independent Elixir capability registry.
+Hosts expose a fixed four-operation JSON protocol.
+Capabilities live in an Elixir source tree under `functions/`, each entry implemented by an `AgentFn.*` module with `run/1`.
 
 ## Architecture
 
@@ -20,15 +20,13 @@ flowchart LR
   Beam --> Tree
 ```
 
-The registry protocol operations are `define`, `load`, `find`, and `call`. The Node
-bridge uses Mix only to compile `runtime/`. The process that stays up is
-`elixir --no-halt`, with the runtime application started as permanent, so compiled
-entry modules stay loaded across operations. That application supervises connection
-tasks, a compile serializer, and a permanent acceptor. Live node files (`port`,
-`pid`, and the bridge's `stamp`) are under `runtime/.alchemist/` unless
-`ALCHEMIST_STATE_DIR` is set. Model-facing harness tools in the Cursor adapter map
-one-to-one to those operations; other hosts can call the same operations through
-`scripts/registry-cli.mjs` or a thin wrapper.
+The registry protocol operations are `define`, `load`, `find`, and `call`.
+A long-lived BEAM (`elixir --no-halt`) runs the runtime application as permanent.
+Compiled entry modules stay loaded across operations.
+`Runtime.Application` supervises connection tasks, a compile serializer, and a permanent acceptor.
+Live node files (`port`, `pid`, and the bridge's `stamp`) are under `runtime/.alchemist/` unless `ALCHEMIST_STATE_DIR` is set.
+Model-facing harness tools in the Cursor adapter map one-to-one to those operations.
+Other hosts call the same operations through `scripts/registry-cli.mjs` or a thin wrapper.
 
 ## Quick start
 
@@ -57,9 +55,9 @@ npx @grok/agent-sdk dev
 
 ## Security
 
-`define` accepts arbitrary Elixir source and executes with the privileges of the
-long-lived BEAM process on the host. Restrict registry access to trusted users and
-inputs. See [Security boundary](docs/reference/security.md).
+`define` accepts arbitrary Elixir source and executes with the privileges of the long-lived BEAM process on the host.
+Restrict registry access to trusted users and inputs.
+See [Security boundary](docs/reference/security.md).
 
 ## License
 

@@ -170,23 +170,21 @@ before `apply(module, :run, [args])`.
 
 ## Node bridge behavior
 
-`core/elixir-bridge.ts` runs `mix compile` in `runtime/` when runtime sources
-change. Mix does not serve requests. The process that stays up is
-`elixir --no-halt` with
-`Application.ensure_all_started(:runtime, :permanent)`. The bridge sets
-`AGENT_FUNCTIONS_DIR` to the repository `functions/` directory unless the
-environment already overrides it, and `ALCHEMIST_STATE_DIR` to `runtime/.alchemist`
-unless that variable is already set.
+`core/elixir-bridge.ts` compiles `runtime/` when runtime sources change.
+Registry operations run in `elixir --no-halt` with `Application.ensure_all_started(:runtime, :permanent)`.
+The bridge sets `AGENT_FUNCTIONS_DIR` to the repository `functions/` directory unless the environment already overrides it.
+The bridge sets `ALCHEMIST_STATE_DIR` to `runtime/.alchemist` unless that variable is already set.
 
-The live interface is TCP on `127.0.0.1`. Each request is one JSON object framed
-with a 4-byte big-endian length, matching `:gen_tcp` `packet: 4`. The response
-uses the same framing. `port` and `pid` in the state directory identify the
-running VM. The bridge writes `stamp` there after a successful boot.
+The live interface is TCP on `127.0.0.1`.
+Each request is one JSON object framed with a 4-byte big-endian length, matching `:gen_tcp` `packet: 4`.
+The response uses the same framing.
+`port` and `pid` in the state directory identify the running VM.
+The bridge writes `stamp` there after a successful boot.
 
 A transport failure replaces the recorded VM and retries the operation once.
-Non-JSON responses surface as `{ "ok": false, "error": "..." }` to the host
-adapter. `Runtime.CLI.run_stdio/0` reads one JSON request from stdin; it is a
-debug helper, not the path the bridge uses.
+Non-JSON responses surface as `{ "ok": false, "error": "..." }` to the host adapter.
+`Runtime.CLI.run_stdio/0` reads one JSON request from stdin.
+It is a debug helper.
 
 ## Failure behavior
 
