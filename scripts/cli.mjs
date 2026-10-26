@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /**
- * Host-agnostic CLI for the Elixir registry. Reuses the long-lived BEAM
+ * Host-agnostic CLI for the Elixir codex. Reuses the long-lived BEAM
  * started by core/elixir-bridge.ts.
  *
- *   node scripts/registry-cli.mjs '{"op":"find","query":""}'
+ *   node scripts/cli.mjs '{"op":"find","query":""}'
  */
-import { runRegistryOp } from "../core/elixir-bridge.ts";
+import { runCodexOp } from "../core/elixir-bridge.ts";
 
 const input = process.argv[2] ?? "{}";
 
@@ -17,5 +17,5 @@ try {
   process.exit(1);
 }
 
-const result = await runRegistryOp(request);
+const result = await runCodexOp(request);
 process.stdout.write(`${JSON.stringify(result)}\n`);

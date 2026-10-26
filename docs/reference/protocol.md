@@ -1,4 +1,4 @@
-# Registry protocol
+# Codex protocol
 
 Hosts interact with Alchemist through four JSON operations: `define`, `load`,
 `find`, and `call`. TypeScript definitions live in [`core/protocol.ts`](../../core/protocol.ts).
@@ -18,7 +18,7 @@ connection to the long-lived BEAM.
 
 ## Slug mapping
 
-Slugs are dot-separated segments; each segment uses `snake_case`. The registry
+Slugs are dot-separated segments; each segment uses `snake_case`. The codex
 maps a slug to a directory path and an entry module name.
 
 | Slug | Directory | Entry module |
@@ -171,7 +171,7 @@ before `apply(module, :run, [args])`.
 ## Node bridge behavior
 
 `core/elixir-bridge.ts` compiles `runtime/` when runtime sources change.
-Registry operations run in `elixir --no-halt` with `Application.ensure_all_started(:runtime, :permanent)`.
+Codex operations run in `elixir --no-halt` with `Application.ensure_all_started(:runtime, :permanent)`.
 The bridge sets `AGENT_FUNCTIONS_DIR` to the repository `functions/` directory unless the environment already overrides it.
 The bridge sets `ALCHEMIST_STATE_DIR` to `runtime/.alchemist` unless that variable is already set.
 
@@ -203,7 +203,7 @@ It is a debug helper.
 - One JSON request per connection; no batching or streaming.
 - No built-in sandbox: `define` and `call` execute with host process privileges.
 - `loaded` in `meta.json` is bookkeeping, not a live compile cache across requests.
-- Dynamic `AgentFn.Registry.call/2` re-enters the same engine and may trigger
+- Dynamic `AgentFn.Codex.call/2` re-enters the same engine and may trigger
   nested loads in the same VM.
 
 ## Related reading

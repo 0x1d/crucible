@@ -1,6 +1,6 @@
 defmodule Runtime.Server do
   @moduledoc """
-  Registry processes for one BEAM.
+  Serves codex protocol requests on one BEAM.
 
   The application supervisor starts three children. `Runtime.TaskSupervisor`
   holds a temporary task per TCP client. This GenServer only serializes

@@ -3,23 +3,23 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { runRegistryOp } from "./elixir-bridge.ts";
+import { runCodexOp } from "./elixir-bridge.ts";
 
-type RegistryResponse = {
+type CodexResponse = {
   ok?: boolean;
   result?: { echoed?: boolean };
 };
 
-function asResponse(value: unknown): RegistryResponse {
-  if (typeof value === "object" && value !== null) return value as RegistryResponse;
+function asResponse(value: unknown): CodexResponse {
+  if (typeof value === "object" && value !== null) return value as CodexResponse;
   return {};
 }
 
 const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "alchemist-bridge-"));
 process.env.ALCHEMIST_STATE_DIR = stateDir;
 
-test("registry ops share one started Erlang VM", { timeout: 180_000 }, async () => {
-  const echo = await runRegistryOp({
+test("codex ops share one started Erlang VM", { timeout: 180_000 }, async () => {
+  const echo = await runCodexOp({
     op: "call",
     name: "echo",
     args: { hello: "world" },
@@ -46,7 +46,7 @@ test("registry ops share one started Erlang VM", { timeout: 180_000 }, async () 
   const environ = fs.readFileSync(`/proc/${pid}/environ`).toString("utf8");
   assert.ok(environ.includes(stateDir));
 
-  const found = asResponse(await runRegistryOp({ op: "find", query: "echo" }));
+  const found = asResponse(await runCodexOp({ op: "find", query: "echo" }));
   assert.equal(found.ok, true);
   assert.equal(fs.readFileSync(path.join(stateDir, "pid"), "utf8").trim(), pid);
 });

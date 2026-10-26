@@ -1,6 +1,6 @@
 # Security
 
-This page describes the **current** trust boundary for the registry. It does not
+This page describes the **current** trust boundary for the codex. It does not
 document sandboxing or multi-tenant isolation because those are not implemented.
 
 ## Arbitrary code
@@ -14,13 +14,13 @@ that process's operating-system identity and environment.
 ## Host environment inheritance
 
 The Node bridge runs `mix compile` and spawns `elixir --no-halt` with
-`env: { ...process.env, ... }`. Registry operations therefore inherit environment
+`env: { ...process.env, ... }`. Codex operations therefore inherit environment
 variables, file-system access, and network reachability available to the parent
 host process unless the host restricts them separately.
 
 ## Trust model
 
-Treat registry access as **equivalent to shell access** for the user running the
+Treat codex access as **equivalent to shell access** for the user running the
 host adapter or CLI:
 
 - Only trusted principals should invoke `define`, `load`, or `call`.
@@ -31,9 +31,9 @@ host adapter or CLI:
 
 ## Composition and secrets
 
-Registry entries may call other entries through static composition or
-`AgentFn.Registry.call/2`. Each call runs in the same trust domain. There is no
-credential vault inside the registry.
+Codex entries may call other entries through static composition or
+`AgentFn.Codex.call/2`. Each call runs in the same trust domain. There is no
+credential vault inside the codex.
 
 ## Future hardening
 
@@ -44,6 +44,6 @@ long-lived BEAM. No such layer ships in this repository today.
 
 ## Related reading
 
-- [Registry protocol](./protocol.md)
-- [Authoring registry entries](../guides/authoring-entries.md)
+- [Codex protocol](./protocol.md)
+- [Authoring codex entries](../guides/authoring-entries.md)
 - [Host adapters](./hosts.md)

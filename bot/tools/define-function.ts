@@ -1,6 +1,6 @@
 import { defineTool } from "@grok/agent-sdk/tools";
 import * as z from "zod/v4";
-import { runRegistryOp } from "../lib/elixir-bridge";
+import { runCodexOp } from "../lib/elixir-bridge";
 
 export default defineTool({
   description:
@@ -10,7 +10,7 @@ export default defineTool({
     name: z
       .string()
       .describe(
-        "Registry slug: snake_case, dot namespaces allowed (e.g. pipeline.demo, data.fetch)",
+        "Codex slug: snake_case, dot namespaces allowed (e.g. pipeline.demo, data.fetch)",
       ),
     source: z
       .string()
@@ -18,10 +18,10 @@ export default defineTool({
     description: z
       .string()
       .optional()
-      .describe("Short summary stored in the registry for find-function"),
+      .describe("Short summary stored in the codex for find-function"),
   }),
   async execute({ name, source, description }) {
-    return runRegistryOp({
+    return runCodexOp({
       op: "define",
       name,
       source,

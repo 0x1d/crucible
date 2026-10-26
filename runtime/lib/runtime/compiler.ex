@@ -1,11 +1,11 @@
 defmodule Runtime.Compiler do
   @moduledoc false
 
-  alias Runtime.Registry
+  alias Runtime.Codex
 
   @spec compile_shared!(keyword()) :: :ok
   def compile_shared!(opts \\ []) do
-    lib_root = Path.join(Registry.functions_root(), "lib")
+    lib_root = Path.join(Codex.functions_root(), "lib")
 
     if File.dir?(lib_root) do
       lib_root
@@ -20,7 +20,7 @@ defmodule Runtime.Compiler do
   def compile_slug!(slug, opts \\ []) do
     compile_shared!(opts)
 
-    dir = Registry.function_dir(slug)
+    dir = Codex.function_dir(slug)
 
     unless File.dir?(dir) do
       throw({:error, "function not found: #{slug}"})
@@ -34,7 +34,7 @@ defmodule Runtime.Compiler do
 
     compiled = compile_files(files, opts)
 
-    expected = Registry.module_name(slug)
+    expected = Codex.module_name(slug)
 
     entry =
       Enum.find(compiled, expected, fn mod ->

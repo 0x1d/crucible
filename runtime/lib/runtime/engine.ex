@@ -2,17 +2,17 @@ defmodule Runtime.Engine do
   @moduledoc false
 
   alias Runtime.Compiler
-  alias Runtime.Registry
+  alias Runtime.Codex
 
   def define(name, source, description) do
-    {:ok, meta} = Registry.write_definition(name, source, description)
+    {:ok, meta} = Codex.write_definition(name, source, description)
 
     try do
       slug = meta["name"]
       module = Compiler.compile_slug!(slug, reload: true)
-      Registry.refresh_metadata!(slug, module)
-      Registry.mark_loaded(slug, true)
-      %{ok: true, function: Registry.load_meta(slug)}
+      Codex.refresh_metadata!(slug, module)
+      Codex.mark_loaded(slug, true)
+      %{ok: true, function: Codex.load_meta(slug)}
     rescue
       e in ArgumentError -> %{ok: false, error: Exception.message(e)}
     catch
@@ -21,16 +21,16 @@ defmodule Runtime.Engine do
   end
 
   def load(name) do
-    slug = Registry.sanitize(name)
+    slug = Codex.sanitize(name)
 
     try do
       module = Compiler.compile_slug!(slug, reload: true)
-      Registry.refresh_metadata!(slug, module)
-      Registry.mark_loaded(slug, true)
+      Codex.refresh_metadata!(slug, module)
+      Codex.mark_loaded(slug, true)
 
       %{
         ok: true,
-        function: Registry.load_meta(slug),
+        function: Codex.load_meta(slug),
         module: Atom.to_string(module)
       }
     catch
@@ -42,7 +42,7 @@ defmodule Runtime.Engine do
     q = String.downcase(String.trim(query))
 
     entries =
-      Registry.list_all()
+      Codex.list_all()
       |> Enum.filter(fn meta ->
         q == "" or
           String.contains?(String.downcase(meta["name"] || ""), q) or
@@ -56,7 +56,7 @@ defmodule Runtime.Engine do
   end
 
   def call(name, args) when is_map(args) do
-    slug = Registry.sanitize(name)
+    slug = Codex.sanitize(name)
 
     case ensure_ready(slug) do
       {:ok, module} -> invoke(module, slug, args)
@@ -71,7 +71,7 @@ defmodule Runtime.Engine do
   # Compiles only when the entry is not already loaded. The caller, which is
   # the connection task for a socket request, runs run/1.
   defp ensure_ready(slug) do
-    module = Registry.module_name(slug)
+    module = Codex.module_name(slug)
 
     cond do
       ready?(module) ->
@@ -86,14 +86,14 @@ defmodule Runtime.Engine do
   end
 
   defp load_ready(slug) do
-    module = Registry.module_name(slug)
+    module = Codex.module_name(slug)
 
     if ready?(module) do
       {:ok, module}
     else
       case load(slug) do
         %{ok: true} ->
-          loaded = Registry.module_name(slug)
+          loaded = Codex.module_name(slug)
           if ready?(loaded), do: {:ok, loaded}, else: {:error, "function #{slug} has no run/1"}
 
         %{ok: false, error: message} ->

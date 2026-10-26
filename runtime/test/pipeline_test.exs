@@ -6,7 +6,7 @@ defmodule Runtime.PipelineTest do
     Runtime.Compiler.compile_slug!(slug)
 
     assert {:ok, result} =
-             AgentFn.Registry.call(slug, %{"input" => "x"})
+             AgentFn.Codex.call(slug, %{"input" => "x"})
 
     assert result["enriched"] == true
     assert result["echoed"] == true
@@ -15,6 +15,6 @@ defmodule Runtime.PipelineTest do
   end
 
   test "nested slug resolves module AgentFn.Pipeline.Demo" do
-    assert Runtime.Registry.module_name("pipeline.demo") == AgentFn.Pipeline.Demo
+    assert Runtime.Codex.module_name("pipeline.demo") == AgentFn.Pipeline.Demo
   end
 end

@@ -1,5 +1,5 @@
 {
-  description = "Alchemist — Elixir tool registry + Cursor agent adapter";
+  description = "Alchemist — Elixir capability codex + Cursor agent adapter";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";

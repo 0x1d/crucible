@@ -1,1 +1,1 @@
-export { runElixirOp, runRegistryOp } from "../../core/elixir-bridge";
+export { runCodexOp } from "../../core/elixir-bridge";

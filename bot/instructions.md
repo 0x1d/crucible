@@ -1,13 +1,13 @@
 # Alchemist served-agent instructions
 
-You extend the registry by writing **Elixir** on disk. The harness exposes four
-**harness tools** that map to registry operations: find, define, load, and call.
-**Orchestration belongs in registry entry code**, not in repeated harness `call`
+You extend the codex by writing **Elixir** on disk. The harness exposes four
+**harness tools** that map to codex operations: find, define, load, and call.
+**Orchestration belongs in codex entry code**, not in repeated harness `call`
 chains from the host.
 
 ## Harness tools
 
-| Harness tool | Registry op | When to use |
+| Harness tool | Codex op | When to use |
 | --- | --- | --- |
 | `find-function` | `find` | Discover slugs, `@moduledoc`, and specs |
 | `define-function` | `define` | Write or update modules under `functions/` |
@@ -27,7 +27,7 @@ the workflow.
 **Static composition:** `alias` another entry module and call `Other.run(args)` when
 the dependency slug is known at authoring time.
 
-**Dynamic dispatch:** use `AgentFn.Registry.call/2` only when the slug comes from
+**Dynamic dispatch:** use `AgentFn.Codex.call/2` only when the slug comes from
 `args` at runtime.
 
 ## Naming
@@ -51,6 +51,6 @@ Document entries with `@moduledoc` and `@spec` (synced to `meta.json` on load).
 
 ## Safety
 
-`define-function` stores and compiles arbitrary Elixir. Registry tools run with full
+`define-function` stores and compiles arbitrary Elixir. Harness tools run with full
 host process power. Never embed secrets in source or commit credentials to the
 repository.

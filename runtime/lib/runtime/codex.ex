@@ -1,4 +1,4 @@
-defmodule Runtime.Registry do
+defmodule Runtime.Codex do
   @moduledoc false
 
   def functions_root do
@@ -165,7 +165,7 @@ defmodule Runtime.Registry do
     if String.starts_with?(trimmed, "defmodule ") do
       unless String.contains?(trimmed, "defmodule #{inspect(module)}") do
         raise ArgumentError,
-              "defmodule must be named #{inspect(module)} to match the registry slug"
+              "defmodule must be named #{inspect(module)} to match the codex slug"
       end
 
       trimmed

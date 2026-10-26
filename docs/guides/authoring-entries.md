@@ -1,7 +1,7 @@
-# Authoring registry entries
+# Authoring codex entries
 
-Registry entries are Elixir modules under `functions/`, each exposing `run/1` on
-an `AgentFn.*` entry module. Hosts interact only through the four registry
+Codex entries are Elixir modules under `functions/`, each exposing `run/1` on
+an `AgentFn.*` entry module. Hosts interact only through the four codex
 operations; multi-step behavior belongs in Elixir on disk.
 
 ## Slug, path, and module
@@ -60,7 +60,7 @@ alias AgentFn.Echo
 Echo.run(args)
 ```
 
-Use **`AgentFn.Registry.call/2`** only when the slug is runtime data from `args`.
+Use **`AgentFn.Codex.call/2`** only when the slug is runtime data from `args`.
 
 ## Harness operations
 
@@ -98,11 +98,11 @@ restarts.
 ## Testing an entry
 
 ```bash
-node scripts/registry-cli.mjs '{"op":"load","name":"my.entry"}'
-node scripts/registry-cli.mjs '{"op":"call","name":"my.entry","args":{}}'
+node scripts/cli.mjs '{"op":"load","name":"my.entry"}'
+node scripts/cli.mjs '{"op":"call","name":"my.entry","args":{}}'
 ```
 
-Add ExUnit tests under `runtime/test/` when exercising registry-runtime behavior, or
+Add ExUnit tests under `runtime/test/` when exercising codex-runtime behavior, or
 test modules directly with `mix test` in `runtime/` when logic is pure Elixir.
 
 ## Security
@@ -114,5 +114,5 @@ before loading in sensitive environments. See [Security boundary](../reference/s
 
 - [Domain language](../concepts/domain-language.md)
 - [Architecture](../concepts/architecture.md)
-- [Registry protocol](../reference/protocol.md)
+- [Codex protocol](../reference/protocol.md)
 - [Alchemist served-agent instructions](../../bot/instructions.md)

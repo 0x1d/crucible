@@ -6,9 +6,9 @@ Matching an anti-pattern does **not** mean the code must be rewritten. Prefer in
 
 Ignore `docs/internal/` unless you are updating historical records.
 
-## Alchemist registry runtime checklist
+## Alchemist codex runtime checklist
 
-When reviewing `runtime/`, treat the live service as the **`:runtime` OTP application** (registry runtime) on a long-lived BEAM. The `runtime/` tree is a **Mix project** used to build and test that application — **Mix is not the runtime**.
+When reviewing `runtime/`, treat the live service as the **`:runtime` OTP application** (codex runtime) on a long-lived BEAM. The `runtime/` tree is a **Mix project** used to build and test that application — **Mix is not the runtime**.
 
 | ID | Pattern | Prefer |
 | --- | --- | --- |
@@ -19,11 +19,11 @@ When reviewing `runtime/`, treat the live service as the **`:runtime` OTP applic
 | R5 | `@moduledoc false` on modules hosts/operators read | Brief moduledoc on public-facing modules |
 | R6 | Version skew (`mix.exs` Elixir vs repo AGENTS/README) | Align minimum Elixir with dev environment |
 | R7 | Tests coupled to placeholder doctests | Test real invariants (supervision, protocol) |
-| R8 | Calling the live `:runtime` service a "Mix control plane" | **Registry runtime** for the OTP app; **Mix project** only for `runtime/` builds |
+| R8 | Calling the live `:runtime` service a "Mix control plane" | **Codex runtime** for the OTP app; **Mix project** only for `runtime/` builds |
 
 ```bash
 (cd runtime && mix test)
-node scripts/registry-cli.mjs '{"op":"call","name":"echo","args":{"hello":"world"}}'
+node scripts/cli.mjs '{"op":"call","name":"echo","args":{"hello":"world"}}'
 npm run check
 ```
 

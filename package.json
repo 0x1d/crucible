@@ -2,7 +2,7 @@
   "name": "elixir-harness",
   "private": true,
   "type": "module",
-  "description": "Alchemist host-independent Elixir capability registry",
+  "description": "Alchemist host-independent Elixir capability codex",
   "scripts": {
     "check": "npm run check:types && npm run check:docs",
     "check:types": "tsc --noEmit",

@@ -1,11 +1,11 @@
 defmodule Runtime.Metadata do
   @moduledoc false
 
-  alias Runtime.Registry
+  alias Runtime.Codex
 
   @spec extract(module(), String.t()) :: map()
   def extract(module, slug) when is_atom(module) and is_binary(slug) do
-    path = Registry.source_path(slug)
+    path = Codex.source_path(slug)
     source = if File.exists?(path), do: File.read!(path), else: ""
 
     %{

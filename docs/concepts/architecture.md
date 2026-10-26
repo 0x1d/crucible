@@ -1,6 +1,6 @@
 # Architecture
 
-Alchemist separates **hosts** (environments that run agents) from the **registry**
+Alchemist separates **hosts** (environments that run agents) from the **codex**
 (capability source, metadata, and the four-operation JSON contract). Capability
 implementation and composition live in Elixir under `functions/`; hosts never grow
 an open-ended tool surface beyond the fixed harness operations.
@@ -24,18 +24,18 @@ flowchart LR
 | Component | Location | Role |
 | --- | --- | --- |
 | Host | Cursor playground, CI, custom agent loop | Supplies inference, channels, and user session |
-| Host adapter | `bot/tools/*.ts` (Cursor) or `scripts/registry-cli.mjs` | Maps host tool calls to registry JSON requests |
+| Host adapter | `bot/tools/*.ts` (Cursor) or `scripts/cli.mjs` | Maps host tool calls to codex JSON requests |
 | Node bridge | `core/elixir-bridge.ts` | Compiles `runtime/` when needed, boots BEAM, TCP RPC |
-| Registry runtime | `:runtime` application (`Runtime.Server`, `Runtime.Engine`, …) built from `runtime/` | Validates slugs, compiles sources into the live BEAM, discovers metadata, invokes `run/1` |
-| Capability tree | `functions/` | Registry entries (`tool.ex`, deep modules, `meta.json`) |
+| Codex runtime | `:runtime` application (`Runtime.Server`, `Runtime.Engine`, …) built from `runtime/` | Validates slugs, compiles sources into the live BEAM, discovers metadata, invokes `run/1` |
+| Capability tree | `functions/` | Codex entries (`tool.ex`, deep modules, `meta.json`) |
 
 The Cursor Agent SDK adapter in this repository is one host integration. The same
-registry tree can be driven by any host that can reach the bridge or speak the same
+codex tree can be driven by any host that can reach the bridge or speak the same
 JSON protocol to `Runtime.Server`.
 
 ## Request lifecycle
 
-A **long-lived BEAM** serves registry operations. The Node bridge starts or reuses
+A **long-lived BEAM** serves codex operations. The Node bridge starts or reuses
 that VM and sends each operation as a TCP request.
 
 ```mermaid
@@ -46,7 +46,7 @@ sequenceDiagram
   participant Conn as Connection task
   participant Server as Runtime.Server
 
-  Adapter->>Bridge: RegistryRequest JSON
+  Adapter->>Bridge: CodexRequest JSON
   Bridge->>Bridge: mix compile (when runtime sources change)
   Bridge->>Acceptor: TCP connect (boot VM if needed)
   Acceptor->>Conn: start_child and controlling_process
@@ -76,7 +76,7 @@ runs `run/1` in that task. `define` and `load` compile inside `Runtime.Server` s
 An acceptor crash restarts under the supervisor. Repeated accept failures stop
 the application instead of looping in the acceptor. The bridge starts the
 application with `Application.ensure_all_started(:runtime, :permanent)`, so a
-supervisor that gives up exits the VM. The next registry call boots a new one.
+supervisor that gives up exits the VM. The next codex call boots a new one.
 A connection crash closes that socket and leaves the acceptor and serializer
 running.
 
@@ -97,7 +97,7 @@ BEAM.
 
 ## Composition models
 
-Registry entries should express multi-step work in Elixir rather than through
+Codex entries should express multi-step work in Elixir rather than through
 repeated harness `call` operations from the host.
 
 ```mermaid
@@ -112,7 +112,7 @@ flowchart TB
 
   subgraph dynamic["Dynamic dispatch"]
     D["Entry module run/1"]
-    R["AgentFn.Registry.call/2"]
+    R["AgentFn.Codex.call/2"]
     T["Target slug from args"]
     D --> R
     R --> T
@@ -122,11 +122,11 @@ flowchart TB
 | Style | When | Mechanism |
 | --- | --- | --- |
 | Static composition | The dependency slug is known at authoring time | `alias` and direct `OtherModule.run(args)` |
-| Dynamic dispatch | The slug comes from runtime data | `AgentFn.Registry.call/2` |
+| Dynamic dispatch | The slug comes from runtime data | `AgentFn.Codex.call/2` |
 
 ## Related reading
 
-- [Registry protocol reference](../reference/protocol.md)
-- [Authoring registry entries](../guides/authoring-entries.md)
+- [Codex protocol reference](../reference/protocol.md)
+- [Authoring codex entries](../guides/authoring-entries.md)
 - [Host adapters](../reference/hosts.md)
-- [Registry runtime notes](../../runtime/README.md)
+- [Codex runtime notes](../../runtime/README.md)

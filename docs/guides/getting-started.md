@@ -1,7 +1,7 @@
 # Getting started
 
 This guide installs dependencies, validates the repository, and invokes the bundled
-`echo` registry entry through the host-agnostic CLI. Optional sections cover the
+`echo` codex entry through the host-agnostic CLI. Optional sections cover the
 Cursor Agent SDK adapter and the Nix/direnv shell.
 
 ## Prerequisites
@@ -26,12 +26,12 @@ npx @grok/agent-sdk validate --dir .
 (cd runtime && mix test)
 ```
 
-## First registry call
+## First codex call
 
-The host-agnostic CLI forwards JSON operations to the registry runtime (via the Node bridge):
+The host-agnostic CLI forwards JSON operations to the codex runtime (via the Node bridge):
 
 ```bash
-node scripts/registry-cli.mjs '{"op":"call","name":"echo","args":{"hello":"world"}}'
+node scripts/cli.mjs '{"op":"call","name":"echo","args":{"hello":"world"}}'
 ```
 
 Expected: `"ok": true` with `"echoed": true` in the result map.
@@ -39,7 +39,7 @@ Expected: `"ok": true` with `"echoed": true` in the result map.
 List discovered entries:
 
 ```bash
-node scripts/registry-cli.mjs '{"op":"find","query":""}'
+node scripts/cli.mjs '{"op":"find","query":""}'
 ```
 
 ## Optional: Cursor Agent SDK
@@ -52,7 +52,7 @@ npx @grok/agent-sdk dev
 
 Sign in when prompted (`npx @grok/agent-sdk login`). The adapter exposes four
 harness tools (`define-function`, `load-function`, `find-function`,
-`call-function`) that map to the registry operations.
+`call-function`) that map to the codex operations.
 
 Example direct tool invocation:
 
@@ -75,7 +75,7 @@ Design notes for this workflow live in the
 
 ## Next steps
 
-- [Authoring registry entries](./authoring-entries.md)
-- [Registry protocol](../reference/protocol.md)
+- [Authoring codex entries](./authoring-entries.md)
+- [Codex protocol](../reference/protocol.md)
 - [Host adapters](../reference/hosts.md)
 - [Security boundary](../reference/security.md)
