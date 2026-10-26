@@ -41,6 +41,12 @@ Examples: `feat(bot): add search tool`, `fix(nix): correct flake inputs`,
 - Add npm deps on a first cut. Stick to what `@grok/agent-sdk` already ships.
 - Point `serve` at a parent folder during bring-up. It mounts every sibling.
 
+## Full codebase review (Elixir)
+
+Agents doing a broad review of the BEAM runtime or Elixir tools should start with
+[REVIEW.md](REVIEW.md). It catalogs official Elixir anti-patterns with links to
+examples and refactoring guidance on [hexdocs](https://elixir.hexdocs.pm/what-anti-patterns.html).
+
 ## Pointers
 
 - Package loop: `node_modules/@grok/agent-sdk/AGENTS.md`
