@@ -55,7 +55,7 @@ subsystems.
 | [Codex runtime notes](../runtime/README.md) | Runtime contributors | Working on the `:runtime` application and its Mix project. |
 | [Repository-agent rules](../AGENTS.md) | Coding agents contributing to the repository | Applying repository commands, layout rules, and contribution constraints. |
 
-The served-agent prompt in `bot/instructions.md` is an operational input rather
+The served-agent prompt in `hosts/cursor/bot/instructions.md` is an operational input rather
 than public product documentation.
 
 ## Historical engineering records

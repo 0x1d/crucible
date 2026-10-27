@@ -11,7 +11,7 @@
     "check:types": "tsc --noEmit",
     "check:docs": "node scripts/check-docs.mjs",
     "test:check-docs": "node --test scripts/check-docs.test.mjs",
-    "dev": "agent-sdk dev",
+    "dev": "agent-sdk dev --dir hosts/cursor",
     "chat:claude": "node hosts/claude/chat.ts",
     "eval:claude": "node --test hosts/claude/evals/*.eval.ts"
   },

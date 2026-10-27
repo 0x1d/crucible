@@ -3,15 +3,15 @@
 This file contains repository-agent rules for coding agents editing Alchemist.
 The [product overview](README.md) and [documentation index](docs/index.md)
 describe the product and its public reading paths. The served agent's prompt is
-`bot/instructions.md`.
+`hosts/cursor/bot/instructions.md`.
 
 ## Loop
 
 ```bash
-agent-sdk validate --dir .
-agent-sdk info --dir . --json
-agent-sdk run --dir . --message "..."
-agent-sdk eval --dir .
+agent-sdk validate --dir hosts/cursor
+agent-sdk info --dir hosts/cursor --json
+agent-sdk run --dir hosts/cursor --message "..."
+agent-sdk eval --dir hosts/cursor
 npm run check
 ```
 
@@ -27,12 +27,13 @@ Examples: `feat(bot): add search tool`, `fix(nix): correct flake inputs`,
 
 ## Layout
 
-- `bot/instructions.md` is the always-on prompt. Keep it short.
-- `bot/tools/<name>.ts` is one tool per file. The filename is the tool name.
-- `bot/lib/` is shared code. Never discovered.
-- `hosts/claude/` is the Claude Agent SDK example host. `npm run eval:claude` runs its evals.
-- `evals/` is filesystem evals (`evals/evals.config.ts` required).
+- `hosts/cursor/` is the Cursor Agent SDK host. Every `agent-sdk` command takes `--dir hosts/cursor`.
+- `hosts/cursor/bot/instructions.md` is the always-on prompt. Keep it short.
+- `hosts/cursor/bot/tools/<name>.ts` is one tool per file. The filename is the tool name.
+- `hosts/cursor/bot/lib/` is shared code. Never discovered.
+- `hosts/cursor/evals/` is filesystem evals (`evals.config.ts` required).
   Not `bot/evals/`. That path is ignored.
+- `hosts/claude/` is the Claude Agent SDK example host. `npm run eval:claude` runs its evals.
 
 ## Documentation
 
@@ -68,5 +69,5 @@ examples and refactoring guidance on [hexdocs](https://elixir.hexdocs.pm/what-an
 ## Cursor Cloud specific instructions
 
 - Node 22, Elixir 1.20.4, and OTP 28 are on `PATH` (`elixir`, `mix`, and `erl` in `/usr/local/bin`). When `node_modules` or `runtime/deps` is missing, run `npm ci` at the repo root and `mix deps.get` in `runtime/`.
-- Unattended product check: `node scripts/cli.mjs '{"op":"call","name":"echo","args":{"hello":"world"}}'` returns `"ok":true` with `"echoed":true`. The command reaches the long-lived BEAM (`elixir --no-halt`), which supervises a permanent acceptor and one temporary task per call. Also run `npm run check`, `npx @grok/agent-sdk validate --dir .`, and `cd runtime && mix test`.
-- `npx @grok/agent-sdk dev` needs an interactive Cursor login, so the environment does not start it on boot.
+- Unattended product check: `node scripts/cli.mjs '{"op":"call","name":"echo","args":{"hello":"world"}}'` returns `"ok":true` with `"echoed":true`. The command reaches the long-lived BEAM (`elixir --no-halt`), which supervises a permanent acceptor and one temporary task per call. Also run `npm run check`, `npx @grok/agent-sdk validate --dir hosts/cursor`, and `cd runtime && mix test`.
+- `npm run dev` needs an interactive Cursor login, so the environment does not start it on boot.

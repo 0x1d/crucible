@@ -18,7 +18,7 @@ The host runs the Alchemist codex through the Claude Agent SDK with a minimal sy
 
 | Decision | Choice | Reason |
 | --- | --- | --- |
-| Location | `hosts/claude/` | Keeps `bot/` as the Cursor adapter and leaves room for other hosts. |
+| Location | `hosts/claude/` | Sits beside `hosts/cursor/`, the Cursor adapter, and leaves room for other hosts. |
 | Tool transport | In-process MCP server via `createSdkMcpServer` | No extra process. Tool handlers call `runCodexOp()` directly. |
 | Tool names | `HOST_TOOL_NAMES` from `core/protocol.ts` | One naming contract across hosts. |
 | System prompt | `hosts/claude/instructions.md` as a plain string | Minimal prompt. The Claude Code preset is not loaded. |

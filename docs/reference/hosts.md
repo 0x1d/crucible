@@ -26,7 +26,7 @@ flowchart LR
 | Codex runtime | `runtime/` (OTP app source) | Serve `define`, `load`, `find`, and `call` over TCP |
 | Capability tree | `functions/` | Codex entry source and `meta.json` |
 | Bridge | `core/elixir-bridge.ts` | `mix compile` when needed; boot one long-lived BEAM; TCP JSON RPC |
-| Host adapter | `bot/` (Cursor) and `hosts/claude/` (Claude Agent SDK) | Map harness tool calls to codex operations |
+| Host adapter | `hosts/cursor/` (Cursor) and `hosts/claude/` (Claude Agent SDK) | Map harness tool calls to codex operations |
 
 The model only needs four harness tools (`define-function`, `load-function`,
 `find-function`, `call-function`). Any host that can invoke the codex JSON
@@ -36,7 +36,7 @@ through the bridge can use the same capability tree without `@grok/agent-sdk`.
 
 | Host | Repository support | Integration boundary | Credentials / billing | Maturity |
 | --- | --- | --- | --- | --- |
-| Cursor Agent SDK | Implemented (`bot/`, `@grok/agent-sdk`) | `bot/tools/*.ts` → `runCodexOp()` | Cursor / Agent SDK login (`CURSOR_API_KEY`, `agent-sdk login`) | Primary adapter in this repo |
+| Cursor Agent SDK | Implemented (`hosts/cursor/`, `@grok/agent-sdk`) | `hosts/cursor/bot/tools/*.ts` → `runCodexOp()` | Cursor / Agent SDK login (`CURSOR_API_KEY`, `agent-sdk login`) | Primary adapter in this repo |
 | Host-agnostic CLI | Implemented (`scripts/cli.mjs`) | `runCodexOp()` from `core/elixir-bridge.ts` | None (local Elixir + Node) | Stable for scripting and custom hosts |
 | OpenCode | Pattern only | Four tools calling `cli.mjs` or equivalent | OpenCode subscription | Community integration |
 | Claude Agent SDK | Implemented (`hosts/claude/`, `@anthropic-ai/claude-agent-sdk`) | `hosts/claude/codex.ts` → `runCodexOp()` through an in-process MCP server | Claude Code login or `ANTHROPIC_API_KEY` | Example host with chat loop and evals |
@@ -49,7 +49,7 @@ No single vendor SDK bills across Cursor, OpenCode, and Anthropic. Unify at the
 ## Cursor (this repository)
 
 - **Package:** `@grok/agent-sdk` — playground, deploy, evals, Slack, and related channels.
-- **Adapter:** `bot/tools/*.ts` maps harness tool names to [`core/protocol.ts`](../../core/protocol.ts) requests.
+- **Adapter:** `hosts/cursor/bot/tools/*.ts` maps harness tool names to [`core/protocol.ts`](../../core/protocol.ts) requests.
 - **Bridge:** `core/elixir-bridge.ts` compiles `runtime/` when sources change, starts `elixir --no-halt` with `Application.ensure_all_started(:runtime, :permanent)`, and sends length-prefixed JSON over TCP.
 
 ## OpenCode

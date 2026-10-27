@@ -43,7 +43,7 @@ node scripts/cli.mjs '{"op":"call","name":"echo","args":{"hello":"world"}}'
 Optional Cursor development:
 
 ```bash
-npx @grok/agent-sdk dev
+npm run dev
 ```
 
 Optional Claude Agent SDK host:
