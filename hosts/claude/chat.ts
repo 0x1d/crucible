@@ -11,26 +11,34 @@ import { alchemistOptions } from "./codex.ts";
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 let sessionId: string | undefined;
 
-for (;;) {
-  const prompt = (await rl.question("you> ")).trim();
-  if (prompt === "") continue;
-  if (prompt === "exit") break;
+rl.setPrompt("you> ");
+rl.prompt();
 
-  for await (const message of query({
-    prompt,
-    options: { ...alchemistOptions(), resume: sessionId },
-  })) {
-    if (message.type === "assistant") {
-      for (const block of message.message.content) {
-        if (block.type === "tool_use") {
-          console.log(`[tool] ${block.name} ${JSON.stringify(block.input)}`);
+for await (const line of rl) {
+  const prompt = line.trim();
+  if (prompt === "exit") break;
+  if (prompt !== "") {
+    for await (const message of query({
+      prompt,
+      options: { ...alchemistOptions(), resume: sessionId },
+    })) {
+      if (message.type === "assistant") {
+        for (const block of message.message.content) {
+          if (block.type === "tool_use") {
+            console.log(`[tool] ${block.name} ${JSON.stringify(block.input)}`);
+          }
+        }
+      } else if (message.type === "result") {
+        sessionId = message.session_id;
+        if (message.subtype === "success") {
+          console.log(message.result);
+        } else {
+          console.error(`[${message.subtype}] ${message.errors.join("\n")}`);
         }
       }
-    } else if (message.type === "result") {
-      sessionId = message.session_id;
-      console.log(message.subtype === "success" ? message.result : `[${message.subtype}]`);
     }
   }
+  rl.prompt();
 }
 
 rl.close();

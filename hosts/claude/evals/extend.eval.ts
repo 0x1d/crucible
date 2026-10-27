@@ -2,11 +2,13 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
-import { repoRoot } from "../codex.ts";
+import { repoRoot } from "../../../core/elixir-bridge.ts";
 import { calledTool, runEval } from "./run.ts";
 
 const slug = "scratch.claude_eval";
-const entryDir = path.join(repoRoot, "functions", "scratch", "claude_eval");
+const functionsDir = path.join(repoRoot, "functions");
+const entryDir = path.join(functionsDir, "scratch", "claude_eval");
+const entriesBefore = new Set(fs.readdirSync(functionsDir));
 
 test("define-function extends the codex and call-function runs the new entry", { timeout: 300_000 }, async () => {
   const run = await runEval(
@@ -19,7 +21,9 @@ test("define-function extends the codex and call-function runs the new entry", {
 });
 
 test.after(() => {
-  fs.rmSync(entryDir, { recursive: true, force: true });
-  const parent = path.dirname(entryDir);
-  if (fs.existsSync(parent) && fs.readdirSync(parent).length === 0) fs.rmdirSync(parent);
+  for (const entry of fs.readdirSync(functionsDir)) {
+    if (!entriesBefore.has(entry)) {
+      fs.rmSync(path.join(functionsDir, entry), { recursive: true, force: true });
+    }
+  }
 });

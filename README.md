@@ -30,7 +30,7 @@ Other hosts call the same operations through `scripts/cli.mjs` or a thin wrapper
 
 ## Quick start
 
-Prerequisites: Node 22.13+ (Cursor adapter only) and Elixir 1.14+.
+Prerequisites: Node 24+ (Cursor adapter and Claude host) and Elixir 1.14+.
 
 ```bash
 mix local.hex --force && mix local.rebar --force

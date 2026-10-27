@@ -36,14 +36,14 @@ A response with `"ok": false` is returned with `isError: true`.
 
 ## Run the chat
 
-Prerequisites: Node 22.13+, Elixir 1.14+, and Claude Code credentials.
+Prerequisites: Node 24+, Elixir 1.14+, and Claude Code credentials.
 The SDK reads the same credentials as the `claude` CLI, or `ANTHROPIC_API_KEY`.
 
 ```bash
 npm run chat:claude
 ```
 
-Type a request at the `you>` prompt. Type `exit` to stop.
+Type a request at the `you>` prompt. Type `exit` or press Ctrl-D to stop.
 The loop prints each tool call as `[tool] <name> <input>` and then the final reply.
 
 ## Run the evals
@@ -58,4 +58,4 @@ npm run eval:claude
 | `extend.eval.ts` | `define-function` writes a new entry and `call-function` runs it. The test removes the entry afterwards. |
 
 Each eval sends real requests to Claude and starts the BEAM through the bridge.
-The `extend` eval writes to `functions/scratch/claude_eval/` and removes that directory in its `after` hook.
+The `extend` eval writes to `functions/scratch/claude_eval/`. Its `after` hook removes every entry under `functions/` that did not exist before the run.

@@ -11,11 +11,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import * as z from "zod/v4";
-import { runCodexOp } from "../../core/elixir-bridge.ts";
+import { repoRoot, runCodexOp } from "../../core/elixir-bridge.ts";
 import { HOST_TOOL_NAMES, type CodexRequest } from "../../core/protocol.ts";
 
 const hostDir = path.dirname(fileURLToPath(import.meta.url));
-export const repoRoot = path.resolve(hostDir, "..", "..");
 
 async function codex(request: CodexRequest) {
   const result = (await runCodexOp(request)) as { ok?: boolean };

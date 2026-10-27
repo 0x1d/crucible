@@ -23,7 +23,9 @@ export async function runEval(prompt: string): Promise<EvalRun> {
         }
       }
     } else if (message.type === "result") {
-      if (message.subtype !== "success") throw new Error(`query ended with ${message.subtype}`);
+      if (message.subtype !== "success") {
+        throw new Error(`query ended with ${message.subtype}: ${message.errors.join("; ")}`);
+      }
       run.text = message.result;
     }
   }
