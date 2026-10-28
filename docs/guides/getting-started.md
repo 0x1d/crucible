@@ -6,7 +6,7 @@ Cursor Agent SDK adapter and the Nix/direnv shell.
 
 ## Prerequisites
 
-- Elixir 1.14+ with `mix` on `PATH`
+- Elixir 1.20+ with `mix` on `PATH`
 - Node 24+ (required for the Cursor adapter, the Claude host, and TypeScript checks)
 
 ## Install dependencies

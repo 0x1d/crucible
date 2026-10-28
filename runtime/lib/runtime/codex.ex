@@ -1,5 +1,10 @@
 defmodule Runtime.Codex do
-  @moduledoc false
+  @moduledoc """
+  Slug sanitization, filesystem layout, `meta.json` I/O, and capability-tree discovery.
+
+  Decodes disk metadata with `Jason.decode/1` and falls back to a minimal record when
+  files are missing or invalid.
+  """
 
   def functions_root do
     System.get_env("AGENT_FUNCTIONS_DIR") ||

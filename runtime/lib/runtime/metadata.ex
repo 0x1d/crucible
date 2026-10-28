@@ -1,5 +1,7 @@
 defmodule Runtime.Metadata do
-  @moduledoc false
+  @moduledoc """
+  Extracts `@moduledoc` and `@spec` lines for `meta.json` refresh after compile.
+  """
 
   alias Runtime.Codex
 

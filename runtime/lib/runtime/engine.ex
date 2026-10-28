@@ -1,29 +1,29 @@
 defmodule Runtime.Engine do
-  @moduledoc false
+  @moduledoc """
+  Orchestrates compile, metadata refresh, discovery search, and `run/1` invocation.
+
+  Returns codex JSON result maps (`%{ok: true, ...}` or `%{ok: false, error: ...}`).
+  """
 
   alias Runtime.Compiler
   alias Runtime.Codex
 
   def define(name, source, description) do
     {:ok, meta} = Codex.write_definition(name, source, description)
+    slug = meta["name"]
 
-    try do
-      slug = meta["name"]
+    Runtime.Result.wrap(fn ->
       module = Compiler.compile_slug!(slug, reload: true)
       Codex.refresh_metadata!(slug, module)
       Codex.mark_loaded(slug, true)
       %{ok: true, function: Codex.load_meta(slug)}
-    rescue
-      e in ArgumentError -> %{ok: false, error: Exception.message(e)}
-    catch
-      :throw, {:error, message} -> %{ok: false, error: message}
-    end
+    end)
   end
 
   def load(name) do
     slug = Codex.sanitize(name)
 
-    try do
+    Runtime.Result.wrap(fn ->
       module = Compiler.compile_slug!(slug, reload: true)
       Codex.refresh_metadata!(slug, module)
       Codex.mark_loaded(slug, true)
@@ -33,9 +33,7 @@ defmodule Runtime.Engine do
         function: Codex.load_meta(slug),
         module: Atom.to_string(module)
       }
-    catch
-      :throw, {:error, message} -> %{ok: false, error: message}
-    end
+    end)
   end
 
   def find(query) when is_binary(query) do
