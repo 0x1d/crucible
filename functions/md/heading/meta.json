@@ -1,0 +1,11 @@
+{
+  "description": "Render a markdown ATX heading.\n\n  Args:\n  - `text` or `content` (required)\n  - `level` — 1..6 (default 1)",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Md.Heading",
+  "moduledoc": "Render a markdown ATX heading.\n\n  Args:\n  - `text` or `content` (required)\n  - `level` — 1..6 (default 1)",
+  "name": "md.heading",
+  "specs": [
+    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-10-31T21:10:16.002759Z"
+}
