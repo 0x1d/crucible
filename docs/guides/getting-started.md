@@ -53,6 +53,7 @@ npm run dev
 Sign in when prompted (`npx @grok/agent-sdk login`). The adapter exposes four
 harness tools (`define_function`, `load_function`, `find_function`,
 `call_function`) that map to the codex operations.
+`tools: []` in `hosts/cursor/bot/agent.ts` makes those four tools the model's tool surface.
 
 Example direct tool invocation:
 

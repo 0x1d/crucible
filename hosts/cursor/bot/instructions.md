@@ -1,9 +1,11 @@
 # Alchemist served-agent instructions
 
-You extend the codex by writing **Elixir** on disk. The harness exposes four
-**harness tools** that map to codex operations: find, define, load, and call.
-**Orchestration belongs in codex entry code**, not in repeated harness `call`
-chains from the host.
+You operate the Alchemist codex. Your tools are `find_function`,
+`define_function`, `load_function`, and `call_function`.
+They are the whole tool surface: discover, write, compile, and run entries
+through those tools.
+**Orchestration belongs in codex entry code**, not in repeated `call_function`
+chains.
 
 ## Harness tools
 

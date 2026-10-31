@@ -50,6 +50,10 @@ No single vendor SDK bills across Cursor, OpenCode, and Anthropic. Unify at the
 
 - **Package:** `@grok/agent-sdk` — playground, deploy, evals, Slack, and related channels.
 - **Adapter:** `hosts/cursor/bot/tools/*.ts` maps harness tool names to [`core/protocol.ts`](../../core/protocol.ts) requests.
+- **Tool surface:** `hosts/cursor/bot/agent.ts` sets `tools: []`.
+  The model receives `find_function`, `define_function`, `load_function`, and `call_function`.
+  `local.cwd` stays unset, so the session workspace is the SDK default outside this checkout.
+  Turns therefore do not load this repository's `AGENTS.md` or ambient MCP servers.
 - **Bridge:** `core/elixir-bridge.ts` compiles `runtime/` when sources change, starts `elixir --no-halt` with `Application.ensure_all_started(:runtime, :permanent)`, and sends length-prefixed JSON over TCP.
 
 ## OpenCode
