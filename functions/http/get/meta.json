@@ -1,0 +1,11 @@
+{
+  "description": "Perform an HTTP GET request.\n\n  Args:\n  - `url` (required)\n  - `headers` — optional map of header name => value\n  - `timeout_ms` — default 15_000\n  - `max_bytes` — optional response body cap (truncates when exceeded)",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Http.Get",
+  "moduledoc": "Perform an HTTP GET request.\n\n  Args:\n  - `url` (required)\n  - `headers` — optional map of header name => value\n  - `timeout_ms` — default 15_000\n  - `max_bytes` — optional response body cap (truncates when exceeded)",
+  "name": "http.get",
+  "specs": [
+    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-10-31T21:12:27.923525Z"
+}

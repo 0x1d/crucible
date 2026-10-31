@@ -1,0 +1,11 @@
+{
+  "description": "Encode a value as a JSON string.\n\n  Args:\n  - `value` or `data` (required)\n  - `pretty` — optional boolean for pretty printing",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Json.Stringify",
+  "moduledoc": "Encode a value as a JSON string.\n\n  Args:\n  - `value` or `data` (required)\n  - `pretty` — optional boolean for pretty printing",
+  "name": "json.stringify",
+  "specs": [
+    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-10-31T21:12:02.209460Z"
+}

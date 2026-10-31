@@ -1,0 +1,11 @@
+{
+  "description": "Slice text by head/tail lines or an inclusive line range.\n\n  Args:\n  - `text` or `path` — subject (exactly one)\n  - `head` — first N lines\n  - `tail` — last N lines\n  - `start_line` / `end_line` — inclusive 1-based range\n\n  Prefer one mode: `head`, `tail`, or `start_line`(+optional `end_line`).",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Text.Slice",
+  "moduledoc": "Slice text by head/tail lines or an inclusive line range.\n\n  Args:\n  - `text` or `path` — subject (exactly one)\n  - `head` — first N lines\n  - `tail` — last N lines\n  - `start_line` / `end_line` — inclusive 1-based range\n\n  Prefer one mode: `head`, `tail`, or `start_line`(+optional `end_line`).",
+  "name": "text.slice",
+  "specs": [
+    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-10-31T21:10:46.123567Z"
+}

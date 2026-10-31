@@ -1,0 +1,11 @@
+{
+  "description": "Parse JSON into Elixir data (maps/lists with string keys).\n\n  Args:\n  - `text`, `json`, or `content` — JSON string\n  - or `path` — file containing JSON",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Json.Parse",
+  "moduledoc": "Parse JSON into Elixir data (maps/lists with string keys).\n\n  Args:\n  - `text`, `json`, or `content` — JSON string\n  - or `path` — file containing JSON",
+  "name": "json.parse",
+  "specs": [
+    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-10-31T21:11:56.937716Z"
+}
