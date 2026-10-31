@@ -1,0 +1,11 @@
+{
+  "description": "List files and directories in a folder.\n\n  Args: `path` (required string).\n\n  Each entry includes `name`, `type`, `size` (bytes), `extension`,\n  `create_time`, and `modify_time` (ISO-8601 UTC).\n\n  On Unix, `create_time` is inode ctime (metadata change time), the closest\n  value exposed by `File.stat/1`.",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Fs.List",
+  "moduledoc": "List files and directories in a folder.\n\n  Args: `path` (required string).\n\n  Each entry includes `name`, `type`, `size` (bytes), `extension`,\n  `create_time`, and `modify_time` (ISO-8601 UTC).\n\n  On Unix, `create_time` is inode ctime (metadata change time), the closest\n  value exposed by `File.stat/1`.",
+  "name": "fs.list",
+  "specs": [
+    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-10-31T20:53:06.747649Z"
+}

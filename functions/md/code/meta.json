@@ -1,0 +1,11 @@
+{
+  "description": "Wrap text as a markdown fenced code block.\n\n  Args:\n  - `content` or `text` (required)\n  - `lang` — optional language tag for the fence",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Md.Code",
+  "moduledoc": "Wrap text as a markdown fenced code block.\n\n  Args:\n  - `content` or `text` (required)\n  - `lang` — optional language tag for the fence",
+  "name": "md.code",
+  "specs": [
+    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-10-31T21:10:11.907442Z"
+}

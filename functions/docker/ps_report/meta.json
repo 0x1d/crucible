@@ -1,0 +1,11 @@
+{
+  "description": "Report Docker containers by composing `docker.ps`.\n\n  Args:\n  - `all` — if true, include stopped containers (default false)",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Docker.PsReport",
+  "moduledoc": "Report Docker containers by composing `docker.ps`.\n\n  Args:\n  - `all` — if true, include stopped containers (default false)",
+  "name": "docker.ps_report",
+  "specs": [
+    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-10-31T21:25:16.391268Z"
+}

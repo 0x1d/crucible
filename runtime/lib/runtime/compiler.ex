@@ -1,5 +1,10 @@
 defmodule Runtime.Compiler do
-  @moduledoc false
+  @moduledoc """
+  Compiles shared `functions/lib` and per-slug `.ex` trees into the live BEAM.
+
+  Validates that the slug's entry module exports `run/1`. Failures use `throw/1`
+  with `{:error, message}` for `Runtime.Result.wrap/1`.
+  """
 
   alias Runtime.Codex
 

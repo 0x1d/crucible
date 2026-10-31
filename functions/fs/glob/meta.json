@@ -1,0 +1,11 @@
+{
+  "description": "Glob filesystem paths under a root directory.\n\n  Args:\n  - `path` or `root` (required) — search root\n  - `pattern` (required) — wildcard relative to root, e.g. `**/*.ex`\n\n  Returns `entries` with the same shape as `fs.list`, plus `path` relative\n  to the root on each entry.",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Fs.Glob",
+  "moduledoc": "Glob filesystem paths under a root directory.\n\n  Args:\n  - `path` or `root` (required) — search root\n  - `pattern` (required) — wildcard relative to root, e.g. `**/*.ex`\n\n  Returns `entries` with the same shape as `fs.list`, plus `path` relative\n  to the root on each entry.",
+  "name": "fs.glob",
+  "specs": [
+    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-10-31T21:09:47.473618Z"
+}

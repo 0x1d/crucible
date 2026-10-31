@@ -1,0 +1,11 @@
+{
+  "description": "Project keys from a list of maps.\n\n  Args:\n  - `entries`, `rows`, `items`, or nested under `data` — list of maps\n  - `keys` or `columns` (required) — keys to keep (order preserved)\n  - `rename` — optional map of `from => to` renames applied after select\n  - `key` — optional list key when unwrapping `data`",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Data.Select",
+  "moduledoc": "Project keys from a list of maps.\n\n  Args:\n  - `entries`, `rows`, `items`, or nested under `data` — list of maps\n  - `keys` or `columns` (required) — keys to keep (order preserved)\n  - `rename` — optional map of `from => to` renames applied after select\n  - `key` — optional list key when unwrapping `data`",
+  "name": "data.select",
+  "specs": [
+    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-10-31T21:11:20.158003Z"
+}

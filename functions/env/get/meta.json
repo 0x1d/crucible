@@ -1,0 +1,11 @@
+{
+  "description": "Read named environment variables (no dump-all).\n\n  Args:\n  - `names` (required) — list of variable names\n  - or `name` — single variable name\n\n  Missing variables appear as `null` in `values`.",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Env.Get",
+  "moduledoc": "Read named environment variables (no dump-all).\n\n  Args:\n  - `names` (required) — list of variable names\n  - or `name` — single variable name\n\n  Missing variables appear as `null` in `values`.",
+  "name": "env.get",
+  "specs": [
+    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-10-31T21:12:08.002335Z"
+}

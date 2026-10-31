@@ -1,0 +1,29 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import test from "node:test";
+import { repoRoot } from "../../../core/elixir-bridge.ts";
+import { calledTool, runEval } from "./run.ts";
+
+const slug = "scratch.claude_eval";
+const functionsDir = path.join(repoRoot, "functions");
+const entryDir = path.join(functionsDir, "scratch", "claude_eval");
+const entriesBefore = new Set(fs.readdirSync(functionsDir));
+
+test("define_function extends the codex and call_function runs the new entry", { timeout: 300_000 }, async () => {
+  const run = await runEval(
+    `Define a codex entry with slug "${slug}" whose run/1 returns {:ok, %{"sum" => a + b}} for integer args "a" and "b". Then call it with a=2 and b=3 and reply with only the result map.`,
+  );
+  assert.ok(calledTool(run, "define_function"), JSON.stringify(run.toolCalls));
+  assert.ok(calledTool(run, "call_function"), JSON.stringify(run.toolCalls));
+  assert.match(run.text, /5/);
+  assert.ok(fs.existsSync(path.join(entryDir, "tool.ex")));
+});
+
+test.after(() => {
+  for (const entry of fs.readdirSync(functionsDir)) {
+    if (!entriesBefore.has(entry)) {
+      fs.rmSync(path.join(functionsDir, entry), { recursive: true, force: true });
+    }
+  }
+});

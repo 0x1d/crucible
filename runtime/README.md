@@ -34,12 +34,13 @@ supervisor gives up, the permanent application exits the VM.
 | Module | Responsibility |
 | --- | --- |
 | `Runtime.Application` | Supervisor for the task supervisor, serializer, and acceptor |
-| `Runtime.Server` | Accept loop (in the acceptor task) and compile serialization (GenServer) |
+| `Runtime.Server` | Compile serialization (GenServer); `accept/0` runs in the acceptor task |
 | `Runtime.CLI` | Operation dispatch for `define`, `load`, `find`, `call` |
 | `Runtime.Engine` | Orchestrates compile, metadata refresh, search, and `run/1` invocation |
 | `Runtime.Compiler` | Compiles `functions/lib` and per-slug `.ex` trees; validates entry module |
 | `Runtime.Codex` | Slug sanitization, paths, `meta.json`, discovery walk, `write_definition` |
 | `Runtime.Metadata` | Extracts `@moduledoc` and `@spec` for metadata files |
+| `Runtime.Result` | Maps exceptions and throws to codex JSON error envelopes |
 | `AgentFn.Codex` | Dynamic dispatch helper (`call/2`, `list/0`) used from entry code |
 | `AgentFn.Tool` | Behaviour marker for entry modules |
 

@@ -1,0 +1,11 @@
+{
+  "description": "Sort a list of maps by one field.\n\n  Args:\n  - `entries` / `rows` / `items` / `data` — list of maps\n  - `by` or `field` (required)\n  - `order` — `asc` (default) or `desc`",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Data.Sort",
+  "moduledoc": "Sort a list of maps by one field.\n\n  Args:\n  - `entries` / `rows` / `items` / `data` — list of maps\n  - `by` or `field` (required)\n  - `order` — `asc` (default) or `desc`",
+  "name": "data.sort",
+  "specs": [
+    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-10-31T21:11:51.072509Z"
+}

@@ -6,8 +6,8 @@ Cursor Agent SDK adapter and the Nix/direnv shell.
 
 ## Prerequisites
 
-- Elixir 1.14+ with `mix` on `PATH`
-- Node 22.13+ (required only for the Cursor adapter and TypeScript checks)
+- Elixir 1.20+ with `mix` on `PATH`
+- Node 24+ (required for the Cursor adapter, the Claude host, and TypeScript checks)
 
 ## Install dependencies
 
@@ -22,7 +22,7 @@ mix local.rebar --force
 
 ```bash
 npm run check
-npx @grok/agent-sdk validate --dir .
+npx @grok/agent-sdk validate --dir hosts/cursor
 (cd runtime && mix test)
 ```
 
@@ -47,21 +47,39 @@ node scripts/cli.mjs '{"op":"find","query":""}'
 For playground, deploy, evals, and channels:
 
 ```bash
-npx @grok/agent-sdk dev
+npm run dev
 ```
 
 Sign in when prompted (`npx @grok/agent-sdk login`). The adapter exposes four
-harness tools (`define-function`, `load-function`, `find-function`,
-`call-function`) that map to the codex operations.
+harness tools (`define_function`, `load_function`, `find_function`,
+`call_function`) that map to the codex operations.
+`tools: []` in `hosts/cursor/bot/agent.ts` makes those four tools the model's tool surface.
 
 Example direct tool invocation:
 
 ```bash
-npx @grok/agent-sdk tool call call-function \
+npx @grok/agent-sdk tool call call_function --dir hosts/cursor \
   --input '{"name":"echo","args":{"hello":"world"}}'
 ```
 
-Served-agent behavior is defined in [`bot/instructions.md`](../../bot/instructions.md).
+Served-agent behavior is defined in [`hosts/cursor/bot/instructions.md`](../../hosts/cursor/bot/instructions.md).
+
+## Optional: Claude Agent SDK host
+
+The Claude host runs the same four tools through the Claude Code harness.
+It needs Claude Code credentials or `ANTHROPIC_API_KEY`.
+
+```bash
+npm run chat:claude
+```
+
+Run the Claude evals:
+
+```bash
+npm run eval:claude
+```
+
+Host files and options are described in the [Claude host README](../../hosts/claude/README.md).
 
 ## Optional: Nix and direnv
 

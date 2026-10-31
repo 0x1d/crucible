@@ -1,6 +1,6 @@
 defmodule AgentLib.Strings do
   @moduledoc """
-  Shared string helpers for codex entries. Not callable via `call-function`.
+  Shared string helpers for codex entries. Not callable via `call_function`.
   """
 
   @spec blank?(String.t() | nil) :: boolean()

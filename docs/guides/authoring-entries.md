@@ -115,4 +115,4 @@ before loading in sensitive environments. See [Security boundary](../reference/s
 - [Domain language](../concepts/domain-language.md)
 - [Architecture](../concepts/architecture.md)
 - [Codex protocol](../reference/protocol.md)
-- [Alchemist served-agent instructions](../../bot/instructions.md)
+- [Alchemist served-agent instructions](../../hosts/cursor/bot/instructions.md)

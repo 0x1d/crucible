@@ -2,15 +2,14 @@
 
 Hosts interact with Alchemist through four JSON operations: `define`, `load`,
 `find`, and `call`. TypeScript definitions live in [`core/protocol.ts`](../../core/protocol.ts).
-The Cursor adapter exposes kebab-case harness tool names that map one-to-one to
-these operations.
+The Cursor and Claude adapters expose snake_case harness tool names that map one-to-one to these operations.
 
-| Operation | Harness tool (Cursor) | Purpose |
+| Operation | Harness tool | Purpose |
 | --- | --- | --- |
-| `define` | `define-function` | Write or replace entry source on disk and compile |
-| `load` | `load-function` | Compile an existing entry tree from disk |
-| `find` | `find-function` | Search discovered entries by metadata |
-| `call` | `call-function` | Invoke an entry's `run/1` with a JSON object |
+| `define` | `define_function` | Write or replace entry source on disk and compile |
+| `load` | `load_function` | Compile an existing entry tree from disk |
+| `find` | `find_function` | Search discovered entries by metadata |
+| `call` | `call_function` | Invoke an entry's `run/1` with a JSON object |
 
 Every request is a JSON object with an `op` field. The live interface is one
 length-prefixed JSON request and one length-prefixed JSON response on a TCP

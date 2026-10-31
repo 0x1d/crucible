@@ -50,11 +50,12 @@ subsystems.
 | [Authoring codex entries](./guides/authoring-entries.md) | Codex entry authors | Slugs, modules, harness operations, and testing entries. |
 | [Codex protocol](./reference/protocol.md) | Host integrators and contributors | Request and response contracts for all four operations. |
 | [Host adapters](./reference/hosts.md) | Host integrators | Mapping environments to the codex protocol. |
+| [Claude host README](../hosts/claude/README.md) | Host integrators | Running and evaluating the Claude Agent SDK example host. |
 | [Security boundary](./reference/security.md) | Operators and security reviewers | Current trust model and arbitrary-code risks. |
 | [Codex runtime notes](../runtime/README.md) | Runtime contributors | Working on the `:runtime` application and its Mix project. |
 | [Repository-agent rules](../AGENTS.md) | Coding agents contributing to the repository | Applying repository commands, layout rules, and contribution constraints. |
 
-The served-agent prompt in `bot/instructions.md` is an operational input rather
+The served-agent prompt in `hosts/cursor/bot/instructions.md` is an operational input rather
 than public product documentation.
 
 ## Historical engineering records

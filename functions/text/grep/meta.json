@@ -1,0 +1,11 @@
+{
+  "description": "Search text with a regular expression.\n\n  Args:\n  - `pattern` (required) — regex source\n  - `text` or `path` — subject (exactly one)\n  - `ignore_case` — optional boolean\n  - `max_matches` — optional cap (default 1000)\n\n  Returns `matches` as `%{line, column, text, match}` maps.",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Text.Grep",
+  "moduledoc": "Search text with a regular expression.\n\n  Args:\n  - `pattern` (required) — regex source\n  - `text` or `path` — subject (exactly one)\n  - `ignore_case` — optional boolean\n  - `max_matches` — optional cap (default 1000)\n\n  Returns `matches` as `%{line, column, text, match}` maps.",
+  "name": "text.grep",
+  "specs": [
+    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-10-31T21:10:34.174157Z"
+}

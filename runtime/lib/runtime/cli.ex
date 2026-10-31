@@ -38,15 +38,8 @@ defmodule Runtime.CLI do
 
   def dispatch(%{"op" => "load"} = req) do
     case require_string(Map.get(req, "name"), "name") do
-      {:ok, name} ->
-        try do
-          Engine.load(name)
-        catch
-          :throw, {:error, message} -> error(message)
-        end
-
-      {:error, message} ->
-        error(message)
+      {:ok, name} -> Engine.load(name)
+      {:error, message} -> error(message)
     end
   end
 

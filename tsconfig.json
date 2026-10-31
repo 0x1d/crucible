@@ -1,5 +1,5 @@
 {
-  // Type-checking only (npm run check): the framework runs bot/ code
+  // Type-checking only (npm run check): the framework runs hosts/cursor/bot/ code
   // directly through tsx, so nothing is compiled.
   "compilerOptions": {
     "target": "ES2022",
@@ -11,5 +11,5 @@
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["bot/**/*", "core/**/*", "evals/**/*"]
+  "include": ["core/**/*", "hosts/**/*"]
 }
