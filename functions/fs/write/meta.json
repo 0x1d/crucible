@@ -1,0 +1,11 @@
+{
+  "description": "Write or append text to a file.\n\n  Args:\n  - `path` (required)\n  - `content` (required string)\n  - `append` — when true, append instead of overwrite (default false)\n  - `overwrite` — required true to replace an existing file when not appending\n\n  Creates parent directories as needed.",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Fs.Write",
+  "moduledoc": "Write or append text to a file.\n\n  Args:\n  - `path` (required)\n  - `content` (required string)\n  - `append` — when true, append instead of overwrite (default false)\n  - `overwrite` — required true to replace an existing file when not appending\n\n  Creates parent directories as needed.",
+  "name": "fs.write",
+  "specs": [
+    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-10-31T21:09:38.206313Z"
+}

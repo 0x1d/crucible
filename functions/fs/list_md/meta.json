@@ -1,0 +1,11 @@
+{
+  "description": "List a directory and render its entries as a markdown table.\n\n  Args:\n  - `path` (required) — directory to list\n  - `columns` — optional ordered column names for `md.table`\n  - `key` — optional list key for `md.table` (defaults to entries)",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Fs.ListMd",
+  "moduledoc": "List a directory and render its entries as a markdown table.\n\n  Args:\n  - `path` (required) — directory to list\n  - `columns` — optional ordered column names for `md.table`\n  - `key` — optional list key for `md.table` (defaults to entries)",
+  "name": "fs.list_md",
+  "specs": [
+    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-10-31T20:59:19.917153Z"
+}
