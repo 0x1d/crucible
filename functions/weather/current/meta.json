@@ -1,0 +1,11 @@
+{
+  "description": "Current weather for a place via Open-Meteo (geocode + forecast).\n\n  Args:\n  - `place` / `location` / `city` (required) — place name to look up\n  - `country` — optional ISO country code filter (e.g. \"CH\")",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Weather.Current",
+  "moduledoc": "Current weather for a place via Open-Meteo (geocode + forecast).\n\n  Args:\n  - `place` / `location` / `city` (required) — place name to look up\n  - `country` — optional ISO country code filter (e.g. \"CH\")",
+  "name": "weather.current",
+  "specs": [
+    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-10-31T21:37:43.305798Z"
+}
