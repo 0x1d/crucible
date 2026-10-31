@@ -22,6 +22,7 @@ boundaries.
 | Shared library | `AgentLib.*` code under `functions/lib/` that can be used by multiple codex entries. |
 | Static composition | Direct Elixir module calls when the dependency is known while authoring the entry. |
 | Dynamic dispatch | A call through `AgentFn.Codex.call/2` when a slug is runtime data. |
+| Belief graph | The append-only bi-temporal fact log owned by `Runtime.Memory`. Codex entries `memory.transact`, `memory.retract`, `memory.query`, and `memory.recall` are its interface. |
 
 ## Disambiguation
 
@@ -34,4 +35,5 @@ boundaries.
 | Harness tool | A host-visible alias that submits one codex protocol operation. It is not a capability implementation. |
 | `AgentFn.Tool` | The Elixir behaviour that declares the `run/1` callback for entry modules. It is not a host-visible tool or a codex entry. |
 | `runtime/` | Mix project whose compiled OTP application is the codex runtime. |
-| Long-lived BEAM | The `elixir --no-halt` process started by the Node bridge. It runs the runtime application: a task supervisor, `Runtime.Server` (compile serializer), and a permanent acceptor. It serves many codex operations until restart (for example when `runtime/` sources change, the supervisor hits its restart limit, or the bridge recovers from a transport error). |
+| Belief graph | Queryable fact log at `memory/graph.log`. It is not the Cursor host journal in `hosts/cursor/bot/hooks/memory.ts`. |
+| Long-lived BEAM | The `elixir --no-halt` process started by the Node bridge. It runs the runtime application: `Runtime.Memory` (belief graph), a task supervisor, `Runtime.Server` (compile serializer), and a permanent acceptor. It serves many codex operations until restart (for example when `runtime/` sources change, the supervisor hits its restart limit, or the bridge recovers from a transport error). |

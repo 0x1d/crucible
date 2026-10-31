@@ -1,0 +1,11 @@
+{
+  "description": "Asserts facts into the belief graph. Requires a reason. A new entity also requires a description.",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Memory.Transact",
+  "moduledoc": "Asserts facts into the belief graph. Requires a reason. A new entity also requires a description.",
+  "name": "memory.transact",
+  "specs": [
+    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-10-31T23:16:04.619775Z"
+}

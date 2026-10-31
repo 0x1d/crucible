@@ -40,12 +40,13 @@ defmodule Runtime.Application do
   end
 
   @doc """
-  Supervision order: connection tasks, then the compile serializer, then the
-  permanent acceptor. Shutdown stops children in reverse, so the listen socket
-  closes before in-flight connection tasks.
+  Supervision order: the belief graph, connection tasks, the compile serializer,
+  then the permanent acceptor. Shutdown stops children in reverse, so the listen
+  socket closes before in-flight connection tasks, and the graph outlives them.
   """
   def children do
     [
+      Runtime.Memory,
       {Task.Supervisor, name: Runtime.TaskSupervisor},
       Runtime.Server,
       Supervisor.child_spec(

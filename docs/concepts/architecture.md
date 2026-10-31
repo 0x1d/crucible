@@ -63,6 +63,7 @@ seconds). Children start in this order:
 
 | Child | Restart | Role |
 | --- | --- | --- |
+| `Runtime.Memory` | permanent GenServer | Owns the belief graph and its append-only log |
 | `Runtime.TaskSupervisor` | permanent supervisor | Temporary task per accepted socket |
 | `Runtime.Server` | permanent GenServer | Serializes `define` and `load`. Does not own a socket |
 | `Runtime.Acceptor` | permanent `Task` | Owns the loopback listen socket and accepts |
@@ -81,7 +82,7 @@ A connection crash closes that socket and leaves the acceptor and serializer
 running.
 
 Shutdown stops children in reverse: the listen socket closes, then the
-serializer, then in-flight connection tasks.
+serializer, then in-flight connection tasks, and the belief graph stops last.
 
 Implications:
 
@@ -91,6 +92,8 @@ Implications:
   validation on disk, not a substitute for inspecting live code in the VM.
 - The **filesystem tree** under `functions/` is the source of truth for entry
   source and discovery metadata.
+- The **belief graph** log survives a BEAM restart. `Runtime.Memory` replays it
+  on the next start. See [Memory](./memory.md).
 
 `call` auto-invokes `load` when the entry module is not yet compiled in the current
 BEAM.
@@ -129,4 +132,5 @@ flowchart TB
 - [Codex protocol reference](../reference/protocol.md)
 - [Authoring codex entries](../guides/authoring-entries.md)
 - [Host adapters](../reference/hosts.md)
+- [Memory](./memory.md)
 - [Codex runtime notes](../../runtime/README.md)

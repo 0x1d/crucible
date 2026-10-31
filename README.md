@@ -58,6 +58,7 @@ npm run eval:claude
 - [Documentation index](docs/index.md) — goal-oriented reading paths
 - [Getting started](docs/guides/getting-started.md) — install, validate, first call
 - [Architecture](docs/concepts/architecture.md) — components, lifecycle, composition
+- [Memory](docs/concepts/memory.md) — belief graph and bi-temporal queries
 - [Codex protocol](docs/reference/protocol.md) — operation contracts
 
 ## Security

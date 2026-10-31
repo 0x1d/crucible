@@ -1,0 +1,11 @@
+{
+  "description": "Queries the belief graph by pattern, transaction time, and valid time.",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Memory.Query",
+  "moduledoc": "Queries the belief graph by pattern, transaction time, and valid time.",
+  "name": "memory.query",
+  "specs": [
+    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-10-31T23:16:26.798806Z"
+}

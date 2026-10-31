@@ -5,7 +5,7 @@
 pkgs.mkShell {
   packages = with pkgs; [
     nodejs_24
-    beamPackages.elixir
+    beamPackages.elixir_1_20
     beamPackages.erlang
   ];
 

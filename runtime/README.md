@@ -18,6 +18,7 @@ seconds). Children, in start order:
 
 | Child | Restart | Owns | Role |
 | --- | --- | --- | --- |
+| `Runtime.Memory` | permanent | belief graph log | Replays and appends `memory/graph.log` |
 | `Runtime.TaskSupervisor` | supervisor | connection tasks | One temporary task per client |
 | `Runtime.Server` | permanent | no sockets | Serializes `define` and `load` |
 | `Runtime.Acceptor` | permanent task | listen socket | `Runtime.Server.accept/0` |
@@ -33,7 +34,9 @@ supervisor gives up, the permanent application exits the VM.
 
 | Module | Responsibility |
 | --- | --- |
-| `Runtime.Application` | Supervisor for the task supervisor, serializer, and acceptor |
+| `Runtime.Application` | Supervisor for the belief graph, task supervisor, serializer, and acceptor |
+| `Runtime.Memory` | Belief graph GenServer. Replays the log and serializes writes |
+| `Runtime.Memory.Log` | Append, replay, and query of the belief graph. Not a process |
 | `Runtime.Server` | Compile serialization (GenServer); `accept/0` runs in the acceptor task |
 | `Runtime.CLI` | Operation dispatch for `define`, `load`, `find`, `call` |
 | `Runtime.Engine` | Orchestrates compile, metadata refresh, search, and `run/1` invocation |
@@ -92,6 +95,7 @@ node scripts/cli.mjs '{"op":"call","name":"echo","args":{}}'
 | Variable | Effect |
 | --- | --- |
 | `AGENT_FUNCTIONS_DIR` | Path to the capability tree (set by the Node bridge for codex calls) |
+| `AGENT_MEMORY_PATH` | Belief graph log path. Default is `memory/graph.log` beside the parent of the functions root |
 | `ALCHEMIST_STATE_DIR` | Live node files (`port`, `pid`) and the bridge's `stamp` (default `runtime/.alchemist`) |
 
 ## Limitations
@@ -107,4 +111,5 @@ node scripts/cli.mjs '{"op":"call","name":"echo","args":{}}'
 
 - [Architecture](../docs/concepts/architecture.md)
 - [Host adapters](../docs/reference/hosts.md)
+- [Memory](../docs/concepts/memory.md)
 - [Domain language](../docs/concepts/domain-language.md)
