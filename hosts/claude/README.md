@@ -30,7 +30,7 @@ The Elixir bridge in `core/elixir-bridge.ts` owns the long-lived BEAM, as for ev
 - `settingSources: []` ignores user and project settings files.
 - `cwd` is the repository root.
 
-Tool names follow `core/protocol.ts`: `find-function`, `define-function`, `load-function`, and `call-function`.
+Tool names follow `core/protocol.ts`: `find_function`, `define_function`, `load_function`, and `call_function`.
 Each tool returns the codex JSON response as text.
 A response with `"ok": false` is returned with `isError: true`.
 
@@ -54,8 +54,8 @@ npm run eval:claude
 
 | Eval file | Checks |
 | --- | --- |
-| `smoke.eval.ts` | `call-function` runs the bundled `echo` entry. `find-function` lists entries. |
-| `extend.eval.ts` | `define-function` writes a new entry and `call-function` runs it. The test removes the entry afterwards. |
+| `smoke.eval.ts` | `call_function` runs the bundled `echo` entry. `find_function` lists entries. |
+| `extend.eval.ts` | `define_function` writes a new entry and `call_function` runs it. The test removes the entry afterwards. |
 
 Each eval sends real requests to Claude and starts the BEAM through the bridge.
 The `extend` eval writes to `functions/scratch/claude_eval/`. Its `after` hook removes every entry under `functions/` that did not exist before the run.

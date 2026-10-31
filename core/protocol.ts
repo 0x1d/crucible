@@ -12,10 +12,10 @@ export type CodexRequest =
   | { op: "find"; query?: string }
   | { op: "call"; name: string; args?: Record<string, unknown> };
 
-/** Model-facing names when the host exposes JSON tools (kebab-case). */
+/** Model-facing names when the host exposes JSON tools (snake_case). */
 export const HOST_TOOL_NAMES = {
-  define: "define-function",
-  load: "load-function",
-  find: "find-function",
-  call: "call-function",
+  define: "define_function",
+  load: "load_function",
+  find: "find_function",
+  call: "call_function",
 } as const;

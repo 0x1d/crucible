@@ -28,8 +28,8 @@ flowchart LR
 | Bridge | `core/elixir-bridge.ts` | `mix compile` when needed; boot one long-lived BEAM; TCP JSON RPC |
 | Host adapter | `hosts/cursor/` (Cursor) and `hosts/claude/` (Claude Agent SDK) | Map harness tool calls to codex operations |
 
-The model only needs four harness tools (`define-function`, `load-function`,
-`find-function`, `call-function`). Any host that can invoke the codex JSON
+The model only needs four harness tools (`define_function`, `load_function`,
+`find_function`, `call_function`). Any host that can invoke the codex JSON
 through the bridge can use the same capability tree without `@grok/agent-sdk`.
 
 ## Adapter matrix

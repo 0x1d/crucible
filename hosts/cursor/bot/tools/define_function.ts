@@ -18,7 +18,7 @@ export default defineTool({
     description: z
       .string()
       .optional()
-      .describe("Short summary stored in the codex for find-function"),
+      .describe("Short summary stored in the codex for find_function"),
   }),
   async execute({ name, source, description }) {
     return runCodexOp({

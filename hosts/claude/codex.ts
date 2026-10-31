@@ -41,7 +41,7 @@ export const alchemistServer = createSdkMcpServer({
       {
         name: z.string().describe("Codex slug: snake_case, dot namespaces allowed (e.g. pipeline.demo)"),
         source: z.string().describe("Elixir source for run/1 or a complete defmodule block"),
-        description: z.string().optional().describe("Short summary stored for find-function"),
+        description: z.string().optional().describe("Short summary stored for find_function"),
       },
       (args) => codex({ op: "define", ...args }),
     ),

@@ -12,7 +12,7 @@ boundaries.
 | Codex entry | A slug-addressed capability implemented by an `AgentFn.*` module that exports `run/1`. |
 | Slug | The canonical dot-separated address for a codex entry. Each segment uses `snake_case`; the address maps to a directory path and an Elixir module name. For example, `data.pipeline` maps to `functions/data/pipeline/` and `AgentFn.Data.Pipeline`. |
 | Codex protocol | The JSON operations `define`, `load`, `find`, and `call`. |
-| Harness tool | A model-facing alias for one codex operation, such as `call-function` for `call`. |
+| Harness tool | A model-facing alias for one codex operation, such as `call_function` for `call`. |
 | Host | An environment that exposes the codex protocol. |
 | Host adapter | Code that maps a host's tool API to codex operations. |
 | Codex runtime | The `:runtime` OTP application that validates slugs, compiles entry sources into the live BEAM, discovers metadata, and invokes `run/1`. Hosts reach it over TCP; Mix only builds it. |

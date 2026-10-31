@@ -51,13 +51,13 @@ npm run dev
 ```
 
 Sign in when prompted (`npx @grok/agent-sdk login`). The adapter exposes four
-harness tools (`define-function`, `load-function`, `find-function`,
-`call-function`) that map to the codex operations.
+harness tools (`define_function`, `load_function`, `find_function`,
+`call_function`) that map to the codex operations.
 
 Example direct tool invocation:
 
 ```bash
-npx @grok/agent-sdk tool call call-function --dir hosts/cursor \
+npx @grok/agent-sdk tool call call_function --dir hosts/cursor \
   --input '{"name":"echo","args":{"hello":"world"}}'
 ```
 
