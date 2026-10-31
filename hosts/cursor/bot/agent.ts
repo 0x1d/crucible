@@ -5,7 +5,9 @@ export default defineAgent({
   model: "auto",
   // Empty allowlist: no read, edit, shell, or other native tools.
   // Authored codex tools still reach the model over MCP.
-  // local.cwd stays unset so the session workspace stays outside this
-  // checkout and does not inherit its AGENTS.md or ambient MCP servers.
+  // Workspaces live in hosts/cursor/.sessions (gitignored). Each session
+  // directory is its own git root, so turns do not inherit this checkout's
+  // AGENTS.md or ambient MCP servers.
+  local: { cwd: ".sessions" },
   tools: [],
 });
