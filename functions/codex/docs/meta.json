@@ -1,0 +1,11 @@
+{
+  "description": "Render a markdown catalog of available codex entries and their documentation.\n\n  Includes an index table with `specs`, plus per-entry moduledoc and specs.\n\n  Optional args:\n  - `query` — case-insensitive substring filter on name/description/moduledoc/specs\n  - `title` — document title (default \"Codex entries\")",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Codex.Docs",
+  "moduledoc": "Render a markdown catalog of available codex entries and their documentation.\n\n  Includes an index table with `specs`, plus per-entry moduledoc and specs.\n\n  Optional args:\n  - `query` — case-insensitive substring filter on name/description/moduledoc/specs\n  - `title` — document title (default \"Codex entries\")",
+  "name": "codex.docs",
+  "specs": [
+    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-10-31T21:29:56.999471Z"
+}
