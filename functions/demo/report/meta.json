@@ -1,0 +1,11 @@
+{
+  "description": "Demo pipeline: `fs.glob` → `data.filter` → `data.sort` → `md.table` → `md.concat`.\n\n  Args:\n  - `path` / `root` (required)\n  - `pattern` (required)\n  - `field`, `op`, `value` — optional filter (default: extension eq \"ex\")\n  - `by` — sort field (default `path`)\n  - `order` — `asc` or `desc`\n  - `columns` — table columns\n  - `title` — report heading text",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Demo.Report",
+  "moduledoc": "Demo pipeline: `fs.glob` → `data.filter` → `data.sort` → `md.table` → `md.concat`.\n\n  Args:\n  - `path` / `root` (required)\n  - `pattern` (required)\n  - `field`, `op`, `value` — optional filter (default: extension eq \"ex\")\n  - `by` — sort field (default `path`)\n  - `order` — `asc` or `desc`\n  - `columns` — table columns\n  - `title` — report heading text",
+  "name": "demo.report",
+  "specs": [
+    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-10-31T21:13:57.332139Z"
+}
