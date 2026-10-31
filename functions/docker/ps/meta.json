@@ -1,0 +1,11 @@
+{
+  "description": "List Docker containers via `docker ps`.\n\n  Args:\n  - `all` — if true, include stopped containers (default false)\n\n  Returns `containers` as normalized maps (`id`, `name`, `image`, `status`,\n  `state`, `ports`, `created`, `command`) and `count`.",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Docker.Ps",
+  "moduledoc": "List Docker containers via `docker ps`.\n\n  Args:\n  - `all` — if true, include stopped containers (default false)\n\n  Returns `containers` as normalized maps (`id`, `name`, `image`, `status`,\n  `state`, `ports`, `created`, `command`) and `count`.",
+  "name": "docker.ps",
+  "specs": [
+    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-10-31T21:25:14.322758Z"
+}
