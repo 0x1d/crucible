@@ -1,0 +1,11 @@
+{
+  "description": "Stop `Runtime.Memory` so OTP restarts it (reloads MiniGraf server).",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Runtime.BounceMemory",
+  "moduledoc": "Stop `Runtime.Memory` so OTP restarts it (reloads MiniGraf server).",
+  "name": "runtime.bounce_memory",
+  "specs": [
+    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-11-01T13:10:48.356193Z"
+}
