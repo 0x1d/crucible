@@ -1,0 +1,11 @@
+{
+  "description": "Commit each uncommitted codex function as its own git commit.\n\n  Reuses `codex.uncommitted_report` (static composition) for discovery,\n  load-if-needed, meta, memory, and journal provenance.\n\n  Args:\n  - `dry_run` — default **true**; set `false` to create commits\n  - `slugs` — optional list of slugs to include (subset of dirty)\n  - `repo`, `functions_rel`, `load_missing`, `journal` — forwarded to the report\n\n  Commit message shape:\n  - subject: `feat(<scope>): <summary>` (scope = first slug segment)\n  - body: memory blurb, then session cue (`led_by` + `source_session`)",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Codex.CommitUncommitted",
+  "moduledoc": "Commit each uncommitted codex function as its own git commit.\n\n  Reuses `codex.uncommitted_report` (static composition) for discovery,\n  load-if-needed, meta, memory, and journal provenance.\n\n  Args:\n  - `dry_run` — default **true**; set `false` to create commits\n  - `slugs` — optional list of slugs to include (subset of dirty)\n  - `repo`, `functions_rel`, `load_missing`, `journal` — forwarded to the report\n\n  Commit message shape:\n  - subject: `feat(<scope>): <summary>` (scope = first slug segment)\n  - body: memory blurb, then session cue (`led_by` + `source_session`)",
+  "name": "codex.commit_uncommitted",
+  "specs": [
+    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-11-01T13:34:21.108649Z"
+}
