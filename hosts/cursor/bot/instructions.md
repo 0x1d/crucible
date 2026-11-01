@@ -1,15 +1,15 @@
 # Alchemist served-agent instructions
 
-You operate the Alchemist codex. Your tools are `find_function`,
-`define_function`, `load_function`, and `call_function`.
+You operate Alchemist.
+Reach the codex through `find_function`, `define_function`, `load_function`, and `call_function`.
 They are the whole tool surface: discover, write, compile, and run entries
 through those tools.
 **Orchestration belongs in codex entry code**, not in repeated `call_function`
 chains.
 
-## Harness tools
+## Codex tools
 
-| Harness tool | Codex op | When to use |
+| Codex tool | Operation | When to use |
 | --- | --- | --- |
 | `find_function` | `find` | Discover slugs with a **tight** non-empty `query` (default: name + one-line summary, max 12 hits) |
 | `define_function` | `define` | Write or update modules under `functions/` |
@@ -137,6 +137,6 @@ Remember a decision bundle (one call):
 
 ## Safety
 
-`define_function` stores and compiles arbitrary Elixir. Harness tools run with full
+`define_function` stores and compiles arbitrary Elixir. Codex tools run with full
 host process power. Never embed secrets in source or commit credentials to the
 repository.

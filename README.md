@@ -1,8 +1,10 @@
 # Alchemist
 
-Alchemist is a host-independent Elixir capability codex.
-Hosts expose a fixed four-operation JSON protocol.
-Capabilities live in an Elixir source tree under `functions/`, each entry implemented by an `AgentFn.*` module with `run/1`.
+Alchemist is a host-independent agent harness.
+The codex is its capability layer: an Elixir source tree under `functions/`, its metadata, and the operations `define`, `load`, `find`, and `call`.
+Each entry is an `AgentFn.*` module with `run/1`.
+Hosts share that layer.
+Memory and the long-lived runtime sit beside it.
 
 ## Architecture
 
@@ -25,7 +27,7 @@ A long-lived BEAM (`elixir --no-halt`) runs the runtime application as permanent
 Compiled entry modules stay loaded across operations.
 `Runtime.Application` supervises connection tasks, a compile serializer, and a permanent acceptor.
 Live node files (`port`, `pid`, and the bridge's `stamp`) are under `runtime/.alchemist/` unless `ALCHEMIST_STATE_DIR` is set.
-Model-facing harness tools in the Cursor adapter and the Claude Agent SDK host map one-to-one to those operations.
+Model-facing codex tools in the Cursor adapter and the Claude Agent SDK host map one-to-one to those operations.
 Other hosts call the same operations through `scripts/cli.mjs` or a thin wrapper.
 
 ## Quick start

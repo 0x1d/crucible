@@ -1,6 +1,6 @@
 defmodule Runtime.CLI do
   @moduledoc """
-  JSON dispatch for the Alchemist codex.
+  JSON dispatch for codex operations.
 
   Hosts send one length-prefixed JSON request per connection. The acceptor task
   owns the listen socket. `define` and `load` compile on `Runtime.Server`.

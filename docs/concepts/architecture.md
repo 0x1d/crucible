@@ -3,7 +3,7 @@
 Alchemist separates **hosts** (environments that run agents) from the **codex**
 (capability source, metadata, and the four-operation JSON contract). Capability
 implementation and composition live in Elixir under `functions/`; hosts never grow
-an open-ended tool surface beyond the fixed harness operations.
+an open-ended tool surface beyond the fixed codex operations.
 
 ## Component boundaries
 
@@ -24,9 +24,9 @@ flowchart LR
 | Component | Location | Role |
 | --- | --- | --- |
 | Host | Cursor playground, CI, custom agent loop | Supplies inference, channels, and user session |
-| Host adapter | `hosts/cursor/bot/tools/*.ts` (Cursor), `hosts/claude/codex.ts` (Claude), or `scripts/cli.mjs` | Maps host tool calls to codex JSON requests |
+| Host adapter | `hosts/cursor/bot/tools/*.ts` (Cursor), `hosts/claude/codex.ts` (Claude), or `scripts/cli.mjs` | Maps codex tool calls to codex JSON requests |
 | Node bridge | `core/elixir-bridge.ts` | Compiles `runtime/` when needed, boots BEAM, TCP RPC |
-| Codex runtime | `:runtime` application (`Runtime.Server`, `Runtime.Engine`, …) built from `runtime/` | Validates slugs, compiles sources into the live BEAM, discovers metadata, invokes `run/1` |
+| Runtime | `:runtime` application (`Runtime.Server`, `Runtime.Engine`, `Runtime.Memory`, …) built from `runtime/` | Validates slugs, compiles sources into the live BEAM, discovers metadata, invokes `run/1`, and owns memory |
 | Capability tree | `functions/` | Codex entries (`tool.ex`, deep modules, `meta.json`) |
 
 The Cursor Agent SDK adapter in this repository is one host integration. The same
@@ -105,7 +105,7 @@ BEAM.
 ## Composition models
 
 Codex entries should express multi-step work in Elixir rather than through
-repeated harness `call` operations from the host.
+repeated codex `call` operations from the host.
 
 ```mermaid
 flowchart TB
@@ -137,4 +137,4 @@ flowchart TB
 - [Authoring codex entries](../guides/authoring-entries.md)
 - [Host adapters](../reference/hosts.md)
 - [Memory](./memory.md)
-- [Codex runtime notes](../../runtime/README.md)
+- [Runtime notes](../../runtime/README.md)

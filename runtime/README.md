@@ -1,9 +1,9 @@
-# Codex runtime
+# Runtime
 
-Alchemist's **codex runtime** is the `:runtime` OTP application: it validates slugs,
-compiles codex entry trees into the live BEAM, maintains `meta.json`, and invokes
-`run/1`. Hosts never call these modules directly. They send length-prefixed JSON to
-the acceptor on `127.0.0.1` through the Node bridge or an equivalent TCP client.
+The Alchemist **runtime** is the `:runtime` OTP application.
+It validates slugs, compiles codex entry trees into the live BEAM, maintains `meta.json`, invokes `run/1`, and owns memory.
+Hosts never call these modules directly.
+They send length-prefixed JSON to the acceptor on `127.0.0.1` through the Node bridge or an equivalent TCP client.
 
 The sources live in the `runtime/` **Mix project**. The Node bridge runs `mix compile`
 there when those sources change; **Mix does not serve codex requests**. The bridge

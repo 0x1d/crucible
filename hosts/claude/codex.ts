@@ -1,6 +1,6 @@
 /**
- * Claude Agent SDK host for the Alchemist codex. The four codex operations
- * run as an in-process MCP server; the Elixir bridge owns the long-lived BEAM.
+ * Example Alchemist host on the Claude Agent SDK.
+ * The four codex operations run as an in-process MCP server; the Elixir bridge owns the long-lived BEAM.
  */
 import {
   createSdkMcpServer,

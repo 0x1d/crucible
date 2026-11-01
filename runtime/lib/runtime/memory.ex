@@ -1,6 +1,6 @@
 defmodule Runtime.Memory do
   @moduledoc """
-  Memory for the codex runtime.
+  Memory for the Alchemist runtime.
 
   The application supervisor starts this GenServer before the acceptor.
   It owns one Node process, and that process keeps a single MiniGraf

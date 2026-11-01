@@ -1,15 +1,15 @@
 ---
 title: Claude Agent SDK host
-description: Example host that runs the Alchemist codex through the Claude Agent SDK.
+description: Example Alchemist host on the Claude Agent SDK.
 project: alchemist
 tags: [host, claude, agent-sdk, evals]
 ---
 
 # Claude Agent SDK host
 
-This directory is an example host for the Alchemist codex built on `@anthropic-ai/claude-agent-sdk`.
+This directory is an example Alchemist host built on `@anthropic-ai/claude-agent-sdk`.
+It exposes the codex as four tools on an in-process MCP server named `alchemist`.
 The Claude Code harness runs the agent loop.
-The four codex operations run as an in-process MCP server named `alchemist`.
 The Elixir bridge in `core/elixir-bridge.ts` owns the long-lived BEAM, as for every other host.
 
 | File | Responsibility |

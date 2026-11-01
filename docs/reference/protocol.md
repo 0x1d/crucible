@@ -2,9 +2,9 @@
 
 Hosts interact with Alchemist through four JSON operations: `define`, `load`,
 `find`, and `call`. TypeScript definitions live in [`core/protocol.ts`](../../core/protocol.ts).
-The Cursor and Claude adapters expose snake_case harness tool names that map one-to-one to these operations.
+The Cursor and Claude adapters expose snake_case codex tool names that map one-to-one to these operations.
 
-| Operation | Harness tool | Purpose |
+| Operation | Codex tool | Purpose |
 | --- | --- | --- |
 | `define` | `define_function` | Write or replace entry source on disk and compile |
 | `load` | `load_function` | Compile an existing entry tree from disk |

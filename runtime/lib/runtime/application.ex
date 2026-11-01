@@ -1,6 +1,6 @@
 defmodule Runtime.Application do
   @moduledoc """
-  OTP application entry for the Alchemist codex runtime (`:runtime`).
+  OTP application entry for the Alchemist runtime (`:runtime`).
 
   Starts the task supervisor, compile serializer (`Runtime.Server`), and the
   permanent acceptor task that owns the loopback listen socket.

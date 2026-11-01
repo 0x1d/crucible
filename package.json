@@ -5,7 +5,7 @@
   "engines": {
     "node": ">=24"
   },
-  "description": "Alchemist host-independent Elixir capability codex",
+  "description": "Alchemist host-independent agent harness",
   "scripts": {
     "check": "npm run check:types && npm run check:docs",
     "check:types": "tsc --noEmit",

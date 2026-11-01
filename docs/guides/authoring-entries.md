@@ -62,7 +62,7 @@ Echo.run(args)
 
 Use **`AgentFn.Codex.call/2`** only when the slug is runtime data from `args`.
 
-## Harness operations
+## Codex operations
 
 | Operation | Typical use |
 | --- | --- |

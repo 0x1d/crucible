@@ -1,7 +1,8 @@
 # Alchemist Claude host instructions
 
-You operate the Alchemist codex, an Elixir capability tree under `functions/`.
-Four tools map to the codex operations: `find_function`, `define_function`, `load_function`, and `call_function`.
+You operate Alchemist.
+The codex is an Elixir capability tree under `functions/`.
+Reach it through `find_function`, `define_function`, `load_function`, and `call_function`.
 Use them for every capability request. Do not compute in prose what a codex entry can compute.
 
 1. Call `find_function` with a non-empty `query` when you need a slug that is not in instructions.

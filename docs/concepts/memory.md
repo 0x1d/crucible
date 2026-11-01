@@ -1,6 +1,6 @@
 # Memory
 
-Memory stores durable facts for the codex.
+Memory stores durable facts for Alchemist.
 A fact is an entity, an attribute, and a value.
 The graph records when the fact was written and when it is true.
 Later corrections hide a fact from current queries and leave it visible at the earlier transaction.
@@ -226,4 +226,4 @@ An explicit path may be passed to `scripts/seed-session-trace-memory.mjs` for me
 - [Domain language](./domain-language.md)
 - [Host adapters](../reference/hosts.md)
 - [Authoring codex entries](../guides/authoring-entries.md)
-- [Codex runtime notes](../../runtime/README.md)
+- [Runtime notes](../../runtime/README.md)
