@@ -24,7 +24,7 @@ The Elixir bridge in `core/elixir-bridge.ts` owns the long-lived BEAM, as for ev
 
 `alchemistOptions()` sets a minimal configuration:
 
-- `systemPrompt` is the content of `instructions.md`. The Claude Code preset prompt is not used.
+- `systemPrompt` is the content of `instructions.md`. The Claude Code preset is not loaded.
 - `tools: []` removes every built-in tool. Claude sees only the four codex tools.
 - `allowedTools` lists `mcp__alchemist__<tool>` for each codex tool, so no permission prompt appears.
 - `settingSources: []` ignores user and project settings files.

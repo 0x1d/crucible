@@ -12,6 +12,9 @@
     "check:docs": "node scripts/check-docs.mjs",
     "test:check-docs": "node --test scripts/check-docs.test.mjs",
     "dev": "agent-sdk dev --dir hosts/cursor",
+    "seed:session-trace": "node --experimental-strip-types scripts/seed-session-trace-memory.mjs",
+    "dev:session-trace": "node --experimental-strip-types scripts/dev-session-trace.mjs",
+    "eval:session-trace": "node --experimental-strip-types scripts/eval-session-trace.mjs",
     "chat:claude": "node hosts/claude/chat.ts",
     "eval:claude": "node --test hosts/claude/evals/*.eval.ts"
   },

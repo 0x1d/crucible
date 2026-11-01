@@ -7,8 +7,8 @@ import {
   closeGraph,
   MemoryError,
   openGraph,
+  overview,
   query,
-  recall,
   retract,
   transact,
   type Graph,
@@ -62,9 +62,38 @@ test("transact, retract, and as-of", () => {
     });
     assert.deepEqual(current.rows, [{ name: "CockroachDB" }]);
 
-    const hits = recall(graph, { question: "CockroachDB choice" });
-    assert.equal(hits.count, 1);
-    assert.equal((hits.hits as Array<{ description: string }>)[0].description, "CockroachDB");
+    const catalog = overview(graph, { prefix: "decision/", limit: 10 });
+    assert.equal(catalog.count, 1);
+    assert.deepEqual(catalog.entities, ["decision/db"]);
+    assert.equal(catalog.as_of, null);
+
+    const earlierCatalog = overview(graph, { as_of: 1, prefix: "decision/" });
+    assert.deepEqual(earlierCatalog.entities, ["decision/db"]);
+    assert.equal(earlierCatalog.as_of, 1);
+  } finally {
+    closeGraph(graph);
+  }
+});
+
+test("overview prefixes, limits, and rejects bad args", () => {
+  const graph = fresh();
+  try {
+    transact(graph, {
+      reason: "seed",
+      facts: [
+        { e: "decision/one", a: "description", v: "first decision" },
+        { e: "decision/two", a: "description", v: "second decision" },
+        { e: "preference/ui", a: "description", v: "dark mode" },
+      ],
+    });
+    const decisions = overview(graph, { prefix: "decision/" });
+    assert.deepEqual(decisions.entities, ["decision/one", "decision/two"]);
+    const limited = overview(graph, { limit: 1 });
+    assert.equal(limited.count, 1);
+    assert.equal(limited.truncated, true);
+    assert.deepEqual(limited.entities, ["decision/one"]);
+    assert.equal(message(() => overview(graph, { prefix: "topic/" })), "unknown prefix");
+    assert.equal(message(() => overview(graph, { limit: 0 })), "limit must be between 1 and 50");
   } finally {
     closeGraph(graph);
   }

@@ -15,6 +15,14 @@ agent-sdk eval --dir hosts/cursor
 npm run check
 ```
 
+Session-trace memory (fixture graph, plain Node; Elixir must already be on `PATH`):
+
+```bash
+npm run seed:session-trace
+npm run dev:session-trace
+npm run eval:session-trace
+```
+
 Run the CLI under Node, never Bun.
 
 ## Git commits

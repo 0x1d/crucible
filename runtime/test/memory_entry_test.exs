@@ -1,6 +1,6 @@
 root = Path.expand("../../functions/memory", __DIR__)
 
-for name <- ~w(transact retract query recall) do
+for name <- ~w(transact retract query overview) do
   Code.compile_file(Path.join([root, name, "tool.ex"]))
 end
 
@@ -53,8 +53,8 @@ defmodule Runtime.Memory.EntryTest do
                ]
              })
 
-    assert {:ok, %{"hits" => [%{"entity" => "decision/db", "description" => "CockroachDB"}]}} =
-             AgentFn.Memory.Recall.run(%{"question" => "CockroachDB choice"})
+    assert {:ok, %{"entities" => ["decision/db"], "count" => 1}} =
+             AgentFn.Memory.Overview.run(%{"prefix" => "decision/"})
   end
 
   test "find lists the memory slugs" do
@@ -67,8 +67,8 @@ defmodule Runtime.Memory.EntryTest do
       |> Enum.sort()
 
     assert names == [
+             "memory.overview",
              "memory.query",
-             "memory.recall",
              "memory.remember",
              "memory.retract",
              "memory.transact"

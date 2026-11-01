@@ -1,13 +1,16 @@
 defmodule Runtime.WarmLoadTest do
   use ExUnit.Case, async: false
 
-  test "startup warm load compiles memory.remember and memory.transact" do
+  test "startup warm load compiles memory.remember and memory.overview" do
     assert function_exported?(AgentFn.Memory.Remember, :run, 1)
+    assert function_exported?(AgentFn.Memory.Overview, :run, 1)
     assert function_exported?(AgentFn.Memory.Transact, :run, 1)
 
     remember_meta = Runtime.Codex.load_meta("memory.remember")
+    overview_meta = Runtime.Codex.load_meta("memory.overview")
     transact_meta = Runtime.Codex.load_meta("memory.transact")
     assert remember_meta["loaded"] == true
+    assert overview_meta["loaded"] == true
     assert transact_meta["loaded"] == true
   end
 

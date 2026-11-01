@@ -50,12 +50,17 @@ No single vendor SDK bills across Cursor, OpenCode, and Anthropic. Unify at the
 
 - **Package:** `@grok/agent-sdk` — playground, deploy, evals, Slack, and related channels.
 - **Adapter:** `hosts/cursor/bot/tools/*.ts` maps harness tool names to [`core/protocol.ts`](../../core/protocol.ts) requests.
-- **Tool surface:** `hosts/cursor/bot/agent.ts` sets `tools: []`.
-  The model receives `find_function`, `define_function`, `load_function`, and `call_function`.
+- **Tool surface:** `hosts/cursor/bot/agent.ts` sets `tools: ["mcp"]`.
+  That allowlist is the MCP family only: the `custom-user-tools` server and the four codex tools.
+  Native tools such as read, edit, and shell stay off.
   `local.cwd` is `.sessions`, so each session workspace is `hosts/cursor/.sessions/<sessionId>`.
   That directory is gitignored.
   Each workspace is its own git root, so turns do not load this repository's `AGENTS.md` or ambient MCP servers.
 - **Bridge:** `core/elixir-bridge.ts` compiles `runtime/` when sources change, starts `elixir --no-halt` with `Application.ensure_all_started(:runtime, :permanent)`, and sends length-prefixed JSON over TCP.
+- **Session-trace memory:** Factory Q&A evals and playground replay use a committed MiniGraf fixture.
+  Default graph: `hosts/cursor/.eval-memory/session-trace.graph`.
+  Commands: `npm run seed:session-trace`, `npm run dev:session-trace`, `npm run eval:session-trace`.
+  See [Memory — Session-trace fixture](../concepts/memory.md#session-trace-fixture-cursor-host).
 
 ## OpenCode
 

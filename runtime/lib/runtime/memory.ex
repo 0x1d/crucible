@@ -5,7 +5,7 @@ defmodule Runtime.Memory do
   The application supervisor starts this GenServer before the acceptor.
   It owns one Node process, and that process keeps a single MiniGraf
   database open at `memory/minigraf.graph` or `AGENT_MEMORY_PATH`.
-  Codex entries call `transact/1`, `retract/1`, `query/1`, and `recall/1`.
+  Codex entries call `transact/1`, `retract/1`, `query/1`, and `overview/1`.
   """
 
   use GenServer
@@ -31,9 +31,9 @@ defmodule Runtime.Memory do
     GenServer.call(__MODULE__, {:query, attrs}, @call_timeout)
   end
 
-  @spec recall(map()) :: {:ok, map()} | {:error, String.t()}
-  def recall(attrs) when is_map(attrs) do
-    GenServer.call(__MODULE__, {:recall, attrs}, @call_timeout)
+  @spec overview(map()) :: {:ok, map()} | {:error, String.t()}
+  def overview(attrs) when is_map(attrs) do
+    GenServer.call(__MODULE__, {:overview, attrs}, @call_timeout)
   end
 
   @doc false
@@ -60,7 +60,7 @@ defmodule Runtime.Memory do
 
   @impl true
   def handle_call({op, attrs}, from, state)
-      when op in [:transact, :retract, :query, :recall] do
+      when op in [:transact, :retract, :query, :overview] do
     request(state, Atom.to_string(op), %{"args" => attrs}, from, nil)
   end
 

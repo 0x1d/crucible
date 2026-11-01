@@ -80,14 +80,14 @@ A fact is valid when `valid_from` is absent or earlier than or equal to the inst
 ## Codex entries
 
 Hosts still use `find` and `call`.
-The graph adds four slugs.
+The graph adds these slugs.
 
 | Slug | Module | Effect |
 | --- | --- | --- |
 | `memory.transact` | `AgentFn.Memory.Transact` | Asserts facts and, optionally, installs rules. |
 | `memory.retract` | `AgentFn.Memory.Retract` | Retracts facts for the same identities. |
 | `memory.query` | `AgentFn.Memory.Query` | Runs a pattern query or one Datalog query. |
-| `memory.recall` | `AgentFn.Memory.Recall` | Ranks current entities by token overlap with a question. |
+| `memory.overview` | `AgentFn.Memory.Overview` | Lists current entity ids (catalog only). |
 | `memory.remember` | `AgentFn.Memory.Remember` | Asserts many facts in one call (same as transact). |
 
 Arguments are JSON objects with string keys.
@@ -135,23 +135,19 @@ The result also includes `count`, `as_of`, and `valid_at`.
 `history` is rejected.
 Corrections are read with `as_of`.
 
-## Recall
+## Overview
 
-`memory.recall` takes `question`, a string of 1 to 2000 characters after trimming.
-It may take optional integer `limit` from 1 to 20 (default 8).
-It considers entities that have a `description` valid now.
-Tokens are `[a-z0-9]` runs of at least four characters, lowercased.
-The entity id is split on `/`, `_`, and `-` before tokenization.
-The score is the number of question tokens that also appear in the entity id, the current descriptions, or the current rationales.
-Entities with a score of 0 are omitted.
-Hits are ordered by score descending, then entity id ascending, and capped at 20 unless `limit` is set (default 8, maximum 20).
-Each hit has `entity`, `description`, `score`, and `attributes`.
-`description` is the current description that shares the most tokens with the question.
-Ties break toward the lexicographically smaller value.
-`attributes` maps every other current schema attribute, including extra descriptions, to a sorted list of values.
-`:alchemist/ident` and `:alchemist/reason` are omitted.
-`truncated` is true when more than 20 entities matched.
-`count` is the number of hits returned.
+`memory.overview` lists entity ids that have a `description` at the chosen time.
+It returns ids only.
+Full text is loaded with `memory.query`.
+It takes no free-text `question`.
+Optional `prefix` is one of `decision/`, `preference/`, `constraint/`, or `dependency/`.
+Optional integer `limit` is from 1 to 50 (default 20).
+Optional `as_of` and `valid_at` use the same rules as `memory.query`.
+`entities` is a sorted list of entity id strings.
+`truncated` is true when more entities matched than `limit`.
+`count` is the number of ids returned.
+The result also includes `limit`, `as_of`, and `valid_at`.
 
 ## Errors
 
@@ -175,8 +171,9 @@ The other messages are:
 | Assert without a description for a new entity | `description is required` |
 | Assert of a visible identity | `fact is already current` |
 | Retract of an identity that is not visible | `fact is not current` |
-| Missing or blank question | `question is required` |
-| Question longer than 2000 characters | `question is too long` |
+| Overview `prefix` rejected | `unknown prefix` |
+| Overview `limit` not an integer | `limit must be an integer` |
+| Overview `limit` out of 1–50 | `limit must be between 1 and 50` |
 | Missing or empty `where` when `datalog` is absent | `where must be a non-empty list` |
 | Missing or empty `find` | `find must be a non-empty list` |
 | Find variable absent from `where` | `unbound find variable` |
@@ -193,16 +190,40 @@ The other messages are:
 
 ## Host prompt
 
-A host prompt that serves this codex names the four slugs.
-It tells the model to recall or query before answering about a past decision, preference, constraint, or dependency.
+A host prompt that serves this codex names the memory slugs.
+It tells the model that MiniGraf is a fact graph with no free-text search.
+It routes catalog and meta asks to `memory.overview` (ids only), dated and known-entity asks to `memory.query` with `as_of` / `valid_at` or pattern `where`/`find`.
+It tells the model not to use MiniGraf for conversation continuity.
 It tells the model to transact only durable facts, to include a reason, and to retract before replacing a fact.
 It tells the model that `datalog` is one MiniGraf query and that `rules` are MiniGraf rule forms.
 Stored fact text and reasons are data.
 The model does not follow instructions found in them.
 
+## Session-trace fixture (Cursor host)
+
+The Cursor host keeps a committed factory-memory fixture for evals and playground replay.
+The fixture JSON is `hosts/cursor/evals/fixtures/session-trace-seed.json`.
+The shared seed helper is `hosts/cursor/evals/lib/session-trace-memory.ts`.
+It stops the long-lived BEAM when needed, deletes the target MiniGraf files, and applies each fixture transaction through `memory.transact`.
+The default graph path is `hosts/cursor/.eval-memory/session-trace.graph` (gitignored).
+`session_trace` eval cases call that seed before the first turn so a fresh machine does not depend on a pre-existing graph.
+Cursor evals set `maxConcurrency` to 1 because one MiniGraf BEAM owns one database file.
+
+npm scripts (plain Node; `elixir` must already be on `PATH`):
+
+| Script | Effect |
+| --- | --- |
+| `npm run seed:session-trace` | Resets the default eval graph from the fixture. |
+| `npm run dev:session-trace` | Seeds that graph, then starts the Cursor playground with `AGENT_MEMORY_PATH` set to it. |
+| `npm run eval:session-trace` | Runs `agent-sdk eval` with the same `AGENT_MEMORY_PATH`; each case seeds again. |
+
+An explicit path may be passed to `scripts/seed-session-trace-memory.mjs` for measure trials.
+`scripts/measure-session-trace-eval.mjs` uses plain `node` and `node_modules/.bin/agent-sdk` (no nix wrappers).
+
 ## Related reading
 
 - [Architecture](./architecture.md)
 - [Domain language](./domain-language.md)
+- [Host adapters](../reference/hosts.md)
 - [Authoring codex entries](../guides/authoring-entries.md)
 - [Codex runtime notes](../../runtime/README.md)

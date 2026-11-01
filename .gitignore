@@ -9,3 +9,5 @@ runtime/deps
 runtime/.fetch
 .direnv/
 .alchemist/
+docs/review/
+hosts/cursor/.eval-memory/

@@ -3,15 +3,20 @@ import path from "node:path";
 import { MiniGrafDb } from "minigraf";
 
 const maxReason = 2000;
-const maxQuestion = 2000;
 const maxValue = 4000;
 const maxFacts = 100;
 const maxRules = 20;
 const maxRule = 4000;
 const maxDatalog = 8000;
 const maxRows = 200;
-const defaultRecallLimit = 8;
-const maxRecallLimit = 20;
+const defaultOverviewLimit = 20;
+const maxOverviewLimit = 50;
+const overviewPrefixes = new Set([
+  "decision/",
+  "preference/",
+  "constraint/",
+  "dependency/",
+]);
 
 const attributes = new Set([
   "description",
@@ -132,42 +137,49 @@ export function dispatch(
       return retract(graph, args);
     case "query":
       return query(graph, args);
-    case "recall":
-      return recall(graph, args);
+    case "overview":
+      return overview(graph, args);
     default:
       throw new MemoryError("unknown memory op");
   }
 }
 
-export function recall(graph: Graph, args: unknown): Record<string, unknown> {
+export function overview(graph: Graph, args: unknown): Record<string, unknown> {
   const record = recordOf(args);
-  const question = parseQuestion(record);
-  const limit = parseRecallLimit(record);
-  const asked = tokenize(question);
-  const grouped = new Map<string, Map<string, string[]>>();
-  for (const [entity, attribute, value] of currentTriples(graph)) {
-    if (attribute.startsWith("alchemist/")) continue;
-    let attrs = grouped.get(entity);
-    if (!attrs) {
-      attrs = new Map();
-      grouped.set(entity, attrs);
-    }
-    const values = attrs.get(attribute) ?? [];
-    values.push(value);
-    attrs.set(attribute, values);
+  parseHistory(record);
+  const prefix = parseOverviewPrefix(record);
+  const limit = parseOverviewLimit(record);
+  const asOf = parseAsOf(record);
+  const validAt = parseValidAt(record);
+  const sections = [":find", "?id"];
+  if (asOf) sections.push(":as-of", asOf.edn);
+  sections.push(":valid-at", validAt.edn);
+  sections.push(
+    ":where",
+    "[?e :alchemist/ident ?id]",
+    "[?e :description ?v]",
+    ":max-results",
+    String(maxRows + 1),
+  );
+  const parsed = readQuery(graph, `(query [${sections.join(" ")}])`);
+  const ids = new Set<string>();
+  for (const row of parsed.results) {
+    const entity = present(row[0], graph);
+    if (typeof entity !== "string") continue;
+    if (prefix && !entity.startsWith(prefix)) continue;
+    ids.add(entity);
   }
-
-  const hits = [...grouped.entries()]
-    .flatMap(([entity, attrs]) => scoreEntity(entity, attrs, asked))
-    .sort((left, right) => {
-      const byScore = right.score - left.score;
-      if (byScore !== 0) return byScore;
-      return left.entity < right.entity ? -1 : left.entity > right.entity ? 1 : 0;
-    });
-
-  const truncated = hits.length > limit;
-  const kept = hits.slice(0, limit);
-  return { hits: kept, count: kept.length, truncated, limit };
+  const entities = [...ids].sort();
+  const truncated = entities.length > limit;
+  const kept = entities.slice(0, limit);
+  return {
+    entities: kept,
+    count: kept.length,
+    truncated,
+    limit,
+    as_of: asOf ? asOf.echo : null,
+    valid_at: validAt.echo,
+  };
 }
 
 function writeFacts(
@@ -352,61 +364,6 @@ function runPattern(
   };
 }
 
-function currentTriples(graph: Graph): Array<[string, string, string]> {
-  const parsed = readQuery(
-    graph,
-    "(query [:find ?id ?a ?v :where [?e :alchemist/ident ?id] [?e ?a ?v]])",
-  );
-  const triples: Array<[string, string, string]> = [];
-  for (const row of parsed.results) {
-    const entity = present(row[0], graph);
-    const attribute = present(row[1], graph);
-    const value = present(row[2], graph);
-    if (
-      typeof entity === "string" &&
-      typeof attribute === "string" &&
-      typeof value === "string"
-    ) {
-      triples.push([entity, attribute, value]);
-    }
-  }
-  return triples;
-}
-
-function scoreEntity(
-  entity: string,
-  attrs: Map<string, string[]>,
-  asked: Set<string>,
-): Array<{
-  entity: string;
-  description: string;
-  score: number;
-  attributes: Record<string, string[]>;
-}> {
-  const descriptions = unique(attrs.get("description") ?? []);
-  if (descriptions.length === 0) return [];
-  const rationales = unique(attrs.get("rationale") ?? []);
-  const bag = tokenize([entity, ...descriptions, ...rationales].join(" "));
-  let score = 0;
-  for (const token of asked) if (bag.has(token)) score += 1;
-  if (score === 0) return [];
-  const description = descriptions.slice().sort((left, right) => {
-    const byOverlap = overlap(right, asked) - overlap(left, asked);
-    if (byOverlap !== 0) return byOverlap;
-    return left < right ? -1 : left > right ? 1 : 0;
-  })[0];
-  const attributes: Record<string, string[]> = {};
-  for (const [attribute, values] of attrs) {
-    const sorted = unique(values).sort();
-    const kept =
-      attribute === "description"
-        ? sorted.filter((value) => value !== description)
-        : sorted;
-    if (kept.length > 0) attributes[attribute] = kept;
-  }
-  return [{ entity, description, score, attributes }];
-}
-
 function requireDescriptions(graph: Graph, facts: Fact[]): void {
   const described = describedEntities(graph);
   for (const fact of facts) {
@@ -514,23 +471,22 @@ function parseReason(record: Record<string, unknown>): string {
   return trimmed;
 }
 
-function parseQuestion(record: Record<string, unknown>): string {
-  const question = record.question;
-  if (typeof question !== "string") throw new MemoryError("question is required");
-  const trimmed = question.trim();
-  if (trimmed === "") throw new MemoryError("question is required");
-  if ([...trimmed].length > maxQuestion) throw new MemoryError("question is too long");
-  return trimmed;
+function parseOverviewPrefix(record: Record<string, unknown>): string | null {
+  if (record.prefix === undefined || record.prefix === null) return null;
+  if (typeof record.prefix !== "string" || !overviewPrefixes.has(record.prefix)) {
+    throw new MemoryError("unknown prefix");
+  }
+  return record.prefix;
 }
 
-function parseRecallLimit(record: Record<string, unknown>): number {
+function parseOverviewLimit(record: Record<string, unknown>): number {
   const raw = record.limit;
-  if (raw === undefined || raw === null) return defaultRecallLimit;
+  if (raw === undefined || raw === null) return defaultOverviewLimit;
   if (typeof raw !== "number" || !Number.isInteger(raw)) {
     throw new MemoryError("limit must be an integer");
   }
-  if (raw < 1 || raw > maxRecallLimit) {
-    throw new MemoryError(`limit must be between 1 and ${maxRecallLimit}`);
+  if (raw < 1 || raw > maxOverviewLimit) {
+    throw new MemoryError(`limit must be between 1 and ${maxOverviewLimit}`);
   }
   return raw;
 }
@@ -779,16 +735,6 @@ function stamp(parsed: { transacted?: number; retracted?: number }): string {
   const ms = parsed.transacted ?? parsed.retracted;
   if (typeof ms !== "number") throw new MemoryError("minigraf write returned no timestamp");
   return new Date(ms).toISOString();
-}
-
-function tokenize(text: string): Set<string> {
-  return new Set(text.toLowerCase().match(/[a-z0-9]{4,}/g) ?? []);
-}
-
-function overlap(value: string, asked: Set<string>): number {
-  let count = 0;
-  for (const token of tokenize(value)) if (asked.has(token)) count += 1;
-  return count;
 }
 
 function unique(values: string[]): string[] {

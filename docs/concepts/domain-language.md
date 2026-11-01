@@ -22,7 +22,7 @@ boundaries.
 | Shared library | `AgentLib.*` code under `functions/lib/` that can be used by multiple codex entries. |
 | Static composition | Direct Elixir module calls when the dependency is known while authoring the entry. |
 | Dynamic dispatch | A call through `AgentFn.Codex.call/2` when a slug is runtime data. |
-| Memory | The MiniGraf database owned by `Runtime.Memory`. Codex entries `memory.transact`, `memory.retract`, `memory.query`, and `memory.recall` are its interface. |
+| Memory | The MiniGraf database owned by `Runtime.Memory`. Codex entries `memory.transact`, `memory.retract`, `memory.query`, `memory.overview`, and `memory.remember` are its interface. |
 
 ## Disambiguation
 

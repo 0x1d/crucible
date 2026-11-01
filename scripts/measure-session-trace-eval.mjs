@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
  * Run session_trace/factory-qna eval N times and append CSV rows.
+ * Plain Node commands only (no nix wrappers). Run inside the existing nix shell.
  *
  *   node scripts/measure-session-trace-eval.mjs before 3
  *   node scripts/measure-session-trace-eval.mjs after 3
@@ -39,7 +40,8 @@ if (!fs.existsSync(csvPath)) {
       "duration_ms",
       "call_function_total",
       "find_function_calls",
-      "recall_calls",
+      "overview_calls",
+      "query_calls",
       "remember_calls",
       "exploration_calls",
       "session_id",
@@ -60,7 +62,8 @@ const EXPLORATION = new Set([
 function summarizeToolCalls(toolCalls) {
   let callFunctionTotal = 0;
   let findFunctionCalls = 0;
-  let recallCalls = 0;
+  let overviewCalls = 0;
+  let queryCalls = 0;
   let rememberCalls = 0;
   let explorationCalls = 0;
   for (const call of toolCalls ?? []) {
@@ -71,7 +74,8 @@ function summarizeToolCalls(toolCalls) {
     if (call.toolName !== "call_function") continue;
     callFunctionTotal += 1;
     const name = call.args?.name ?? "";
-    if (name === "memory.recall") recallCalls += 1;
+    if (name === "memory.overview") overviewCalls += 1;
+    if (name === "memory.query") queryCalls += 1;
     if (name === "memory.remember" || name === "memory.transact") {
       rememberCalls += 1;
     }
@@ -80,7 +84,8 @@ function summarizeToolCalls(toolCalls) {
   return {
     callFunctionTotal,
     findFunctionCalls,
-    recallCalls,
+    overviewCalls,
+    queryCalls,
     rememberCalls,
     explorationCalls,
   };
@@ -98,14 +103,19 @@ for (let trial = 1; trial <= trials; trial += 1) {
     AGENT_MEMORY_PATH: memoryPath,
   };
 
-  spawnSync("nix", ["develop", "-c", "node", path.join(repoRoot, "scripts/runtime-doctor.mjs")], {
+  spawnSync(process.execPath, [path.join(repoRoot, "scripts/runtime-doctor.mjs")], {
     cwd: repoRoot,
     encoding: "utf8",
   });
 
+  // Case also seeds; pre-seed keeps a per-trial graph snapshot beside measure JSON.
   const seed = spawnSync(
-    "nix",
-    ["develop", "-c", "node", path.join(repoRoot, "scripts/seed-session-trace-memory.mjs")],
+    process.execPath,
+    [
+      "--experimental-strip-types",
+      path.join(repoRoot, "scripts/seed-session-trace-memory.mjs"),
+      memoryPath,
+    ],
     { cwd: repoRoot, env: seedEnv, encoding: "utf8" },
   );
   if (seed.status !== 0) {
@@ -114,13 +124,10 @@ for (let trial = 1; trial <= trials; trial += 1) {
   }
 
   const outPath = path.join(measureRoot, `${phase}-trial-${trial}-${stamp}.json`);
+  const agentSdk = path.join(repoRoot, "node_modules/.bin/agent-sdk");
   const evalRun = spawnSync(
-    "nix",
+    agentSdk,
     [
-      "develop",
-      "-c",
-      "npx",
-      "@grok/agent-sdk",
       "eval",
       "session_trace/factory-qna",
       "--dir",
@@ -154,7 +161,8 @@ for (let trial = 1; trial <= trials; trial += 1) {
     result?.durationMs ?? "",
     stats.callFunctionTotal,
     stats.findFunctionCalls,
-    stats.recallCalls,
+    stats.overviewCalls,
+    stats.queryCalls,
     stats.rememberCalls,
     stats.explorationCalls,
     result?.sessionId ?? "",
