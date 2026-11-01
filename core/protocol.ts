@@ -9,7 +9,7 @@ export type CodexOp = (typeof CODEX_OPS)[number];
 export type CodexRequest =
   | { op: "define"; name: string; source: string; description?: string }
   | { op: "load"; name: string }
-  | { op: "find"; query?: string }
+  | { op: "find"; query?: string; limit?: number; detail?: boolean }
   | { op: "call"; name: string; args?: Record<string, unknown> };
 
 /** Model-facing names when the host exposes JSON tools (snake_case). */

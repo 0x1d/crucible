@@ -18,9 +18,10 @@ seconds). Children, in start order:
 
 | Child | Restart | Owns | Role |
 | --- | --- | --- | --- |
-| `Runtime.Memory` | permanent | belief graph log | Replays and appends `memory/graph.log` |
+| `Runtime.Memory` | permanent | MiniGraf database | Opens `memory/minigraf.graph` in one Node process |
 | `Runtime.TaskSupervisor` | supervisor | connection tasks | One temporary task per client |
 | `Runtime.Server` | permanent | no sockets | Serializes `define` and `load` |
+| `Runtime.CodexWarmup` | permanent | — | Compiles every codex entry before the acceptor listens |
 | `Runtime.Acceptor` | permanent task | listen socket | `Runtime.Server.accept/0` |
 
 The acceptor calls `Task.Supervisor.start_child/2` and then
@@ -34,9 +35,8 @@ supervisor gives up, the permanent application exits the VM.
 
 | Module | Responsibility |
 | --- | --- |
-| `Runtime.Application` | Supervisor for the belief graph, task supervisor, serializer, and acceptor |
-| `Runtime.Memory` | Belief graph GenServer. Replays the log and serializes writes |
-| `Runtime.Memory.Log` | Append, replay, and query of the belief graph. Not a process |
+| `Runtime.Application` | Supervisor for memory, the task supervisor, serializer, warm load, and acceptor |
+| `Runtime.Memory` | Memory GenServer. Owns the Node process that holds the MiniGraf handle |
 | `Runtime.Server` | Compile serialization (GenServer); `accept/0` runs in the acceptor task |
 | `Runtime.CLI` | Operation dispatch for `define`, `load`, `find`, `call` |
 | `Runtime.Engine` | Orchestrates compile, metadata refresh, search, and `run/1` invocation |
@@ -83,10 +83,13 @@ mix deps.get
 mix test
 ```
 
+`mix test` starts memory, which needs `node` and the `minigraf` package installed at the repository root.
+
 From the repository root:
 
 ```bash
 (cd runtime && mix test)
+node --test core/minigraf-memory.test.ts
 node scripts/cli.mjs '{"op":"call","name":"echo","args":{}}'
 ```
 
@@ -95,8 +98,28 @@ node scripts/cli.mjs '{"op":"call","name":"echo","args":{}}'
 | Variable | Effect |
 | --- | --- |
 | `AGENT_FUNCTIONS_DIR` | Path to the capability tree (set by the Node bridge for codex calls) |
-| `AGENT_MEMORY_PATH` | Belief graph log path. Default is `memory/graph.log` beside the parent of the functions root |
+| `AGENT_MEMORY_PATH` | MiniGraf database path. Default is `memory/minigraf.graph` beside the parent of the functions root |
 | `ALCHEMIST_STATE_DIR` | Live node files (`port`, `pid`) and the bridge's `stamp` (default `runtime/.alchemist`) |
+| `ALCHEMIST_RUNTIME_DETACHED` | `1`/`0` overrides VM lifecycle: detached (survives host exit) vs attached (stop on dev exit). Default: detached when `NODE_ENV=production` |
+
+## Troubleshooting
+
+Only one long-lived BEAM should open a given `AGENT_MEMORY_PATH`.
+MiniGraf takes an exclusive lock on the graph file (`STG-026`).
+Extra VMs from eval loops, `mix run`, or an old shell leave the lock held and the next boot fails.
+The Node bridge may then surface a cryptic `elixir_config` / `:terminating` line instead of the lock message.
+
+From the repository root (inside `nix develop`):
+
+```bash
+node scripts/runtime-doctor.mjs
+node scripts/cli.mjs '{"op":"call","name":"echo","args":{"msg":"hello"}}'
+```
+
+Local `npm run dev` stops the BEAM when you Ctrl+C (attached lifecycle).
+Hosted production keeps a detached VM (`NODE_ENV=production` or `ALCHEMIST_RUNTIME_DETACHED=1`).
+
+Do not start a second `:runtime` with `mix run` while the bridge VM is up unless `AGENT_MEMORY_PATH` points at a different file.
 
 ## Limitations
 

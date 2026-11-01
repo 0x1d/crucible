@@ -1,7 +1,5 @@
 defmodule AgentFn.Memory.Query do
-  @moduledoc """
-  Queries the belief graph by pattern, transaction time, and valid time.
-  """
+  @moduledoc "Queries memory with a pattern or one MiniGraf Datalog query."
 
   @behaviour AgentFn.Tool
 

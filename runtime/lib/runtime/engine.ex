@@ -24,33 +24,75 @@ defmodule Runtime.Engine do
     slug = Codex.sanitize(name)
 
     Runtime.Result.wrap(fn ->
-      module = Compiler.compile_slug!(slug, reload: true)
-      Codex.refresh_metadata!(slug, module)
-      Codex.mark_loaded(slug, true)
-
-      %{
-        ok: true,
-        function: Codex.load_meta(slug),
-        module: Atom.to_string(module)
-      }
+      case compile_and_mark!(slug, reload: true) do
+        module ->
+          %{
+            ok: true,
+            function: Codex.load_meta(slug),
+            module: Atom.to_string(module)
+          }
+      end
     end)
   end
 
-  def find(query) when is_binary(query) do
-    q = String.downcase(String.trim(query))
+  @doc """
+  Compiles every discovered codex slug once (no reload).
 
-    entries =
+  Runs on the compile serializer during application startup.
+  """
+  def warm_load_all! do
+    Runtime.Server.serialize(fn ->
       Codex.list_all()
-      |> Enum.filter(fn meta ->
-        q == "" or
-          String.contains?(String.downcase(meta["name"] || ""), q) or
-          String.contains?(String.downcase(meta["description"] || ""), q) or
-          String.contains?(String.downcase(meta["moduledoc"] || ""), q) or
-          String.contains?(specs_blob(meta), q) or
-          String.contains?(String.downcase(meta["module"] || ""), q)
+      |> Enum.each(fn meta ->
+        slug = meta["name"]
+        warm_load_slug(slug)
       end)
 
-    %{ok: true, functions: entries, count: length(entries)}
+      :ok
+    end)
+  end
+
+  def find(query, opts \\ %{}) when is_binary(query) and is_map(opts) do
+    q = String.downcase(String.trim(query))
+
+    if q == "" do
+      %{
+        ok: false,
+        error: "query is required; pass a substring or call_function on codex.docs"
+      }
+    else
+      limit = find_limit(opts)
+      detail? = find_detail?(opts)
+
+      matched =
+        Codex.list_all()
+        |> Enum.filter(fn meta ->
+          String.contains?(String.downcase(meta["name"] || ""), q) or
+            String.contains?(String.downcase(meta["description"] || ""), q) or
+            String.contains?(String.downcase(meta["moduledoc"] || ""), q) or
+            String.contains?(specs_blob(meta), q) or
+            String.contains?(String.downcase(meta["module"] || ""), q)
+        end)
+
+      truncated = length(matched) > limit
+      kept = Enum.take(matched, limit)
+
+      functions =
+        if detail? do
+          kept
+        else
+          Enum.map(kept, &summarize_find/1)
+        end
+
+      %{
+        ok: true,
+        functions: functions,
+        count: length(functions),
+        truncated: truncated,
+        detail: detail?,
+        limit: limit
+      }
+    end
   end
 
   def call(name, args) when is_map(args) do
@@ -89,14 +131,48 @@ defmodule Runtime.Engine do
     if ready?(module) do
       {:ok, module}
     else
-      case load(slug) do
-        %{ok: true} ->
-          loaded = Codex.module_name(slug)
+      case compile_and_mark_result(slug, reload: true) do
+        {:ok, loaded} ->
           if ready?(loaded), do: {:ok, loaded}, else: {:error, "function #{slug} has no run/1"}
 
-        %{ok: false, error: message} ->
+        {:error, message} ->
           {:error, message}
       end
+    end
+  end
+
+  defp warm_load_slug(slug) do
+    module = Codex.module_name(slug)
+
+    if ready?(module) do
+      Codex.mark_loaded(slug, true)
+    else
+      case compile_and_mark_result(slug, reload: false) do
+        {:ok, _module} ->
+          :ok
+
+        {:error, message} ->
+          require Logger
+
+          Logger.warning(
+            "[runtime] codex warm load skipped #{slug}: #{message}"
+          )
+      end
+    end
+  end
+
+  defp compile_and_mark!(slug, opts) do
+    module = Compiler.compile_slug!(slug, opts)
+    Codex.refresh_metadata!(slug, module)
+    Codex.mark_loaded(slug, true)
+    module
+  end
+
+  defp compile_and_mark_result(slug, opts) do
+    case Runtime.Result.wrap(fn -> compile_and_mark!(slug, opts) end) do
+      %{ok: false, error: message} -> {:error, message}
+      module when is_atom(module) -> {:ok, module}
+      other -> {:error, "unexpected compile result: #{inspect(other)}"}
     end
   end
 
@@ -137,5 +213,45 @@ defmodule Runtime.Engine do
     (meta["specs"] || [])
     |> Enum.join(" ")
     |> String.downcase()
+  end
+
+  @default_find_limit 12
+  @max_find_limit 40
+
+  defp find_limit(opts) do
+    case Map.get(opts, "limit") do
+      n when is_integer(n) and n >= 1 and n <= @max_find_limit ->
+        n
+
+      n when is_binary(n) ->
+        case Integer.parse(n) do
+          {parsed, ""} when parsed >= 1 and parsed <= @max_find_limit -> parsed
+          _ -> @default_find_limit
+        end
+
+      _ ->
+        @default_find_limit
+    end
+  end
+
+  defp find_detail?(opts) do
+    Map.get(opts, "detail") in [true, "true", 1, "1"]
+  end
+
+  defp summarize_find(meta) do
+    %{
+      "name" => meta["name"],
+      "summary" => summary_line(meta),
+      "loaded" => Map.get(meta, "loaded")
+    }
+  end
+
+  defp summary_line(meta) do
+    (meta["moduledoc"] || meta["description"] || "")
+    |> to_string()
+    |> String.split("\n", parts: 2)
+    |> hd()
+    |> String.trim()
+    |> String.slice(0, 160)
   end
 end

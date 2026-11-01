@@ -1,11 +1,11 @@
 {
-  "description": "Queries the belief graph by pattern, transaction time, and valid time.",
+  "description": "Queries memory with a pattern or one MiniGraf Datalog query.",
   "loaded": true,
   "module": "Elixir.AgentFn.Memory.Query",
-  "moduledoc": "Queries the belief graph by pattern, transaction time, and valid time.",
+  "moduledoc": "Queries memory with a pattern or one MiniGraf Datalog query.",
   "name": "memory.query",
   "specs": [
     "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
   ],
-  "updated_at": "2026-10-31T23:16:26.798806Z"
+  "updated_at": "2026-11-01T03:30:26.947215Z"
 }

@@ -1,5 +1,5 @@
 defmodule AgentFn.Memory.Transact do
-  @moduledoc "Asserts facts into the belief graph. Requires a reason. A new entity also requires a description."
+  @moduledoc "Asserts facts or MiniGraf rules into memory. Requires a reason. A new entity also requires a description."
 
   @behaviour AgentFn.Tool
 

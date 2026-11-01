@@ -9,14 +9,17 @@ defmodule Runtime.Memory.EntryTest do
 
   setup do
     path =
-      Path.join(System.tmp_dir!(), "alchemist-entry-#{System.unique_integer([:positive])}.log")
+      Path.join(System.tmp_dir!(), "alchemist-entry-#{System.unique_integer([:positive])}.graph")
 
-    on_exit(fn -> File.rm(path) end)
+    on_exit(fn ->
+      File.rm(path)
+      File.rm(path <> ".tx")
+    end)
     assert :ok = Runtime.Memory.reset!(path)
     :ok
   end
 
-  test "entries retract a belief and query the earlier transaction" do
+  test "entries retract a fact and query the earlier transaction" do
     assert {:ok, %{"tx" => 1}} =
              AgentFn.Memory.Transact.run(%{
                "reason" => "Initial choice",
@@ -66,6 +69,7 @@ defmodule Runtime.Memory.EntryTest do
     assert names == [
              "memory.query",
              "memory.recall",
+             "memory.remember",
              "memory.retract",
              "memory.transact"
            ]

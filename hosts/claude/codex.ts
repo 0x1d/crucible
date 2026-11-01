@@ -30,9 +30,19 @@ export const alchemistServer = createSdkMcpServer({
   tools: [
     tool(
       HOST_TOOL_NAMES.find,
-      "Search the on-disk codex of Elixir functions by name, module, or description.",
-      { query: z.string().optional().describe("Case-insensitive substring filter; omit to list all") },
-      ({ query }) => codex({ op: "find", query: query ?? "" }),
+      "Search codex slugs by substring. Default: name and one-line summary per hit.",
+      {
+        query: z.string().min(1).describe("Non-empty substring filter"),
+        limit: z.number().int().min(1).max(40).optional(),
+        detail: z.boolean().optional(),
+      },
+      ({ query, limit, detail }) =>
+        codex({
+          op: "find",
+          query,
+          ...(limit !== undefined ? { limit } : {}),
+          ...(detail !== undefined ? { detail } : {}),
+        }),
       { annotations: { readOnlyHint: true } },
     ),
     tool(

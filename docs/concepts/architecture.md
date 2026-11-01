@@ -63,9 +63,10 @@ seconds). Children start in this order:
 
 | Child | Restart | Role |
 | --- | --- | --- |
-| `Runtime.Memory` | permanent GenServer | Owns the belief graph and its append-only log |
+| `Runtime.Memory` | permanent GenServer | Owns memory through one Node process |
 | `Runtime.TaskSupervisor` | permanent supervisor | Temporary task per accepted socket |
 | `Runtime.Server` | permanent GenServer | Serializes `define` and `load`. Does not own a socket |
+| `Runtime.CodexWarmup` | permanent GenServer | Compiles every codex entry before the acceptor listens |
 | `Runtime.Acceptor` | permanent `Task` | Owns the loopback listen socket and accepts |
 
 The acceptor hands each client to `Task.Supervisor.start_child/2`, then
@@ -82,17 +83,20 @@ A connection crash closes that socket and leaves the acceptor and serializer
 running.
 
 Shutdown stops children in reverse: the listen socket closes, then the
-serializer, then in-flight connection tasks, and the belief graph stops last.
+serializer, then in-flight connection tasks, and memory stops last.
 
 Implications:
 
-- `load` and `define` compile inside the **running** BEAM; modules stay loaded until
-  the VM restarts (for example after `runtime/` source changes or bridge recovery).
+- `load` and `define` compile inside the **running** BEAM.
+  At startup, `Runtime.CodexWarmup` compiles every entry under `functions/` so
+  `call` can invoke `run/1` without per-slug discovery loads.
+  Modules stay loaded until the VM restarts (for example after `runtime/` source
+  changes or bridge recovery).
 - `meta.json` records such as `"loaded": true` reflect the **last successful**
   validation on disk, not a substitute for inspecting live code in the VM.
 - The **filesystem tree** under `functions/` is the source of truth for entry
   source and discovery metadata.
-- The **belief graph** log survives a BEAM restart. `Runtime.Memory` replays it
+- The memory file survives a BEAM restart. `Runtime.Memory` opens it
   on the next start. See [Memory](./memory.md).
 
 `call` auto-invokes `load` when the entry module is not yet compiled in the current

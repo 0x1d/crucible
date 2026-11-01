@@ -1,0 +1,7 @@
+recorded_at,phase,trial,eval_ok,duration_ms,call_function_total,find_function_calls,recall_calls,remember_calls,exploration_calls,session_id
+2026-11-01T02:08:04.924Z,before,1,false,230904,36,3,9,23,0,ses_d77a998ab400c483ee5a0ecf
+2026-11-01T02:09:43.555Z,before,1,false,88179,11,3,8,2,0,ses_4f3d41ec6bcc5f13be1f67be
+2026-11-01T02:11:31.879Z,before,2,false,101925,12,3,8,2,0,ses_efa4d3359b0bdca91f5d821f
+2026-11-01T02:13:36.429Z,after,1,false,66419,6,0,4,1,0,ses_a99be99b9fab50510dcec39b
+2026-11-01T02:14:29.888Z,after,2,false,47000,8,0,5,1,0,ses_517ca714bf3c1d1f08e35579
+2026-11-01T02:15:25.323Z,after,3,true,49138,8,0,5,2,0,ses_f57922d8802b25675b7c4928

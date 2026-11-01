@@ -1,0 +1,227 @@
+{
+  "ok": false,
+  "passed": 0,
+  "failed": 1,
+  "scored": 0,
+  "skipped": 0,
+  "strict": false,
+  "results": [
+    {
+      "id": "session_trace/factory-thread",
+      "path": "/home/master/src/alchemist/hosts/cursor/evals/session_trace.eval.ts",
+      "description": "Argo recap, stack Q&A, git seams, then remember these.",
+      "ok": false,
+      "verdict": "failed",
+      "assertions": [
+        {
+          "name": "succeeded",
+          "passed": true
+        },
+        {
+          "name": "calledTool(call_function, {input={\"name\":\"memory.recall\"}})",
+          "passed": true
+        },
+        {
+          "name": "calledTool(call_function, {input={\"name\":\"memory.remember\"}})",
+          "passed": true
+        },
+        {
+          "name": "calledTool(call_function, {input={\"name\":\"fs.read\"}, count=0})",
+          "passed": true
+        },
+        {
+          "name": "calledTool(call_function, {input={\"name\":\"sys.cmd\"}, count=0})",
+          "passed": true
+        },
+        {
+          "name": "maxToolCalls(12)",
+          "passed": true
+        },
+        {
+          "name": "check(includes)",
+          "passed": false,
+          "detail": "value=\"Persisted as `decision/factory-git-integration`:\\n\\n1. Agent commit  \\n2. Merge/handoff into the watched branch  \\n3. Tekton\""
+        }
+      ],
+      "logs": [],
+      "metrics": {},
+      "tags": [
+        "session-trace",
+        "memory"
+      ],
+      "inputs": [
+        "what did we walk about argocd?",
+        "what stack would you suggest based on my usecase?",
+        "suggest a lighter stack then temporal",
+        "where are the integration points with git",
+        "remember these Persist the git integration points we just discussed for the lighter Restate factory stack. Use memory.remember or memory.transact with facts as {e,a,v} objects. Do not read repository source to infer the schema."
+      ],
+      "toolCalls": [
+        {
+          "toolName": "call_function",
+          "args": {
+            "name": "memory.recall",
+            "args": {
+              "question": "What did we decide or discuss about Argo CD?",
+              "limit": 8
+            }
+          },
+          "output": "{\"function\":\"memory.recall\",\"ok\":true,\"result\":{\"count\":2,\"hits\":[{\"attributes\":{\"motivated_by\":[\"decision/k8s-durable-execution\"]},\"description\":\"Agentic software factory: Temporal or Restate for loop durability, Tekton or Argo Workflows for pod steps, Argo CD or Flux for deploy.\",\"entity\":\"decision/factory-architecture\",\"score\":1},{\"attributes\":{},\"description\":\"GitOps deploy path: sync DeploymentRequest CR and wait on status, not kubectl as durability layer.\",\"entity\":\"dependency/argo-cd\",\"score\":1}],\"limit\":8,\"truncated\":false}}",
+          "isError": false
+        },
+        {
+          "toolName": "call_function",
+          "args": {
+            "name": "memory.recall",
+            "args": {
+              "question": "What is the user's use case for the agentic software factory and what stack preferences or constraints exist?",
+              "limit": 20
+            }
+          },
+          "output": "{\"function\":\"memory.recall\",\"ok\":true,\"result\":{\"count\":4,\"hits\":[{\"attributes\":{\"motivated_by\":[\"decision/k8s-durable-execution\"]},\"description\":\"Agentic software factory: Temporal or Restate for loop durability, Tekton or Argo Workflows for pod steps, Argo CD or Flux for deploy.\",\"entity\":\"decision/factory-architecture\",\"score\":3},{\"attributes\":{},\"description\":\"In-process durable orchestration for the agentic software factory loop.\",\"entity\":\"dependency/temporal\",\"score\":3},{\"attributes\":{\"depends_on\":[\"dependency/argo-cd\",\"dependency/tekton\",\"dependency/temporal\"],\"rationale\":[\"Factory loop uses in-process durability; deploy uses GitOps sync status.\"]},\"description\":\"Split durable orchestration from GitOps deploy on Kubernetes.\",\"entity\":\"decision/k8s-durable-execution\",\"score\":1},{\"attributes\":{},\"description\":\"Pod-step builds and tests in the factory loop.\",\"entity\":\"dependency/tekton\",\"score\":1}],\"limit\":20,\"truncated\":false}}",
+          "isError": false
+        },
+        {
+          "toolName": "call_function",
+          "args": {
+            "name": "memory.query",
+            "args": {
+              "where": [
+                {
+                  "e": "?entity",
+                  "a": "description",
+                  "v": "?text"
+                }
+              ],
+              "find": [
+                "entity",
+                "text"
+              ]
+            }
+          },
+          "output": "{\"function\":\"memory.query\",\"ok\":true,\"result\":{\"as_of\":null,\"count\":7,\"rows\":[{\"entity\":\"constraint/no-cluster-admin\",\"text\":\"Agents must not hold cluster-admin apply; GitOps owns cluster changes.\"},{\"entity\":\"decision/factory-architecture\",\"text\":\"Agentic software factory: Temporal or Restate for loop durability, Tekton or Argo Workflows for pod steps, Argo CD or Flux for deploy.\"},{\"entity\":\"decision/k8s-durable-execution\",\"text\":\"Split durable orchestration from GitOps deploy on Kubernetes.\"},{\"entity\":\"dependency/argo-cd\",\"text\":\"GitOps deploy path: sync DeploymentRequest CR and wait on status, not kubectl as durability layer.\"},{\"entity\":\"dependency/tekton\",\"text\":\"Pod-step builds and tests in the factory loop.\"},{\"entity\":\"dependency/temporal\",\"text\":\"In-process durable orchestration for the agentic software factory loop.\"},{\"entity\":\"preference/orchestrator\",\"text\":\"Prefer Restate over Temporal when a lighter in-process durable runtime is enough.\"}],\"truncated\":false,\"valid_at\":\"2026-11-01T02:13:56.829Z\"}}",
+          "isError": false
+        },
+        {
+          "toolName": "call_function",
+          "args": {
+            "name": "memory.recall",
+            "args": {
+              "question": "Restate preference and lighter durable orchestration alternatives to Temporal",
+              "limit": 8
+            }
+          },
+          "output": "{\"function\":\"memory.recall\",\"ok\":true,\"result\":{\"count\":4,\"hits\":[{\"attributes\":{},\"description\":\"Prefer Restate over Temporal when a lighter in-process durable runtime is enough.\",\"entity\":\"preference/orchestrator\",\"score\":5},{\"attributes\":{},\"description\":\"In-process durable orchestration for the agentic software factory loop.\",\"entity\":\"dependency/temporal\",\"score\":3},{\"attributes\":{\"motivated_by\":[\"decision/k8s-durable-execution\"]},\"description\":\"Agentic software factory: Temporal or Restate for loop durability, Tekton or Argo Workflows for pod steps, Argo CD or Flux for deploy.\",\"entity\":\"decision/factory-architecture\",\"score\":2},{\"attributes\":{\"depends_on\":[\"dependency/argo-cd\",\"dependency/tekton\",\"dependency/temporal\"],\"rationale\":[\"Factory loop uses in-process durability; deploy uses GitOps sync status.\"]},\"description\":\"Split durable orchestration from GitOps deploy on Kubernetes.\",\"entity\":\"decision/k8s-durable-execution\",\"score\":2}],\"limit\":8,\"truncated\":false}}",
+          "isError": false
+        },
+        {
+          "toolName": "call_function",
+          "args": {
+            "name": "memory.recall",
+            "args": {
+              "question": "Where are the git integration points or seams in the agentic software factory?",
+              "limit": 10
+            }
+          },
+          "output": "{\"function\":\"memory.recall\",\"ok\":true,\"result\":{\"count\":4,\"hits\":[{\"attributes\":{\"motivated_by\":[\"decision/k8s-durable-execution\"]},\"description\":\"Agentic software factory: Temporal or Restate for loop durability, Tekton or Argo Workflows for pod steps, Argo CD or Flux for deploy.\",\"entity\":\"decision/factory-architecture\",\"score\":3},{\"attributes\":{},\"description\":\"In-process durable orchestration for the agentic software factory loop.\",\"entity\":\"dependency/temporal\",\"score\":3},{\"attributes\":{\"depends_on\":[\"dependency/argo-cd\",\"dependency/tekton\",\"dependency/temporal\"],\"rationale\":[\"Factory loop uses in-process durability; deploy uses GitOps sync status.\"]},\"description\":\"Split durable orchestration from GitOps deploy on Kubernetes.\",\"entity\":\"decision/k8s-durable-execution\",\"score\":1},{\"attributes\":{},\"description\":\"Pod-step builds and tests in the factory loop.\",\"entity\":\"dependency/tekton\",\"score\":1}],\"limit\":10,\"truncated\":false}}",
+          "isError": false
+        },
+        {
+          "toolName": "call_function",
+          "args": {
+            "name": "memory.query",
+            "args": {
+              "where": [
+                {
+                  "e": "?entity",
+                  "a": "description",
+                  "v": "?text"
+                }
+              ],
+              "find": [
+                "entity",
+                "text"
+              ]
+            }
+          },
+          "output": "{\"function\":\"memory.query\",\"ok\":true,\"result\":{\"as_of\":null,\"count\":7,\"rows\":[{\"entity\":\"constraint/no-cluster-admin\",\"text\":\"Agents must not hold cluster-admin apply; GitOps owns cluster changes.\"},{\"entity\":\"decision/factory-architecture\",\"text\":\"Agentic software factory: Temporal or Restate for loop durability, Tekton or Argo Workflows for pod steps, Argo CD or Flux for deploy.\"},{\"entity\":\"decision/k8s-durable-execution\",\"text\":\"Split durable orchestration from GitOps deploy on Kubernetes.\"},{\"entity\":\"dependency/argo-cd\",\"text\":\"GitOps deploy path: sync DeploymentRequest CR and wait on status, not kubectl as durability layer.\"},{\"entity\":\"dependency/tekton\",\"text\":\"Pod-step builds and tests in the factory loop.\"},{\"entity\":\"dependency/temporal\",\"text\":\"In-process durable orchestration for the agentic software factory loop.\"},{\"entity\":\"preference/orchestrator\",\"text\":\"Prefer Restate over Temporal when a lighter in-process durable runtime is enough.\"}],\"truncated\":false,\"valid_at\":\"2026-11-01T02:14:12.266Z\"}}",
+          "isError": false
+        },
+        {
+          "toolName": "call_function",
+          "args": {
+            "name": "memory.recall",
+            "args": {
+              "question": "git seams agent commit merge handoff build SHA pin Argo CD deploy factory-git-integration",
+              "limit": 10
+            }
+          },
+          "output": "{\"function\":\"memory.recall\",\"ok\":true,\"result\":{\"count\":5,\"hits\":[{\"attributes\":{\"motivated_by\":[\"decision/k8s-durable-execution\"]},\"description\":\"Agentic software factory: Temporal or Restate for loop durability, Tekton or Argo Workflows for pod steps, Argo CD or Flux for deploy.\",\"entity\":\"decision/factory-architecture\",\"score\":3},{\"attributes\":{\"depends_on\":[\"dependency/argo-cd\",\"dependency/tekton\",\"dependency/temporal\"],\"rationale\":[\"Factory loop uses in-process durability; deploy uses GitOps sync status.\"]},\"description\":\"Split durable orchestration from GitOps deploy on Kubernetes.\",\"entity\":\"decision/k8s-durable-execution\",\"score\":2},{\"attributes\":{},\"description\":\"GitOps deploy path: sync DeploymentRequest CR and wait on status, not kubectl as durability layer.\",\"entity\":\"dependency/argo-cd\",\"score\":2},{\"attributes\":{},\"description\":\"Pod-step builds and tests in the factory loop.\",\"entity\":\"dependency/tekton\",\"score\":1},{\"attributes\":{},\"description\":\"In-process durable orchestration for the agentic software factory loop.\",\"entity\":\"dependency/temporal\",\"score\":1}],\"limit\":10,\"truncated\":false}}",
+          "isError": false
+        },
+        {
+          "toolName": "call_function",
+          "args": {
+            "name": "memory.remember",
+            "args": {
+              "reason": "User asked to persist the git integration points discussed for the lighter Restate factory stack.",
+              "facts": [
+                {
+                  "e": "decision/factory-git-integration",
+                  "a": "description",
+                  "v": "Four git seams for the lighter Restate factory stack: (1) agent commit of desired changes, (2) merge/handoff into the watched branch, (3) Tekton build/test pin to commit SHA, (4) Argo CD GitOps sync of DeploymentRequest and wait on status."
+                },
+                {
+                  "e": "decision/factory-git-integration",
+                  "a": "depends_on",
+                  "v": "dependency/argo-cd"
+                },
+                {
+                  "e": "decision/factory-git-integration",
+                  "a": "depends_on",
+                  "v": "dependency/tekton"
+                },
+                {
+                  "e": "decision/factory-git-integration",
+                  "a": "motivated_by",
+                  "v": "preference/orchestrator"
+                },
+                {
+                  "e": "decision/factory-git-integration",
+                  "a": "motivated_by",
+                  "v": "constraint/no-cluster-admin"
+                },
+                {
+                  "e": "dependency/restate",
+                  "a": "description",
+                  "v": "Lighter in-process durable orchestration for the agentic software factory loop (preferred over Temporal)."
+                },
+                {
+                  "e": "decision/factory-git-integration",
+                  "a": "depends_on",
+                  "v": "dependency/restate"
+                }
+              ]
+            }
+          },
+          "output": "{\"function\":\"memory.remember\",\"ok\":true,\"result\":{\"at\":\"2026-11-01T02:14:27.984Z\",\"count\":7,\"reason\":\"User asked to persist the git integration points discussed for the lighter Restate factory stack.\",\"tx\":7}}",
+          "isError": false
+        }
+      ],
+      "sessionId": "ses_517ca714bf3c1d1f08e35579",
+      "finalText": "Persisted as `decision/factory-git-integration`:\n\n1. Agent commit  \n2. Merge/handoff into the watched branch  \n3. Tekton SHA pin  \n4. Argo CD sync + status wait  \n\nLinked to `dependency/restate`, `dependency/tekton`, `dependency/argo-cd`, plus `preference/orchestrator` and `constraint/no-cluster-admin`. Also added `dependency/restate` for the lighter loop.",
+      "tools": [
+        "call_function",
+        "call_function",
+        "call_function",
+        "call_function",
+        "call_function",
+        "call_function",
+        "call_function",
+        "call_function"
+      ],
+      "durationMs": 47000
+    }
+  ],
+  "artifactsDir": "/home/master/src/alchemist/hosts/cursor/.agent-serve/evals/2026-11-01T02-13-42-822Z"
+}

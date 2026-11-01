@@ -1,5 +1,5 @@
 defmodule AgentFn.Memory.Retract do
-  @moduledoc "Retracts facts from the current belief graph. The earlier assert stays in the log and remains visible at an earlier as_of."
+  @moduledoc "Retracts facts from memory. The earlier assert remains visible at an earlier as_of."
 
   @behaviour AgentFn.Tool
 

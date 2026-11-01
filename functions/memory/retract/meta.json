@@ -1,11 +1,11 @@
 {
-  "description": "Retracts facts from the current belief graph. The earlier assert stays in the log and remains visible at an earlier as_of.",
+  "description": "Retracts facts from memory. The earlier assert remains visible at an earlier as_of.",
   "loaded": true,
   "module": "Elixir.AgentFn.Memory.Retract",
-  "moduledoc": "Retracts facts from the current belief graph. The earlier assert stays in the log and remains visible at an earlier as_of.",
+  "moduledoc": "Retracts facts from memory. The earlier assert remains visible at an earlier as_of.",
   "name": "memory.retract",
   "specs": [
     "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
   ],
-  "updated_at": "2026-10-31T22:45:00Z"
+  "updated_at": "2026-11-01T03:30:26.991341Z"
 }

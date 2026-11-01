@@ -1,11 +1,11 @@
 {
-  "description": "Ranks current beliefs by token overlap with a question.",
+  "description": "Ranks current entities by token overlap with a question.",
   "loaded": true,
   "module": "Elixir.AgentFn.Memory.Recall",
-  "moduledoc": "Ranks current beliefs by token overlap with a question.",
+  "moduledoc": "Ranks current entities by token overlap with a question.",
   "name": "memory.recall",
   "specs": [
     "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
   ],
-  "updated_at": "2026-10-31T22:30:00Z"
+  "updated_at": "2026-11-01T03:30:26.956584Z"
 }

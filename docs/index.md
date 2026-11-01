@@ -31,7 +31,7 @@ considerations. Operation shapes are specified in the
 Read the [domain language](./concepts/domain-language.md), then the
 [codex protocol](./reference/protocol.md) and
 [architecture](./concepts/architecture.md) request lifecycle.
-The [belief graph](./concepts/memory.md) is the durable fact log a codex
+[Memory](./concepts/memory.md) is the MiniGraf database a codex
 call can read and update.
 
 ### Contribute to the repository
@@ -47,7 +47,7 @@ subsystems.
 | [Product overview](../README.md) | Evaluators and new contributors | Establishing scope, quick start, and documentation entry points. |
 | [Documentation index](./index.md) | All readers | Selecting a goal-oriented path through the documentation. |
 | [Architecture](./concepts/architecture.md) | Evaluators and integrators | Understanding components, lifecycle, and composition models. |
-| [Memory](./concepts/memory.md) | Evaluators and entry authors | Belief graph, bi-temporal queries, and the `memory.*` entries. |
+| [Memory](./concepts/memory.md) | Evaluators and entry authors | MiniGraf memory, bi-temporal queries, and the `memory.*` entries. |
 | [Domain language](./concepts/domain-language.md) | All readers and contributors | Interpreting canonical product and implementation terms. |
 | [Getting started](./guides/getting-started.md) | Operators and authors | Installing dependencies and making the first codex call. |
 | [Authoring codex entries](./guides/authoring-entries.md) | Codex entry authors | Slugs, modules, harness operations, and testing entries. |

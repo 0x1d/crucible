@@ -12,8 +12,10 @@ test("call_function invokes the bundled echo entry", { timeout }, async () => {
   assert.match(run.text, /echoed/);
 });
 
-test("find_function lists codex entries", { timeout }, async () => {
-  const run = await runEval("Which codex entries exist? List their slugs.");
+test("find_function searches codex entries", { timeout }, async () => {
+  const run = await runEval(
+    'Use find_function with query "echo". Reply with the echo slug only.',
+  );
   assert.ok(calledTool(run, "find_function"), JSON.stringify(run.toolCalls));
   assert.match(run.text, /echo/);
 });

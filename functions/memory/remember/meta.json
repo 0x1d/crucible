@@ -1,0 +1,11 @@
+{
+  "description": "Asserts many facts in one call.\n\n  Same contract as `memory.transact`.\n  Prefer this slug when persisting a bundle of related facts from chat.",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Memory.Remember",
+  "moduledoc": "Asserts many facts in one call.\n\n  Same contract as `memory.transact`.\n  Prefer this slug when persisting a bundle of related facts from chat.",
+  "name": "memory.remember",
+  "specs": [
+    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-11-01T03:30:26.982071Z"
+}

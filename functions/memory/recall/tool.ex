@@ -1,6 +1,6 @@
 defmodule AgentFn.Memory.Recall do
   @moduledoc """
-  Ranks current beliefs by token overlap with a question.
+  Ranks current entities by token overlap with a question.
   """
 
   @behaviour AgentFn.Tool

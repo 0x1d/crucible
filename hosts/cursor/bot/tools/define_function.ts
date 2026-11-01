@@ -1,6 +1,6 @@
 import { defineTool } from "@grok/agent-sdk/tools";
 import * as z from "zod/v4";
-import { runCodexOp } from "../lib/elixir-bridge";
+import { runCodexTool } from "../lib/codex-tool";
 
 export default defineTool({
   description:
@@ -21,7 +21,7 @@ export default defineTool({
       .describe("Short summary stored in the codex for find_function"),
   }),
   async execute({ name, source, description }) {
-    return runCodexOp({
+    return runCodexTool({
       op: "define",
       name,
       source,

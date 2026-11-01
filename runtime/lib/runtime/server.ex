@@ -2,8 +2,8 @@ defmodule Runtime.Server do
   @moduledoc """
   Serves codex protocol requests on one BEAM.
 
-  The application supervisor starts four children. `Runtime.Memory` owns the
-  belief graph. `Runtime.TaskSupervisor` holds a temporary task per TCP client.
+  The application supervisor starts four children. `Runtime.Memory` owns
+  memory. `Runtime.TaskSupervisor` holds a temporary task per TCP client.
   This GenServer only serializes
   `define` and `load`, because `Code.require_file/2` and
   `ignore_module_conflict` are unsafe to run concurrently. `accept/0` runs as

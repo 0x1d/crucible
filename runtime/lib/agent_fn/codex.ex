@@ -6,7 +6,7 @@ defmodule AgentFn.Codex do
   own modules after compile. Use `call/2` when the slug comes from runtime data.
   """
 
-  alias Runtime.Engine
+  alias Runtime.{Codex, Engine}
 
   @type slug :: String.t()
   @type args :: map()
@@ -23,9 +23,6 @@ defmodule AgentFn.Codex do
 
   @spec list() :: [map()]
   def list do
-    case Engine.find("") do
-      %{functions: functions} when is_list(functions) -> functions
-      _ -> []
-    end
+    Codex.list_all()
   end
 end

@@ -21,6 +21,65 @@ type Vm = { pid: number; port: number };
 
 let booting: Promise<Vm> | null = null;
 
+/**
+ * When true, the BEAM is spawned detached and unref'd so it outlives the Node
+ * host (hosted deployments). When false, the VM is tied to the host process and
+ * stopped on SIGINT/SIGTERM/exit (local dev, evals, CLI).
+ *
+ * Override with `ALCHEMIST_RUNTIME_DETACHED=1` or `=0`.
+ */
+export function runtimeDetached(): boolean {
+  const override = process.env.ALCHEMIST_RUNTIME_DETACHED;
+  if (override === "1" || override === "true") return true;
+  if (override === "0" || override === "false") return false;
+  return process.env.NODE_ENV === "production";
+}
+
+function registerAttachedLifecycle(): void {
+  if (runtimeDetached()) return;
+  if (process.env.ALCHEMIST_RUNTIME_NO_SHUTDOWN_HOOK === "1") return;
+
+  const shutdown = () => {
+    syncStopRuntime();
+  };
+
+  process.on("exit", shutdown);
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
+}
+
+/** Synchronous stop for process exit handlers. */
+export function syncStopRuntime(): void {
+  booting = null;
+  const vm = readVm();
+  if (vm && alive(vm.pid)) {
+    try {
+      process.kill(vm.pid, "SIGTERM");
+    } catch {
+      // already gone
+    }
+  }
+  clearStateFiles();
+}
+
+function runtimeStamp(): string {
+  const memory = process.env.AGENT_MEMORY_PATH ?? "";
+  const functions = process.env.AGENT_FUNCTIONS_DIR ?? "";
+  return `${sourceStamp()}\0${memory}\0${functions}`;
+}
+
+/**
+ * Stop the recorded BEAM VM and clear port/pid files.
+ * Use before changing `AGENT_MEMORY_PATH` or recovering from a graph lock.
+ */
+export async function stopRuntime(): Promise<void> {
+  booting = null;
+  await stopRecorded();
+  clearStateFiles();
+}
+
+registerAttachedLifecycle();
+
 function stateDir(): string {
   const configured = process.env.ALCHEMIST_STATE_DIR;
   return configured
@@ -59,7 +118,7 @@ async function callOnce(
 function ensureVm(force: boolean): Promise<Vm> {
   if (!force && booting) {
     return booting.then((vm) => {
-      if (alive(vm.pid) && readStamp() === sourceStamp()) return vm;
+      if (alive(vm.pid) && readStamp() === runtimeStamp()) return vm;
       booting = null;
       return ensureVm(true);
     });
@@ -87,8 +146,8 @@ async function boot(force: boolean): Promise<Vm> {
     ensureCompiled();
     child = await spawnVm();
     const vm = await waitForReady(child);
-    fs.writeFileSync(path.join(stateDir(), "stamp"), sourceStamp());
-    child.unref();
+    fs.writeFileSync(path.join(stateDir(), "stamp"), runtimeStamp());
+    if (runtimeDetached()) child.unref();
     return vm;
   } catch (error) {
     if (child?.pid && alive(child.pid)) {
@@ -107,7 +166,7 @@ async function boot(force: boolean): Promise<Vm> {
 function healthyVm(): Vm | null {
   const vm = readVm();
   if (!vm || !alive(vm.pid)) return null;
-  if (readStamp() !== sourceStamp()) return null;
+  if (readStamp() !== runtimeStamp()) return null;
   return vm;
 }
 
@@ -167,9 +226,10 @@ function spawnVm(): Promise<ChildProcess> {
   delete env.MIX_ENV;
 
   return new Promise((resolve, reject) => {
+    const detached = runtimeDetached();
     const child = spawn("elixir", args, {
       cwd: runtimeDir,
-      detached: true,
+      detached,
       stdio: ["ignore", "ignore", logFd],
       env,
     });
@@ -391,11 +451,32 @@ function alive(pid: number): boolean {
 function bootError(message: string): Error {
   let detail = "";
   try {
-    detail = fs.readFileSync(path.join(stateDir(), "boot.log"), "utf8").trim().slice(-2000);
+    detail = fs.readFileSync(path.join(stateDir(), "boot.log"), "utf8").trim();
   } catch {
     // startup wrote nothing
   }
-  return new Error(detail ? `${message}\n${detail}` : message);
+  const hint = bootHint(detail);
+  const tail = detail.slice(-2000);
+  const parts = [message];
+  if (hint) parts.push(hint);
+  if (tail) parts.push(tail);
+  return new Error(parts.join("\n"));
+}
+
+function bootHint(log: string): string | null {
+  if (/STG-026|Database is locked/.test(log)) {
+    return (
+      "MiniGraf memory is locked by another BEAM process. " +
+      "Run: node scripts/runtime-doctor.mjs"
+    );
+  }
+  if (/failed to start child: Runtime\.Memory/.test(log)) {
+    return "Runtime.Memory failed to start. See boot.log above for the MiniGraf error.";
+  }
+  if (/Application runtime exited/.test(log)) {
+    return "The :runtime OTP application failed to start. See boot.log above.";
+  }
+  return null;
 }
 
 function isTransportError(error: unknown): boolean {
