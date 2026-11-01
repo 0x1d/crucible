@@ -1,0 +1,11 @@
+{
+  "description": "Report on uncommitted codex functions.\n\n  Flow:\n  1. `git status --porcelain` under `functions/`\n  2. Resolve dirty paths to slugs\n  3. Ensure each slug is compiled/loaded (`Runtime.Engine.load/1` when missing)\n  4. Read codex meta (summary, module, updated_at, specs)\n  5. Enrich from memory (`source_session` + description) and journal\n     (`sessions.search` for first mention → `at` / `user_message`)\n  6. Render a markdown table\n\n  Args:\n  - `repo` — git root (default: parent of functions root)\n  - `functions_rel` — path relative to repo (default `functions`)\n  - `load_missing` — default true\n  - `journal` — search journal for provenance (default true)",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Codex.UncommittedReport",
+  "moduledoc": "Report on uncommitted codex functions.\n\n  Flow:\n  1. `git status --porcelain` under `functions/`\n  2. Resolve dirty paths to slugs\n  3. Ensure each slug is compiled/loaded (`Runtime.Engine.load/1` when missing)\n  4. Read codex meta (summary, module, updated_at, specs)\n  5. Enrich from memory (`source_session` + description) and journal\n     (`sessions.search` for first mention → `at` / `user_message`)\n  6. Render a markdown table\n\n  Args:\n  - `repo` — git root (default: parent of functions root)\n  - `functions_rel` — path relative to repo (default `functions`)\n  - `load_missing` — default true\n  - `journal` — search journal for provenance (default true)",
+  "name": "codex.uncommitted_report",
+  "specs": [
+    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-11-01T13:25:04.679702Z"
+}
