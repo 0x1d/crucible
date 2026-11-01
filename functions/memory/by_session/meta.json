@@ -1,0 +1,11 @@
+{
+  "description": "Reverse lookup: session id → memory entities.\n\n  Finds entities that have `source_session` equal to (or containing) the\n  given id, and returns their `description` when present.\n\n  Args:\n  - `session_id` / `source_session` (required) — `ses_…` id or substring\n  - `exact` — when true (default), require exact `source_session` match;\n    when false, substring match on the value\n  - `as_of` / `valid_at` — optional temporal args forwarded to `memory.query`",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Memory.BySession",
+  "moduledoc": "Reverse lookup: session id → memory entities.\n\n  Finds entities that have `source_session` equal to (or containing) the\n  given id, and returns their `description` when present.\n\n  Args:\n  - `session_id` / `source_session` (required) — `ses_…` id or substring\n  - `exact` — when true (default), require exact `source_session` match;\n    when false, substring match on the value\n  - `as_of` / `valid_at` — optional temporal args forwarded to `memory.query`",
+  "name": "memory.by_session",
+  "specs": [
+    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-11-01T13:10:00.447297Z"
+}
