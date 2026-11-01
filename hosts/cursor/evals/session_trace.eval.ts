@@ -8,6 +8,23 @@ function memoryPathForCase(): string {
   return process.env.AGENT_MEMORY_PATH ?? sessionTraceMemoryPath;
 }
 
+/** `action.result.output` is the JSON text the model saw, not a parsed object. */
+function codexCallOk(value: unknown): boolean {
+  let parsed: unknown = value;
+  if (typeof value === "string") {
+    try {
+      parsed = JSON.parse(value);
+    } catch {
+      return false;
+    }
+  }
+  return (
+    typeof parsed === "object" &&
+    parsed !== null &&
+    (parsed as { ok?: boolean }).ok === true
+  );
+}
+
 export default defineEval({
   tags: ["session-trace", "memory"],
   description:
@@ -58,10 +75,7 @@ export default defineEval({
         t.succeeded();
         t.calledTool("call_function", {
           input: { name: "memory.remember" },
-          output: (value) =>
-            typeof value === "object" &&
-            value !== null &&
-            (value as { ok?: boolean }).ok === true,
+          output: codexCallOk,
         });
         t.notCalledTool("load_function");
         t.notCalledTool("find_function");
