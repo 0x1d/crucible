@@ -23,6 +23,7 @@ const attributes = new Set([
   "rationale",
   "depends_on",
   "motivated_by",
+  "source_session",
 ]);
 const edges = new Set(["depends_on", "motivated_by"]);
 const entityPattern =
