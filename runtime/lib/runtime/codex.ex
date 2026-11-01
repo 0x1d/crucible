@@ -123,6 +123,7 @@ defmodule Runtime.Codex do
         "name" => slug,
         "module" => Atom.to_string(module),
         "description" => description,
+        "source_sha256" => sha256_hex(full_source),
         "updated_at" => DateTime.utc_now() |> DateTime.to_iso8601(),
         "loaded" => false
       })
@@ -130,9 +131,16 @@ defmodule Runtime.Codex do
     {:ok, meta}
   end
 
+  @doc """
+  Sync module docs/specs into `meta.json` after compile.
+
+  `updated_at` advances only when `tool.ex` content changes (SHA-256).
+  Seeding `source_sha256` on legacy meta does not count as a change.
+  """
   def refresh_metadata!(slug, module) do
     docs = Runtime.Metadata.extract(module, slug)
     meta = load_meta(slug)
+    source_sha = source_sha256(slug)
 
     description =
       case docs["moduledoc"] do
@@ -146,9 +154,26 @@ defmodule Runtime.Codex do
       |> Map.put("description", description)
       |> Map.put("moduledoc", docs["moduledoc"])
       |> Map.put("specs", docs["specs"])
-      |> Map.put("updated_at", DateTime.utc_now() |> DateTime.to_iso8601())
+      |> Map.put("source_sha256", source_sha)
 
-    write_meta_file(slug, updated)
+    updated =
+      cond do
+        meta["source_sha256"] == source_sha ->
+          updated
+
+        is_binary(meta["source_sha256"]) and meta["source_sha256"] != "" ->
+          Map.put(updated, "updated_at", DateTime.utc_now() |> DateTime.to_iso8601())
+
+        true ->
+          # Legacy meta without a hash: seed without treating compile as an edit.
+          updated
+      end
+
+    if updated == meta do
+      meta
+    else
+      write_meta_file(slug, updated)
+    end
   end
 
   defp write_meta_file(slug, meta) do
@@ -159,9 +184,25 @@ defmodule Runtime.Codex do
   def mark_loaded(name, loaded) do
     slug = sanitize(name)
     meta = load_meta(slug)
-    updated = Map.put(meta, "loaded", loaded)
-    File.write!(meta_path(slug), Jason.encode!(updated, pretty: true))
-    updated
+
+    if meta["loaded"] == loaded do
+      meta
+    else
+      updated = Map.put(meta, "loaded", loaded)
+      File.write!(meta_path(slug), Jason.encode!(updated, pretty: true))
+      updated
+    end
+  end
+
+  defp source_sha256(slug) do
+    case File.read(source_path(slug)) do
+      {:ok, body} -> sha256_hex(body)
+      {:error, _} -> nil
+    end
+  end
+
+  defp sha256_hex(body) when is_binary(body) do
+    :crypto.hash(:sha256, body) |> Base.encode16(case: :lower)
   end
 
   defp ensure_module(module, source) do
