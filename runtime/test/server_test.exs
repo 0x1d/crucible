@@ -64,13 +64,15 @@ defmodule Runtime.ServerTest do
   end
 
   test "application supervises a task supervisor and a permanent acceptor" do
-    [first, second, third] = Runtime.Application.children()
+    [memory, tasks, server, warmup, acceptor] = Runtime.Application.children()
 
-    assert first == {Task.Supervisor, name: Runtime.TaskSupervisor}
-    assert second == Runtime.Server
-    assert third.id == Runtime.Acceptor
-    assert third.restart == :permanent
-    assert elem(third.start, 0) == Task
+    assert memory == Runtime.Memory
+    assert tasks == {Task.Supervisor, name: Runtime.TaskSupervisor}
+    assert server == Runtime.Server
+    assert warmup == Runtime.CodexWarmup
+    assert acceptor.id == Runtime.Acceptor
+    assert acceptor.restart == :permanent
+    assert elem(acceptor.start, 0) == Task
 
     ids =
       Runtime.Supervisor
@@ -78,7 +80,14 @@ defmodule Runtime.ServerTest do
       |> Enum.map(&elem(&1, 0))
       |> MapSet.new()
 
-    assert ids == MapSet.new([Runtime.TaskSupervisor, Runtime.Server, Runtime.Acceptor])
+    assert ids ==
+             MapSet.new([
+               Runtime.Memory,
+               Runtime.TaskSupervisor,
+               Runtime.Server,
+               Runtime.CodexWarmup,
+               Runtime.Acceptor
+             ])
 
     server = Process.whereis(Runtime.Server)
     acceptor = Runtime.Server.acceptor()
@@ -305,7 +314,8 @@ defmodule Runtime.ServerTest do
     assert listen_owner(Runtime.Server.port()) == replacement
 
     found = rpc(Runtime.Server.port(), %{"op" => "find", "query" => ""})
-    assert found["ok"] == true
+    assert found["ok"] == false
+    assert found["error"] =~ "query is required"
   end
 
   defp rpc(port, payload) do

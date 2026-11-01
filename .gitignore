@@ -3,9 +3,11 @@ node_modules
 .env.local
 .agent-serve
 .sessions
-memory
+/memory/
 runtime/_build
 runtime/deps
 runtime/.fetch
 .direnv/
 .alchemist/
+docs/review/
+hosts/cursor/.eval-memory/

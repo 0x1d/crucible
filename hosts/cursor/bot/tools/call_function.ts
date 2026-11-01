@@ -1,19 +1,19 @@
 import { defineTool } from "@grok/agent-sdk/tools";
 import * as z from "zod/v4";
-import { runCodexOp } from "../lib/elixir-bridge";
+import { runCodexTool } from "../lib/codex-tool";
 
 export default defineTool({
   description:
-    "Invoke a loaded Elixir function by name. Loads from disk automatically if needed.",
-  effect: "idempotent",
+    "Invoke a codex entry's run/1 by slug with a JSON args object. Loads from disk when needed.",
+  effect: "write",
   inputSchema: z.object({
     name: z.string().describe("Function slug to call"),
     args: z
       .record(z.string(), z.unknown())
-      .default({})
+      .optional()
       .describe("JSON object passed to run/1"),
   }),
   async execute({ name, args }) {
-    return runCodexOp({ op: "call", name, args });
+    return runCodexTool({ op: "call", name, args: args ?? {} });
   },
 });

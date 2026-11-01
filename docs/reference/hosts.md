@@ -1,8 +1,7 @@
 # Host adapters
 
-A **host** runs the agent loop (inference, tool routing, channels). Alchemist
-supplies a **codex** that stays the same across hosts: four JSON operations
-implemented by the codex runtime on a long-lived BEAM and reached through a thin adapter.
+A **host** runs the agent loop (inference, tool routing, channels).
+Every host reaches the same codex: four JSON operations served by the Alchemist runtime on a long-lived BEAM, through a thin adapter.
 
 ```mermaid
 flowchart LR
@@ -23,12 +22,12 @@ flowchart LR
 
 | Layer | Location | Responsibility |
 | --- | --- | --- |
-| Codex runtime | `runtime/` (OTP app source) | Serve `define`, `load`, `find`, and `call` over TCP |
+| Runtime | `runtime/` (OTP app source) | Serve codex operations over TCP and own memory |
 | Capability tree | `functions/` | Codex entry source and `meta.json` |
 | Bridge | `core/elixir-bridge.ts` | `mix compile` when needed; boot one long-lived BEAM; TCP JSON RPC |
-| Host adapter | `hosts/cursor/` (Cursor) and `hosts/claude/` (Claude Agent SDK) | Map harness tool calls to codex operations |
+| Host adapter | `hosts/cursor/` (Cursor) and `hosts/claude/` (Claude Agent SDK) | Map codex tool calls to codex operations |
 
-The model only needs four harness tools (`define_function`, `load_function`,
+The model only needs four codex tools (`define_function`, `load_function`,
 `find_function`, `call_function`). Any host that can invoke the codex JSON
 through the bridge can use the same capability tree without `@grok/agent-sdk`.
 
@@ -49,13 +48,18 @@ No single vendor SDK bills across Cursor, OpenCode, and Anthropic. Unify at the
 ## Cursor (this repository)
 
 - **Package:** `@grok/agent-sdk` — playground, deploy, evals, Slack, and related channels.
-- **Adapter:** `hosts/cursor/bot/tools/*.ts` maps harness tool names to [`core/protocol.ts`](../../core/protocol.ts) requests.
-- **Tool surface:** `hosts/cursor/bot/agent.ts` sets `tools: []`.
-  The model receives `find_function`, `define_function`, `load_function`, and `call_function`.
+- **Adapter:** `hosts/cursor/bot/tools/*.ts` maps codex tool names to [`core/protocol.ts`](../../core/protocol.ts) requests.
+- **Tool surface:** `hosts/cursor/bot/agent.ts` sets `tools: ["mcp"]`.
+  That allowlist is the MCP family only: the `custom-user-tools` server and the four codex tools.
+  Native tools such as read, edit, and shell stay off.
   `local.cwd` is `.sessions`, so each session workspace is `hosts/cursor/.sessions/<sessionId>`.
   That directory is gitignored.
   Each workspace is its own git root, so turns do not load this repository's `AGENTS.md` or ambient MCP servers.
 - **Bridge:** `core/elixir-bridge.ts` compiles `runtime/` when sources change, starts `elixir --no-halt` with `Application.ensure_all_started(:runtime, :permanent)`, and sends length-prefixed JSON over TCP.
+- **Session-trace memory:** Factory Q&A evals and playground replay use a committed MiniGraf fixture.
+  Default graph: `hosts/cursor/.eval-memory/session-trace.graph`.
+  Commands: `npm run seed:session-trace`, `npm run dev:session-trace`, `npm run eval:session-trace`.
+  See [Memory — Session-trace fixture](../concepts/memory.md#session-trace-fixture-cursor-host).
 
 ## OpenCode
 
@@ -94,4 +98,4 @@ agent typically call `scripts/cli.mjs` for the capability surface.
 
 - [Getting started](../guides/getting-started.md)
 - [Architecture](../concepts/architecture.md)
-- [Codex runtime notes](../../runtime/README.md)
+- [Runtime notes](../../runtime/README.md)

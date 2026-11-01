@@ -1,0 +1,12 @@
+{
+  "description": "Queries memory with a pattern or one MiniGraf Datalog query.",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Memory.Query",
+  "moduledoc": "Queries memory with a pattern or one MiniGraf Datalog query.",
+  "name": "memory.query",
+  "source_sha256": "2514eb2b2bd3d446d2d9bb90bc95d370108c825d3ae4da40284d4f43b1cb474e",
+  "specs": [
+    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-11-01T14:40:57.869008Z"
+}

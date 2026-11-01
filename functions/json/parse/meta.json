@@ -4,8 +4,9 @@
   "module": "Elixir.AgentFn.Json.Parse",
   "moduledoc": "Parse JSON into Elixir data (maps/lists with string keys).\n\n  Args:\n  - `text`, `json`, or `content` — JSON string\n  - or `path` — file containing JSON",
   "name": "json.parse",
+  "source_sha256": "9919cf13c21eca6508c855f4e67152e9094ae8bcaa7359cdcd36a52940320193",
   "specs": [
     "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
   ],
-  "updated_at": "2026-10-31T21:11:56.937716Z"
+  "updated_at": "2026-11-01T14:40:57.703896Z"
 }

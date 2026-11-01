@@ -1,6 +1,6 @@
 defmodule Runtime.CLI do
   @moduledoc """
-  JSON dispatch for the Alchemist codex.
+  JSON dispatch for codex operations.
 
   Hosts send one length-prefixed JSON request per connection. The acceptor task
   owns the listen socket. `define` and `load` compile on `Runtime.Server`.
@@ -45,7 +45,8 @@ defmodule Runtime.CLI do
 
   def dispatch(%{"op" => "find"} = req) do
     query = Map.get(req, "query", "") |> to_string()
-    Engine.find(query)
+    opts = Map.take(req, ["limit", "detail"])
+    Engine.find(query, opts)
   end
 
   def dispatch(%{"op" => "call"} = req) do

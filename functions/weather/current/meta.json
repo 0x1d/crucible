@@ -4,8 +4,9 @@
   "module": "Elixir.AgentFn.Weather.Current",
   "moduledoc": "Current weather for a place via Open-Meteo (geocode + forecast).\n\n  Args:\n  - `place` / `location` / `city` (required) — place name to look up\n  - `country` — optional ISO country code filter (e.g. \"CH\")",
   "name": "weather.current",
+  "source_sha256": "decb05c30450230a20a99aa436708b71f25f2fea0fd183996d0b8283c3e74b1d",
   "specs": [
     "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
   ],
-  "updated_at": "2026-10-31T21:37:43.305798Z"
+  "updated_at": "2026-11-01T14:40:58.174268Z"
 }

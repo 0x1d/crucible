@@ -59,9 +59,41 @@ defmodule AgentFn.Text.Grep do
     do: {:ok, text, "text"}
 
   defp resolve_subject(text, path) when (not is_binary(text) or text == "") and is_binary(path) do
-    case File.read(path) do
-      {:ok, content} -> {:ok, content, path}
-      {:error, reason} -> {:error, "failed to read #{path}: #{inspect(reason)}"}
+    cond do
+      File.regular?(path) ->
+        case File.read(path) do
+          {:ok, content} -> {:ok, content, path}
+          {:error, reason} -> {:error, "failed to read #{path}: #{inspect(reason)}"}
+        end
+
+      File.dir?(path) ->
+        read_directory(path)
+
+      true ->
+        {:error, "failed to read #{path}: :enoent"}
+    end
+  end
+
+  defp read_directory(root) do
+    files =
+      root
+      |> Path.join("**/*")
+      |> Path.wildcard()
+      |> Enum.filter(&File.regular?/1)
+      |> Enum.take(200)
+
+    if files == [] do
+      {:error, "no files under #{root}"}
+    else
+      parts =
+        Enum.flat_map(files, fn file ->
+          case File.read(file) do
+            {:ok, content} -> ["=== #{file} ===\n#{content}"]
+            _ -> []
+          end
+        end)
+
+      {:ok, Enum.join(parts, "\n\n"), root}
     end
   end
 

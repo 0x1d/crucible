@@ -1,5 +1,5 @@
 {
-  description = "Alchemist — Elixir capability codex + Cursor agent adapter";
+  description = "Alchemist — host-independent agent harness";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";

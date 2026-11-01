@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Interactive Claude host for the Alchemist codex.
+ * Interactive Alchemist host on the Claude Agent SDK.
  *
  *   node hosts/claude/chat.ts
  */

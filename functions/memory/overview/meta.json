@@ -1,0 +1,12 @@
+{
+  "description": "Lists current memory entity ids (catalog only; no descriptions).\n\n  Load full text with `memory.query`. Optional `prefix`, `limit`, `as_of`, and `valid_at`.",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Memory.Overview",
+  "moduledoc": "Lists current memory entity ids (catalog only; no descriptions).\n\n  Load full text with `memory.query`. Optional `prefix`, `limit`, `as_of`, and `valid_at`.",
+  "name": "memory.overview",
+  "source_sha256": "27a833fd10319958676e13824952c62dd159b3e6f895e046c814cb7f06bd43f0",
+  "specs": [
+    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-11-01T14:40:57.861898Z"
+}

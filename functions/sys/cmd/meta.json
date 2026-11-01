@@ -4,8 +4,9 @@
   "module": "Elixir.AgentFn.Sys.Cmd",
   "moduledoc": "Run an executable with an argv list (no shell interpolation).\n\n  Args:\n  - `argv` (required) — `[executable | args...]` non-empty list of strings\n  - `cwd` — optional working directory\n  - `timeout_ms` — optional timeout (default 30_000)\n  - `env` — optional map of string env overrides",
   "name": "sys.cmd",
+  "source_sha256": "32cf24ffe2d5e6c4e38bfd1ca6c10e62883ece30bbc329a49c28b0fa01f99203",
   "specs": [
     "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
   ],
-  "updated_at": "2026-10-31T21:12:16.879498Z"
+  "updated_at": "2026-11-01T14:40:58.079784Z"
 }

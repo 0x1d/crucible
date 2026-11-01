@@ -4,8 +4,9 @@
   "module": "Elixir.AgentFn.Fs.Read",
   "moduledoc": "Read a text file from disk.\n\n  Args:\n  - `path` (required) — file to read\n  - `max_bytes` — optional positive integer cap; when set and exceeded,\n    content is truncated and `truncated` is true",
   "name": "fs.read",
+  "source_sha256": "bc024ce341cd91d853f054e63b1aac4b962c249bff22bbcef15d62c7336b52b7",
   "specs": [
     "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
   ],
-  "updated_at": "2026-10-31T21:09:30.934101Z"
+  "updated_at": "2026-11-01T14:40:57.502758Z"
 }

@@ -2,9 +2,9 @@
 
 Hosts interact with Alchemist through four JSON operations: `define`, `load`,
 `find`, and `call`. TypeScript definitions live in [`core/protocol.ts`](../../core/protocol.ts).
-The Cursor and Claude adapters expose snake_case harness tool names that map one-to-one to these operations.
+The Cursor and Claude adapters expose snake_case codex tool names that map one-to-one to these operations.
 
-| Operation | Harness tool | Purpose |
+| Operation | Codex tool | Purpose |
 | --- | --- | --- |
 | `define` | `define_function` | Write or replace entry source on disk and compile |
 | `load` | `load_function` | Compile an existing entry tree from disk |
@@ -110,31 +110,35 @@ serving the request.
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
 | `op` | `"find"` | yes | |
-| `query` | string | no | Case-insensitive substring filter (default `""`) |
+| `query` | string | yes | Case-insensitive substring filter (empty rejected) |
+| `limit` | integer | no | Max hits 1–40 (default 12) |
+| `detail` | boolean | no | When true, return full metadata per hit (default false) |
 
-**Success**
+**Success (default, slim)**
 
 ```json
 {
   "ok": true,
-  "functions": [ { "name": "echo", "description": "...", "moduledoc": "...", ... } ],
-  "count": 1
+  "functions": [ { "name": "echo", "summary": "Example codex entry...", "loaded": true } ],
+  "count": 1,
+  "truncated": false,
+  "detail": false,
+  "limit": 12
 }
 ```
 
+With `detail: true`, each element matches the full `meta.json` shape (moduledoc, specs, module, …).
+
 **Discovery rule**
 
-`find` walks `functions/` and returns one record per directory that contains
-`meta.json`. A hand-edited tree without `meta.json` does not appear until
-`define`, `load`, or a successful `call` (which may auto-load and refresh metadata)
-has created or updated metadata.
-
+`find` walks `functions/` and filters metadata in memory.
 Matching searches slug, description, moduledoc, specs text, and module name.
+Slim mode keeps tool results small for the model context.
 
 **Failure**
 
-Malformed requests are rejected by the CLI; `find` itself does not fail on empty
-results (count may be zero).
+Empty `query` returns `ok: false`.
+Zero matches returns `count: 0` (not an error).
 
 ## `call`
 
@@ -164,8 +168,11 @@ results (count may be zero).
 
 **Auto-load**
 
-If the entry module is not yet loaded on the live BEAM node, `call` invokes `load`
-before `apply(module, :run, [args])`.
+`Runtime.CodexWarmup` compiles every entry under `AGENT_FUNCTIONS_DIR` when the
+`:runtime` application starts.
+After that, `call` invokes `run/1` on the live module.
+If a slug was added on disk without a VM restart, or warm load skipped a broken
+entry, `call` compiles that slug through `load` before `apply(module, :run, [args])`.
 
 ## Node bridge behavior
 
@@ -173,6 +180,12 @@ before `apply(module, :run, [args])`.
 Codex operations run in `elixir --no-halt` with `Application.ensure_all_started(:runtime, :permanent)`.
 The bridge sets `AGENT_FUNCTIONS_DIR` to the repository `functions/` directory unless the environment already overrides it.
 The bridge sets `ALCHEMIST_STATE_DIR` to `runtime/.alchemist` unless that variable is already set.
+Unless `NODE_ENV=production` or `ALCHEMIST_RUNTIME_DETACHED=1`, the bridge stops the BEAM when the Node host exits (local dev and evals).
+The VM runs in its own session.
+The first SIGINT or SIGTERM asks it to stop.
+A second one kills it and exits the host.
+The VM also exits when `ALCHEMIST_OWNER_PID` disappears.
+When that mode needs a new VM, it stops any runtime BEAM already using the same state directory.
 
 The live interface is TCP on `127.0.0.1`.
 Each request is one JSON object framed with a 4-byte big-endian length, matching `:gen_tcp` `packet: 4`.

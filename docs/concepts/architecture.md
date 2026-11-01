@@ -3,7 +3,7 @@
 Alchemist separates **hosts** (environments that run agents) from the **codex**
 (capability source, metadata, and the four-operation JSON contract). Capability
 implementation and composition live in Elixir under `functions/`; hosts never grow
-an open-ended tool surface beyond the fixed harness operations.
+an open-ended tool surface beyond the fixed codex operations.
 
 ## Component boundaries
 
@@ -24,9 +24,9 @@ flowchart LR
 | Component | Location | Role |
 | --- | --- | --- |
 | Host | Cursor playground, CI, custom agent loop | Supplies inference, channels, and user session |
-| Host adapter | `hosts/cursor/bot/tools/*.ts` (Cursor), `hosts/claude/codex.ts` (Claude), or `scripts/cli.mjs` | Maps host tool calls to codex JSON requests |
+| Host adapter | `hosts/cursor/bot/tools/*.ts` (Cursor), `hosts/claude/codex.ts` (Claude), or `scripts/cli.mjs` | Maps codex tool calls to codex JSON requests |
 | Node bridge | `core/elixir-bridge.ts` | Compiles `runtime/` when needed, boots BEAM, TCP RPC |
-| Codex runtime | `:runtime` application (`Runtime.Server`, `Runtime.Engine`, …) built from `runtime/` | Validates slugs, compiles sources into the live BEAM, discovers metadata, invokes `run/1` |
+| Runtime | `:runtime` application (`Runtime.Server`, `Runtime.Engine`, `Runtime.Memory`, …) built from `runtime/` | Validates slugs, compiles sources into the live BEAM, discovers metadata, invokes `run/1`, and owns memory |
 | Capability tree | `functions/` | Codex entries (`tool.ex`, deep modules, `meta.json`) |
 
 The Cursor Agent SDK adapter in this repository is one host integration. The same
@@ -63,8 +63,10 @@ seconds). Children start in this order:
 
 | Child | Restart | Role |
 | --- | --- | --- |
+| `Runtime.Memory` | permanent GenServer | Owns memory through one Node process |
 | `Runtime.TaskSupervisor` | permanent supervisor | Temporary task per accepted socket |
 | `Runtime.Server` | permanent GenServer | Serializes `define` and `load`. Does not own a socket |
+| `Runtime.CodexWarmup` | permanent GenServer | Compiles every codex entry before the acceptor listens |
 | `Runtime.Acceptor` | permanent `Task` | Owns the loopback listen socket and accepts |
 
 The acceptor hands each client to `Task.Supervisor.start_child/2`, then
@@ -81,16 +83,21 @@ A connection crash closes that socket and leaves the acceptor and serializer
 running.
 
 Shutdown stops children in reverse: the listen socket closes, then the
-serializer, then in-flight connection tasks.
+serializer, then in-flight connection tasks, and memory stops last.
 
 Implications:
 
-- `load` and `define` compile inside the **running** BEAM; modules stay loaded until
-  the VM restarts (for example after `runtime/` source changes or bridge recovery).
+- `load` and `define` compile inside the **running** BEAM.
+  At startup, `Runtime.CodexWarmup` compiles every entry under `functions/` so
+  `call` can invoke `run/1` without per-slug discovery loads.
+  Modules stay loaded until the VM restarts (for example after `runtime/` source
+  changes or bridge recovery).
 - `meta.json` records such as `"loaded": true` reflect the **last successful**
   validation on disk, not a substitute for inspecting live code in the VM.
 - The **filesystem tree** under `functions/` is the source of truth for entry
   source and discovery metadata.
+- The memory file survives a BEAM restart. `Runtime.Memory` opens it
+  on the next start. See [Memory](./memory.md).
 
 `call` auto-invokes `load` when the entry module is not yet compiled in the current
 BEAM.
@@ -98,7 +105,7 @@ BEAM.
 ## Composition models
 
 Codex entries should express multi-step work in Elixir rather than through
-repeated harness `call` operations from the host.
+repeated codex `call` operations from the host.
 
 ```mermaid
 flowchart TB
@@ -129,4 +136,5 @@ flowchart TB
 - [Codex protocol reference](../reference/protocol.md)
 - [Authoring codex entries](../guides/authoring-entries.md)
 - [Host adapters](../reference/hosts.md)
-- [Codex runtime notes](../../runtime/README.md)
+- [Memory](./memory.md)
+- [Runtime notes](../../runtime/README.md)

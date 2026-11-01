@@ -4,8 +4,9 @@
   "module": "Elixir.AgentFn.Docker.PsReport",
   "moduledoc": "Report Docker containers by composing `docker.ps`.\n\n  Args:\n  - `all` — if true, include stopped containers (default false)",
   "name": "docker.ps_report",
+  "source_sha256": "c72403e27a36447754f1e3ffb36650a3ce7943a696b909b2c5e8b3e6f960ae6e",
   "specs": [
     "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
   ],
-  "updated_at": "2026-10-31T21:25:16.391268Z"
+  "updated_at": "2026-11-01T14:40:57.401828Z"
 }

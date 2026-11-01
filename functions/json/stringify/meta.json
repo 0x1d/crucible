@@ -4,8 +4,9 @@
   "module": "Elixir.AgentFn.Json.Stringify",
   "moduledoc": "Encode a value as a JSON string.\n\n  Args:\n  - `value` or `data` (required)\n  - `pretty` — optional boolean for pretty printing",
   "name": "json.stringify",
+  "source_sha256": "017ceed6fa3d4d886974cc51d48c38a11e9661a9631d1312af6faecba29d5fe3",
   "specs": [
     "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
   ],
-  "updated_at": "2026-10-31T21:12:02.209460Z"
+  "updated_at": "2026-11-01T14:40:57.719196Z"
 }
