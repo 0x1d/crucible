@@ -4,8 +4,9 @@
   "module": "Elixir.AgentFn.Md.Heading",
   "moduledoc": "Render a markdown ATX heading.\n\n  Args:\n  - `text` or `content` (required)\n  - `level` — 1..6 (default 1)",
   "name": "md.heading",
+  "source_sha256": "9ea7548000ff073d68fa5375a7b8541acc64babfee9a055fc1222657c58cc067",
   "specs": [
     "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
   ],
-  "updated_at": "2026-11-01T12:55:35.427079Z"
+  "updated_at": "2026-11-01T14:40:57.760977Z"
 }

@@ -20,11 +20,17 @@ const rpcTimeoutMs = 120_000;
 type Vm = { pid: number; port: number };
 
 let booting: Promise<Vm> | null = null;
+let trackedPid: number | null = null;
+let stopCount = 0;
 
 /**
- * When true, the BEAM is spawned detached and unref'd so it outlives the Node
- * host (hosted deployments). When false, the VM is tied to the host process and
- * stopped on SIGINT/SIGTERM/exit (local dev, evals, CLI).
+ * When true, the BEAM outlives the Node host (hosted deployments).
+ * When false, the VM stops with the host (local dev, evals, CLI).
+ *
+ * The VM is always its own session, so a terminal SIGINT does not land on it.
+ * Attached mode records this process as `ALCHEMIST_OWNER_PID`. The VM exits
+ * when that process is gone, including when a second Ctrl+C kills Node
+ * before the hook runs.
  *
  * Override with `ALCHEMIST_RUNTIME_DETACHED=1` or `=0`.
  */
@@ -39,27 +45,34 @@ function registerAttachedLifecycle(): void {
   if (runtimeDetached()) return;
   if (process.env.ALCHEMIST_RUNTIME_NO_SHUTDOWN_HOOK === "1") return;
 
-  const shutdown = () => {
-    syncStopRuntime();
-  };
-
-  process.on("exit", shutdown);
-  process.on("SIGINT", shutdown);
-  process.on("SIGTERM", shutdown);
+  process.on("exit", () => {
+    syncStopRuntime(true);
+  });
+  process.on("SIGINT", () => {
+    syncStopRuntime(false);
+  });
+  process.on("SIGTERM", () => {
+    syncStopRuntime(false);
+  });
 }
 
-/** Synchronous stop for process exit handlers. */
-export function syncStopRuntime(): void {
+/**
+ * Synchronous stop for process exit handlers.
+ * The first signal asks the VM to stop. A second signal kills it.
+ * `agent-sdk dev` ignores the second Ctrl+C while it drains, so this
+ * process exits on that second signal.
+ */
+export function syncStopRuntime(fromExit = false): void {
   booting = null;
-  const vm = readVm();
-  if (vm && alive(vm.pid)) {
-    try {
-      process.kill(vm.pid, "SIGTERM");
-    } catch {
-      // already gone
-    }
+  stopCount += 1;
+  const pid = trackedPid ?? readVm()?.pid ?? null;
+  if (pid !== null) {
+    signalVm(pid, stopCount === 1 ? "SIGTERM" : "SIGKILL");
   }
   clearStateFiles();
+  if (!fromExit && stopCount >= 2) {
+    process.exit(130);
+  }
 }
 
 function runtimeStamp(): string {
@@ -97,7 +110,7 @@ export async function runCodexOp(
   try {
     return await callOnce(request, false);
   } catch (error) {
-    if (!isTransportError(error)) return failure(error);
+    if (stopCount > 0 || !isTransportError(error)) return failure(error);
     booting = null;
     try {
       return await callOnce(request, true);
@@ -116,6 +129,9 @@ async function callOnce(
 }
 
 function ensureVm(force: boolean): Promise<Vm> {
+  if (stopCount > 0) {
+    return Promise.reject(new Error("runtime is shutting down"));
+  }
   if (!force && booting) {
     return booting.then((vm) => {
       if (alive(vm.pid) && readStamp() === runtimeStamp()) return vm;
@@ -133,6 +149,9 @@ function ensureVm(force: boolean): Promise<Vm> {
 }
 
 async function boot(force: boolean): Promise<Vm> {
+  if (stopCount > 0) {
+    throw new Error("runtime is shutting down");
+  }
   const release = await acquireLock();
   let child: ChildProcess | undefined;
   try {
@@ -141,21 +160,23 @@ async function boot(force: boolean): Promise<Vm> {
       if (existing) return existing;
     }
 
-    await stopRecorded();
+    if (runtimeDetached()) {
+      await stopRecorded();
+    } else {
+      await stopDevVms();
+    }
     clearStateFiles();
     ensureCompiled();
     child = await spawnVm();
+    if (child.pid) trackedPid = child.pid;
     const vm = await waitForReady(child);
+    trackedPid = vm.pid;
     fs.writeFileSync(path.join(stateDir(), "stamp"), runtimeStamp());
-    if (runtimeDetached()) child.unref();
+    child.unref();
     return vm;
   } catch (error) {
     if (child?.pid && alive(child.pid)) {
-      try {
-        process.kill(child.pid, "SIGTERM");
-      } catch {
-        // already gone
-      }
+      signalVm(child.pid, "SIGTERM");
     }
     throw error;
   } finally {
@@ -167,6 +188,7 @@ function healthyVm(): Vm | null {
   const vm = readVm();
   if (!vm || !alive(vm.pid)) return null;
   if (readStamp() !== runtimeStamp()) return null;
+  trackedPid = vm.pid;
   return vm;
 }
 
@@ -224,12 +246,16 @@ function spawnVm(): Promise<ChildProcess> {
     ALCHEMIST_STATE_DIR: dir,
   };
   delete env.MIX_ENV;
+  if (runtimeDetached()) {
+    delete env.ALCHEMIST_OWNER_PID;
+  } else {
+    env.ALCHEMIST_OWNER_PID = String(process.pid);
+  }
 
   return new Promise((resolve, reject) => {
-    const detached = runtimeDetached();
     const child = spawn("elixir", args, {
       cwd: runtimeDir,
-      detached,
+      detached: true,
       stdio: ["ignore", "ignore", logFd],
       env,
     });
@@ -238,6 +264,10 @@ function spawnVm(): Promise<ChildProcess> {
       reject(error);
     });
     child.once("spawn", () => {
+      if (child.pid) trackedPid = child.pid;
+      if (stopCount > 0 && child.pid) {
+        signalVm(child.pid, "SIGKILL");
+      }
       resolve(child);
     });
   });
@@ -348,24 +378,67 @@ async function stopRecorded(): Promise<void> {
   await stopPid(vm.pid);
 }
 
+const runtimeMarker = "Application.ensure_all_started(:runtime";
+
+/**
+ * Attached dev, evals, and the CLI share one VM per state directory.
+ * A leftover BEAM can outlive its pid file and still hold the memory lock.
+ * Stop every runtime VM for this directory before starting the replacement.
+ */
+async function stopDevVms(): Promise<void> {
+  const pids = new Set(devRuntimePids());
+  const recorded = readVm();
+  if (recorded) pids.add(recorded.pid);
+  for (const pid of pids) {
+    await stopPid(pid);
+  }
+}
+
+function devRuntimePids(): number[] {
+  let names: string[];
+  try {
+    names = fs.readdirSync("/proc");
+  } catch {
+    return [];
+  }
+  const dir = stateDir();
+  const pids: number[] = [];
+  for (const name of names) {
+    if (!/^\d+$/.test(name)) continue;
+    const pid = Number(name);
+    if (pid <= 1) continue;
+    let cmd = "";
+    try {
+      cmd = fs.readFileSync(`/proc/${pid}/cmdline`, "utf8");
+    } catch {
+      continue;
+    }
+    if (!cmd.includes(runtimeMarker)) continue;
+    if (stateDirOf(pid) !== dir) continue;
+    pids.push(pid);
+  }
+  return pids;
+}
+
+function stateDirOf(pid: number): string | null {
+  try {
+    const entries = fs.readFileSync(`/proc/${pid}/environ`, "utf8").split("\0");
+    const entry = entries.find((item) => item.startsWith("ALCHEMIST_STATE_DIR="));
+    if (!entry) return null;
+    return path.resolve(entry.slice("ALCHEMIST_STATE_DIR=".length));
+  } catch {
+    return null;
+  }
+}
+
 async function stopPid(pid: number): Promise<void> {
   if (!alive(pid)) return;
-  try {
-    process.kill(pid, "SIGTERM");
-  } catch {
-    return;
-  }
+  signalVm(pid, "SIGTERM");
   const started = Date.now();
   while (alive(pid) && Date.now() - started < 5_000) {
     await sleep(50);
   }
-  if (alive(pid)) {
-    try {
-      process.kill(pid, "SIGKILL");
-    } catch {
-      // already gone
-    }
-  }
+  if (alive(pid)) signalVm(pid, "SIGKILL");
 }
 
 function clearStateFiles(): void {
@@ -436,6 +509,33 @@ function collectEx(dir: string, out: string[]): void {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) collectEx(full, out);
     else if (entry.name.endsWith(".ex")) out.push(full);
+  }
+}
+
+function signalVm(pid: number, signal: NodeJS.Signals): void {
+  if (signal === "SIGKILL" && processGroup(pid) === pid) {
+    try {
+      process.kill(-pid, "SIGKILL");
+      return;
+    } catch {
+      // not a group leader, or already gone
+    }
+  }
+  try {
+    process.kill(pid, signal);
+  } catch {
+    // already gone
+  }
+}
+
+function processGroup(pid: number): number | null {
+  try {
+    const stat = fs.readFileSync(`/proc/${pid}/stat`, "utf8");
+    const rest = stat.slice(stat.lastIndexOf(") ") + 2).split(" ");
+    const group = Number(rest[2]);
+    return Number.isInteger(group) && group > 0 ? group : null;
+  } catch {
+    return null;
   }
 }
 

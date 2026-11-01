@@ -2,14 +2,25 @@ defmodule Runtime.Application do
   @moduledoc """
   OTP application entry for the Alchemist runtime (`:runtime`).
 
-  Starts the task supervisor, compile serializer (`Runtime.Server`), and the
-  permanent acceptor task that owns the loopback listen socket.
+  Starts the owner watch, memory, the task supervisor, the compile serializer
+  (`Runtime.Server`), and the permanent acceptor that owns the loopback socket.
+  When `ALCHEMIST_OWNER_PID` names a process that is already gone, the VM stops
+  instead of opening the memory file.
   """
 
   use Application
 
   @impl true
   def start(_type, _args) do
+    if Runtime.OwnerWatch.status() == :dead do
+      :init.stop()
+      {:error, :owner_exited}
+    else
+      start_supervisor()
+    end
+  end
+
+  defp start_supervisor do
     opts = [
       strategy: :one_for_one,
       name: Runtime.Supervisor,
@@ -40,13 +51,14 @@ defmodule Runtime.Application do
   end
 
   @doc """
-  Supervision order: memory, connection tasks, the compile serializer,
-  codex warm load, then the permanent acceptor. Shutdown stops children in reverse,
-  so the listen socket closes before in-flight connection tasks, and the graph
-  outlives them.
+  Supervision order: owner watch, memory, connection tasks, the compile
+  serializer, codex warm load, then the permanent acceptor.
+  Shutdown stops children in reverse, so the listen socket closes before
+  in-flight connection tasks, and the graph outlives them.
   """
   def children do
     [
+      Runtime.OwnerWatch,
       Runtime.Memory,
       {Task.Supervisor, name: Runtime.TaskSupervisor},
       Runtime.Server,

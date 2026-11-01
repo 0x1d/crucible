@@ -4,8 +4,9 @@
   "module": "Elixir.AgentFn.Data.Select",
   "moduledoc": "Project keys from a list of maps.\n\n  Args:\n  - `entries`, `rows`, `items`, or nested under `data` — list of maps\n  - `keys` or `columns` (required) — keys to keep (order preserved)\n  - `rename` — optional map of `from => to` renames applied after select\n  - `key` — optional list key when unwrapping `data`",
   "name": "data.select",
+  "source_sha256": "1447e1895e6a4fb16c6ecb127a469ade835873e1afb6a030b94bc966d2cf04ad",
   "specs": [
     "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
   ],
-  "updated_at": "2026-11-01T12:55:34.991219Z"
+  "updated_at": "2026-11-01T14:40:57.236530Z"
 }

@@ -4,8 +4,9 @@
   "module": "Elixir.AgentFn.Memory.BySession",
   "moduledoc": "Reverse lookup: session id → memory entities.\n\n  Finds entities that have `source_session` equal to (or containing) the\n  given id, and returns their `description` when present.\n\n  Args:\n  - `session_id` / `source_session` (required) — `ses_…` id or substring\n  - `exact` — when true (default), require exact `source_session` match;\n    when false, substring match on the value\n  - `as_of` / `valid_at` — optional temporal args forwarded to `memory.query`",
   "name": "memory.by_session",
+  "source_sha256": "8c7be99a05ff85bc434339c251c72b659ccd2a455f902256a79ead1357dab9c9",
   "specs": [
     "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
   ],
-  "updated_at": "2026-11-01T13:10:00.447297Z"
+  "updated_at": "2026-11-01T14:40:57.854053Z"
 }

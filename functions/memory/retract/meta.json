@@ -4,8 +4,9 @@
   "module": "Elixir.AgentFn.Memory.Retract",
   "moduledoc": "Retracts facts from memory. The earlier assert remains visible at an earlier as_of.",
   "name": "memory.retract",
+  "source_sha256": "1c1713d3ca7bfc4983cbf4881e0ef9be46e4bf86ec6bf03ee375596a7edad6b9",
   "specs": [
     "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
   ],
-  "updated_at": "2026-11-01T12:55:35.491588Z"
+  "updated_at": "2026-11-01T14:40:57.906616Z"
 }

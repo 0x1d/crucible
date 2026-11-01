@@ -4,8 +4,9 @@
   "module": "Elixir.AgentFn.Md.Concat",
   "moduledoc": "Concatenate markdown parts into one document.\n\n  Args:\n  - `parts` (required) — list of strings, or maps containing a `markdown` key\n  - `separator` — join string (default `\"\\\\n\\\\n\"`)",
   "name": "md.concat",
+  "source_sha256": "abe9ace632dc7125f8d34bc1a87973fdee2411fca6131f7beb6f70c3e5d47f7d",
   "specs": [
     "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
   ],
-  "updated_at": "2026-11-01T12:55:35.415149Z"
+  "updated_at": "2026-11-01T14:40:57.748180Z"
 }

@@ -4,6 +4,7 @@
   "module": "Elixir.AgentFn.Debug.EchoArgs",
   "moduledoc": null,
   "name": "debug.echo_args",
+  "source_sha256": "36b113ffc0caafbe1526e59c2a245f9f0f826fa4b322fa3860bcb62b85196f8b",
   "specs": [],
-  "updated_at": "2026-11-01T12:55:35.033901Z"
+  "updated_at": "2026-11-01T14:40:57.276171Z"
 }

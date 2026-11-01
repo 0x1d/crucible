@@ -4,8 +4,9 @@
   "module": "Elixir.AgentFn.Md.Code",
   "moduledoc": "Wrap text as a markdown fenced code block.\n\n  Args:\n  - `content` or `text` (required)\n  - `lang` — optional language tag for the fence",
   "name": "md.code",
+  "source_sha256": "b4760dc095c3953a19a8a42f08da4eafb9e783347840f4aae0d8ce9eee3d8d6b",
   "specs": [
     "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
   ],
-  "updated_at": "2026-11-01T12:55:35.400381Z"
+  "updated_at": "2026-11-01T14:40:57.733996Z"
 }

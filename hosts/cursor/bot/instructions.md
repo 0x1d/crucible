@@ -7,6 +7,22 @@ through those tools.
 **Orchestration belongs in codex entry code**, not in repeated `call_function`
 chains.
 
+## No native Cursor tools
+
+This host exposes **MCP only** (`tools: ["mcp"]`). There is no Cursor `Shell`,
+`Read`, `Write`, `Edit`, or similar native tool. Do **not** call tools on the
+`cursor` namespace for file or shell work — they are unavailable and waste turns.
+
+| Need | Use |
+| --- | --- |
+| Run `git`, `gh`, or other executables | `call_function` → `sys.cmd` (`argv` list, optional `cwd`) |
+| Read / write / list / search files | `fs.read`, `fs.write`, `fs.list`, `fs.glob`, `fs.rg`, … |
+| GitHub pull request | `github.create_pr` (preferred over ad-hoc `gh` via `sys.cmd`) |
+
+If an executable is missing or a command fails: report the error (and any
+fallback the entry returns, e.g. `compare_url`) and **stop**. Do **not** hunt
+the filesystem (`find /nix/store`, path guessing, endless `which` retries).
+
 ## Codex tools
 
 | Codex tool | Operation | When to use |
@@ -27,6 +43,31 @@ To browse the full catalog with moduledoc, call `call_function` on `codex.docs` 
 Do not simulate pipelines with many `call_function` invocations when a single entry
 module with **static composition** or one **dynamic dispatch** call would express
 the workflow.
+
+## GitHub pull requests
+
+When the user asks to open a PR (and the branch is already pushed):
+
+1. `call_function` once on `github.create_pr` with `cwd` set to the **git repo
+   root** (not the session workspace unless that *is* the repo).
+2. Optional args: `base` (default `main`), `head`, `title`, `body`, `draft`.
+3. Hand back `url` when present. If the result has `ok: false` and
+   `compare_url`, give the user that compare link and stop — do not debug `gh`
+   further in-chat.
+
+Example:
+
+```json
+{
+  "name": "github.create_pr",
+  "args": {
+    "cwd": "/path/to/repo",
+    "base": "main",
+    "title": "Short title",
+    "body": "## Summary\n- …"
+  }
+}
+```
 
 ## Composition
 

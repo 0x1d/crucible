@@ -4,8 +4,9 @@
   "module": "Elixir.AgentFn.Fs.Glob",
   "moduledoc": "Glob filesystem paths under a root directory.\n\n  Args:\n  - `path` or `root` (required) — search root\n  - `pattern` (required) — wildcard relative to root, e.g. `**/*.ex`\n\n  Returns `entries` with the same shape as `fs.list`, plus `path` relative\n  to the root on each entry.",
   "name": "fs.glob",
+  "source_sha256": "543ffe66a0cebac17e4d067d254d667beedc5de5edf4079cf0ca14681b0efd91",
   "specs": [
     "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
   ],
-  "updated_at": "2026-11-01T12:55:35.199504Z"
+  "updated_at": "2026-11-01T14:40:57.445202Z"
 }

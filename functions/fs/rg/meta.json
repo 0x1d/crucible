@@ -4,8 +4,9 @@
   "module": "Elixir.AgentFn.Fs.Rg",
   "moduledoc": "Efficient recursive search via ripgrep (`rg`).\n\n  Args:\n  - `pattern` (required) — regex (or fixed string when `fixed_strings` is true)\n  - `path` / `root` (required) — file or directory to search\n  - `glob` — optional ripgrep `--glob` (e.g. `*.jsonl`, `**/journal.jsonl`)\n  - `ignore_case` — optional boolean\n  - `fixed_strings` — optional boolean (`-F`)\n  - `follow_symlinks` — optional boolean (`-L`, default false)\n  - `max_matches` — optional cap across all files (default 50)\n  - `timeout_ms` — optional (default 60_000)\n\n  Returns `matches` as `%{path, line, text, match}` maps.\n  Dedupes by `{line, text}` so symlink forests (session dirs → one journal)\n  collapse to unique hits.",
   "name": "fs.rg",
+  "source_sha256": "575b9304c38ec573f28849181975cc001b5f9a6204fabac409037137edf010fc",
   "specs": [
     "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
   ],
-  "updated_at": "2026-11-01T12:57:26.852032Z"
+  "updated_at": "2026-11-01T14:40:57.539217Z"
 }

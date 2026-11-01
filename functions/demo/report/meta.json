@@ -4,8 +4,9 @@
   "module": "Elixir.AgentFn.Demo.Report",
   "moduledoc": "Demo pipeline: `fs.glob` → `data.filter` → `data.sort` → `md.table` → `md.concat`.\n\n  Args:\n  - `path` / `root` (required)\n  - `pattern` (required)\n  - `field`, `op`, `value` — optional filter (default: extension eq \"ex\")\n  - `by` — sort field (default `path`)\n  - `order` — `asc` or `desc`\n  - `columns` — table columns\n  - `title` — report heading text",
   "name": "demo.report",
+  "source_sha256": "30fbd3005cdf701ad8704ac36a407be3b514e846cc450a4cedf072f29d480c5d",
   "specs": [
     "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
   ],
-  "updated_at": "2026-11-01T12:55:35.114181Z"
+  "updated_at": "2026-11-01T14:40:57.362628Z"
 }

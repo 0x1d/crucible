@@ -181,6 +181,11 @@ Codex operations run in `elixir --no-halt` with `Application.ensure_all_started(
 The bridge sets `AGENT_FUNCTIONS_DIR` to the repository `functions/` directory unless the environment already overrides it.
 The bridge sets `ALCHEMIST_STATE_DIR` to `runtime/.alchemist` unless that variable is already set.
 Unless `NODE_ENV=production` or `ALCHEMIST_RUNTIME_DETACHED=1`, the bridge stops the BEAM when the Node host exits (local dev and evals).
+The VM runs in its own session.
+The first SIGINT or SIGTERM asks it to stop.
+A second one kills it and exits the host.
+The VM also exits when `ALCHEMIST_OWNER_PID` disappears.
+When that mode needs a new VM, it stops any runtime BEAM already using the same state directory.
 
 The live interface is TCP on `127.0.0.1`.
 Each request is one JSON object framed with a 4-byte big-endian length, matching `:gen_tcp` `packet: 4`.

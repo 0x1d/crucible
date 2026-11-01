@@ -4,8 +4,9 @@
   "module": "Elixir.AgentFn.Memory.Transact",
   "moduledoc": "Asserts facts or MiniGraf rules into memory. Requires a reason. A new entity also requires a description.",
   "name": "memory.transact",
+  "source_sha256": "cc6507c1835e5b7ed0980ba793332833419a3b87ee61b3c9da5f43003b142fcb",
   "specs": [
     "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
   ],
-  "updated_at": "2026-11-01T12:55:35.497859Z"
+  "updated_at": "2026-11-01T14:40:57.913583Z"
 }

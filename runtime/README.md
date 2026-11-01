@@ -106,7 +106,10 @@ node scripts/cli.mjs '{"op":"call","name":"echo","args":{}}'
 
 Only one long-lived BEAM should open a given `AGENT_MEMORY_PATH`.
 MiniGraf takes an exclusive lock on the graph file (`STG-026`).
-Extra VMs from eval loops, `mix run`, or an old shell leave the lock held and the next boot fails.
+Extra VMs from eval loops, `mix run`, or an old shell leave the lock held.
+In attached mode, a boot that needs a new VM stops any runtime BEAM already using that state directory.
+That includes a leftover whose pid file is gone.
+`mix run` is not one of those VMs, so it can still hold the lock and the next boot fails.
 The Node bridge may then surface a cryptic `elixir_config` / `:terminating` line instead of the lock message.
 
 From the repository root (inside `nix develop`):
@@ -117,13 +120,21 @@ node scripts/cli.mjs '{"op":"call","name":"echo","args":{"msg":"hello"}}'
 ```
 
 Local `npm run dev` stops the BEAM when you Ctrl+C (attached lifecycle).
+The VM runs in its own session.
+Ctrl+C is handled by the Node host.
+The first Ctrl+C asks the VM to stop and refuses to boot another one.
+A second Ctrl+C kills the VM and exits the host.
+`agent-sdk dev` ignores that second signal while it drains turns.
+If the Node process is killed outright, the VM exits once that process is gone.
 Hosted production keeps a detached VM (`NODE_ENV=production` or `ALCHEMIST_RUNTIME_DETACHED=1`).
 
 Do not start a second `:runtime` with `mix run` while the bridge VM is up unless `AGENT_MEMORY_PATH` points at a different file.
 
 ## Limitations
 
-- One BEAM node per bridge state directory; stale PIDs are replaced on the next boot.
+- One BEAM node per bridge state directory.
+- A stale pid is replaced on the next boot.
+- In attached mode, a live VM for that directory is stopped before a new one starts, even when its pid file is already gone.
 - The acceptor restarts on the same port when it can. A dead node is replaced by the bridge.
 - `"loaded"` in `meta.json` is disk bookkeeping; live code lives in the BEAM until restart.
 - No sandbox: compilation and `run/1` use the host OS identity. See

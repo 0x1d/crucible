@@ -7,6 +7,7 @@ pkgs.mkShell {
     nodejs_24
     beamPackages.elixir_1_20
     beamPackages.erlang
+    gh
   ];
 
   shellHook = ''

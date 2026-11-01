@@ -4,8 +4,9 @@
   "module": "Elixir.AgentFn.Codex.Docs",
   "moduledoc": "Render a markdown catalog of available codex entries and their documentation.\n\n  Includes an index table with `specs`, plus per-entry moduledoc and specs.\n\n  Optional args:\n  - `query` — case-insensitive substring filter on name/description/moduledoc/specs\n  - `title` — document title (default \"Codex entries\")",
   "name": "codex.docs",
+  "source_sha256": "d305d9990d703d30da1d3e3f26dbb06d8bc8275038b602f92f1daf93f8c2499b",
   "specs": [
     "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
   ],
-  "updated_at": "2026-11-01T12:55:34.899905Z"
+  "updated_at": "2026-11-01T14:40:57.062571Z"
 }
