@@ -10,8 +10,9 @@ export function formatTokens(n: number): string {
 export class SessionStats {
   contextTokens = 0;
   contextWindow: number | undefined;
+  /** The session's running cost total, as last reported by the host. */
   costUsd = 0;
-  /** False when part of the session cost is unknown, for example after a replay. */
+  /** False when part of the session cost is unknown: after a replay, until the first live total arrives. */
   costComplete = true;
   lastTurnMs: number | undefined;
 
@@ -28,7 +29,12 @@ export class SessionStats {
     if (event.type !== "usage") return;
     if (event.contextTokens !== undefined) this.contextTokens = event.contextTokens;
     if (event.contextWindow !== undefined) this.contextWindow = event.contextWindow;
-    if (event.costUsd !== undefined) this.costUsd += event.costUsd;
+    // Hosts report a running total for the whole session, so the latest value replaces the old one.
+    // A live total also covers the turns before a replay, so the cost is then complete.
+    if (event.costUsd !== undefined) {
+      this.costUsd = event.costUsd;
+      this.costComplete = true;
+    }
   }
 
   contextRatio(): number | undefined {

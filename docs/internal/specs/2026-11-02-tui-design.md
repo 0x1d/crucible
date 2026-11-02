@@ -87,9 +87,15 @@ After a stop, the TUI shows the line `Stopped.`.
 
 ### Claude adapter
 
-- `send()` calls `query()` with `alchemistOptions()`, `includePartialMessages: true`, `resume`, `model`, and `effort`.
-- A model or effort change applies on the next turn. The session continues.
-- `listModels()` reads `supportedModels()`, which also gives the effort levels of each model.
+- One `query()` in streaming input mode serves the whole session. It gets `alchemistOptions()`, `includePartialMessages: true`, `resume`, `model`, and `effort`.
+- `send()` pushes the prompt as an `SDKUserMessage` into the query's input queue and reads messages until the `result` of that turn.
+- The CLI process, its MCP connections, and the prompt cache prefix stay the same from turn to turn.
+- `openSession()` starts the process right away. Opening a different session, or a new one, closes the old process first.
+- A new process that resumes the session starts after a failure, or when a stopped turn sends no `result` within 10 seconds.
+- Stopping a turn calls `interrupt()`. The adapter reads on until the turn's `result` and drops its error event.
+- A model or effort change goes to the live process through `setModel()` and `applyFlagSettings({ effortLevel })`. If that fails, the next turn starts a new process with the new options.
+- `alchemistOptions()` sets `strictMcpConfig: true` and `settings: { disableClaudeAiConnectors: true }`. claude.ai connectors would add tools the model cannot use and change the tool list during the session, which breaks the prompt cache.
+- `listModels()` reads `supportedModels()` from the live process, which also gives the effort levels of each model.
 - `listSessions()` calls `listSessions({ dir: <repo root> })` and keeps the ids in the session index.
 - `openSession(id)` replays `getSessionMessages(id)` as events.
 - The adapter writes each new session id to the session index after the first `result` message.
@@ -114,10 +120,10 @@ The design for it follows.
 
 - Context tokens are the input, cache-read, and cache-write tokens of the last model call in the last turn.
 - The context window comes from `modelUsage[model].contextWindow` for Claude and is 200,000 for Cursor.
-- Session cost for Claude is the sum of `total_cost_usd` over the turns.
+- Session cost for Claude is `total_cost_usd` of the latest `result`. The SDK reports a running total for the session, and a resumed session continues from the total in its transcript.
 - Session cost for Cursor is `costUsd` from the cost route for the whole session.
 - An opened session starts from the usage in its replayed events.
-- If the replay has no cost data, the cost starts at 0 and the footer shows it with a `~` prefix.
+- If the replay has no cost data, the cost starts at 0 and the footer shows it with a `~` prefix until the first live total arrives.
 - A new session, `/new`, `/session`, and `/host` set the stats to the values of the session that opens.
 
 ## Start flow and commands

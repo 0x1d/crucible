@@ -3,7 +3,13 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
-import { SessionIndex, mapClaudeMessage, mapSessionMessages } from "./claude.ts";
+import {
+  MessageQueue,
+  SessionIndex,
+  mapClaudeMessage,
+  mapSessionMessages,
+  nextTurnMessage,
+} from "./claude.ts";
 
 const usage = {
   input_tokens: 100,
@@ -70,7 +76,7 @@ test("tool results map with their error flag and text output", () => {
   ]);
 });
 
-test("a success result gives the window, the turn cost, and done", () => {
+test("a success result gives the window, the session cost, and done", () => {
   const events = mapClaudeMessage({
     type: "result",
     subtype: "success",
@@ -140,6 +146,55 @@ test("a replay maps prompts, replies, tools, and usage", () => {
     { type: "usage", contextTokens: 2400 },
     { type: "tool_result", id: "t1", ok: true, output: "[]" },
   ]);
+});
+
+test("the message queue hands out pushed messages in order, also to a waiting reader", async () => {
+  const queue = new MessageQueue<string>();
+  const reader = queue[Symbol.asyncIterator]();
+  queue.push("a");
+  assert.deepEqual(await reader.next(), { value: "a", done: false });
+  const waiting = reader.next();
+  queue.push("b");
+  assert.deepEqual(await waiting, { value: "b", done: false });
+});
+
+test("an ended message queue finishes its reader and refuses new messages", async () => {
+  const queue = new MessageQueue<string>();
+  const reader = queue[Symbol.asyncIterator]();
+  const waiting = reader.next();
+  queue.end();
+  assert.equal((await waiting).done, true);
+  assert.throws(() => queue.push("late"));
+});
+
+function never(): Promise<void> {
+  return new Promise(() => {});
+}
+
+test("a turn message arrives normally while the turn runs", async () => {
+  const messages = new MessageQueue<string>();
+  messages.push("m1");
+  const next = await nextTurnMessage(messages[Symbol.asyncIterator](), never(), new AbortController().signal);
+  assert.deepEqual(next, { value: "m1", done: false });
+});
+
+test("a stopped turn still delivers the message that arrives within the grace time", async () => {
+  const messages = new MessageQueue<string>();
+  const reader = messages[Symbol.asyncIterator]();
+  const controller = new AbortController();
+  const aborted = new Promise<void>((resolve) => controller.signal.addEventListener("abort", () => resolve()));
+  const pending = nextTurnMessage(reader, aborted, controller.signal, 1_000);
+  controller.abort();
+  setTimeout(() => messages.push("result"), 10);
+  assert.deepEqual(await pending, { value: "result", done: false });
+});
+
+test("a stopped turn gives up after the grace time", async () => {
+  const messages = new MessageQueue<string>();
+  const controller = new AbortController();
+  controller.abort();
+  const next = await nextTurnMessage(messages[Symbol.asyncIterator](), Promise.resolve(), controller.signal, 10);
+  assert.equal(next, undefined);
 });
 
 test("the session index keeps ids across instances", () => {

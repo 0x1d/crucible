@@ -5,6 +5,7 @@ export type HostEvent =
   | { type: "reasoning"; delta: string }
   | { type: "tool"; id: string; name: string; input: unknown }
   | { type: "tool_result"; id: string; ok: boolean; output: string }
+  /** `costUsd` is the running cost total of the whole session, not the cost of one turn. */
   | { type: "usage"; contextTokens?: number; contextWindow?: number; costUsd?: number }
   | { type: "done"; sessionId: string }
   | { type: "error"; message: string };

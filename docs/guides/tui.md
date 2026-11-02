@@ -104,11 +104,12 @@ claude · opus · high · ctx 41.2k/200k (21%) · $0.083 · 12.4s
 | Field | Source |
 | --- | --- |
 | Context | Input, cache-read, and cache-write tokens of the last model call. The window comes from the SDK result. |
-| Cost | Sum of `total_cost_usd` over the turns of this run. |
+| Cost | `total_cost_usd` of the latest SDK result. It is the running total of the session. |
 
 The context field is muted below 60%, warning from 60% to 85%, and error above 85%.
 A replayed session has no cost data for its earlier turns.
-Its cost shows with a `~` prefix in the warning color.
+Its cost shows with a `~` prefix in the warning color until the first turn finishes.
+The total of that turn includes the earlier turns, so the prefix goes away.
 
 ## Theme
 

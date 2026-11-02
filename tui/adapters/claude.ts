@@ -1,5 +1,7 @@
 import {
   type EffortLevel,
+  type Query,
+  type SDKMessage,
   type SDKUserMessage,
   getSessionMessages,
   listSessions,
@@ -12,6 +14,8 @@ import { alchemistOptions } from "../../hosts/claude/codex.ts";
 import type { HostAdapter, HostEvent, ModelChoice, SessionSummary } from "./types.ts";
 
 const TOOL_PREFIX = "mcp__alchemist__";
+/** How long a stopped turn may take to deliver its `result` before the process is replaced. */
+export const INTERRUPT_GRACE_MS = 10_000;
 
 // The SDK message types are wide unions. The mapping reads only these fields.
 type Block = {
@@ -158,19 +162,123 @@ export class SessionIndex {
   }
 }
 
-async function* idle(): AsyncGenerator<SDKUserMessage> {
-  await new Promise(() => {});
+/**
+ * A push-based async iterable. The live Claude query reads its user messages from it,
+ * so one CLI process serves every turn of a session.
+ */
+export class MessageQueue<T> implements AsyncIterable<T> {
+  private readonly items: T[] = [];
+  private waiting: ((result: IteratorResult<T>) => void) | undefined;
+  private ended = false;
+
+  push(item: T): void {
+    if (this.ended) throw new Error("The message queue has ended.");
+    const waiting = this.waiting;
+    this.waiting = undefined;
+    if (waiting) waiting({ value: item, done: false });
+    else this.items.push(item);
+  }
+
+  end(): void {
+    this.ended = true;
+    const waiting = this.waiting;
+    this.waiting = undefined;
+    waiting?.({ value: undefined, done: true });
+  }
+
+  [Symbol.asyncIterator](): AsyncIterator<T> {
+    return {
+      next: () => {
+        if (this.items.length > 0) return Promise.resolve({ value: this.items.shift() as T, done: false });
+        if (this.ended) return Promise.resolve({ value: undefined, done: true });
+        return new Promise((resolve) => {
+          this.waiting = resolve;
+        });
+      },
+    };
+  }
 }
 
+function withTimeout<T>(pending: Promise<T>, ms: number): Promise<T | undefined> {
+  let timer: NodeJS.Timeout | undefined;
+  const timeout = new Promise<undefined>((resolve) => {
+    timer = setTimeout(() => resolve(undefined), ms);
+  });
+  return Promise.race([pending, timeout]).finally(() => clearTimeout(timer));
+}
+
+/**
+ * Reads the next message of a turn. After the turn is stopped, it waits at most
+ * `graceMs` per message and returns `undefined` when the time runs out.
+ */
+export async function nextTurnMessage<T>(
+  messages: AsyncIterator<T>,
+  aborted: Promise<void>,
+  signal: AbortSignal,
+  graceMs = INTERRUPT_GRACE_MS,
+): Promise<IteratorResult<T> | undefined> {
+  const pending = messages.next();
+  if (!signal.aborted) {
+    const first = await Promise.race([pending, aborted.then(() => undefined)]);
+    if (first !== undefined) return first;
+  }
+  return withTimeout(pending, graceMs);
+}
+
+function userMessage(prompt: string): SDKUserMessage {
+  return { type: "user", message: { role: "user", content: prompt }, parent_tool_use_id: null };
+}
+
+type LiveQuery = { query: Query; input: MessageQueue<SDKUserMessage> };
+
+/**
+ * Claude host adapter.
+ *
+ * One `query()` in streaming input mode serves the whole session: the CLI process,
+ * its MCP connections, and its prompt cache prefix stay the same from turn to turn.
+ * A new process starts only for a different session, after a failure, or when a
+ * stopped turn does not finish in time. It resumes the session from its transcript.
+ */
 export class ClaudeAdapter implements HostAdapter {
   readonly name = "claude";
   sessionId: string | undefined;
   model: string | undefined;
   effort: string | undefined;
   private models: ModelChoice[] | undefined;
+  private live: LiveQuery | undefined;
+  /** Model and effort changes that are still being applied to the live query. */
+  private settings: Promise<void> = Promise.resolve();
   private readonly index = new SessionIndex(
     path.join(repoRoot, ".alchemist/tui/claude-sessions.json"),
   );
+
+  /** Starts the session process, or returns the running one. */
+  private start(): LiveQuery {
+    if (this.live) return this.live;
+    const input = new MessageQueue<SDKUserMessage>();
+    const q = query({
+      prompt: input,
+      options: {
+        ...alchemistOptions(),
+        resume: this.sessionId,
+        includePartialMessages: true,
+        model: this.model,
+        effort: this.effort as EffortLevel | undefined,
+      },
+    });
+    this.live = { query: q, input };
+    this.settings = Promise.resolve();
+    return this.live;
+  }
+
+  /** Ends the session process. The next turn starts a new one that resumes the session. */
+  private stop(): void {
+    const live = this.live;
+    this.live = undefined;
+    if (!live) return;
+    live.input.end();
+    live.query.close();
+  }
 
   async listSessions(): Promise<SessionSummary[]> {
     const ids = this.index.ids();
@@ -186,59 +294,100 @@ export class ClaudeAdapter implements HostAdapter {
   }
 
   async openSession(id: string | undefined): Promise<HostEvent[]> {
+    // A different session, or a new one, needs its own process. Reopening the live session keeps it.
+    if (!(id && id === this.sessionId && this.live)) this.stop();
     this.sessionId = id;
+    // Start the process now, so it boots while the transcript loads and the user types.
+    this.start();
     if (!id) return [];
     return mapSessionMessages(await getSessionMessages(id, { dir: repoRoot }));
   }
 
   async listModels(): Promise<ModelChoice[]> {
     if (!this.models) {
-      const q = query({ prompt: idle(), options: alchemistOptions() });
-      try {
-        const models = await q.supportedModels();
-        this.models = models.map((m) => ({
-          id: m.value,
-          label: m.displayName,
-          efforts: m.supportedEffortLevels ?? [],
-        }));
-      } finally {
-        q.close();
-      }
+      const models = await this.start().query.supportedModels();
+      this.models = models.map((m) => ({
+        id: m.value,
+        label: m.displayName,
+        efforts: m.supportedEffortLevels ?? [],
+      }));
     }
     return this.models;
   }
 
   setModel(model: string | undefined, effort: string | undefined): void {
+    const modelChanged = model !== this.model;
+    const effortChanged = effort !== this.effort;
     this.model = model;
     this.effort = effort;
+    const live = this.live;
+    if (!live || (!modelChanged && !effortChanged)) return;
+    // The live process switches in place. If that fails, the next turn starts a new
+    // process with the new options.
+    this.settings = this.settings
+      .then(async () => {
+        if (modelChanged) await live.query.setModel(model);
+        if (effortChanged) {
+          await live.query.applyFlagSettings({ effortLevel: (effort ?? null) as EffortLevel | null });
+        }
+      })
+      .catch(() => {
+        if (this.live === live) this.stop();
+      });
   }
 
   async *send(prompt: string, signal: AbortSignal): AsyncIterable<HostEvent> {
-    const abortController = new AbortController();
-    signal.addEventListener("abort", () => abortController.abort(), { once: true });
-    const q = query({
-      prompt,
-      options: {
-        ...alchemistOptions(),
-        resume: this.sessionId,
-        includePartialMessages: true,
-        abortController,
-        model: this.model,
-        effort: this.effort as EffortLevel | undefined,
-      },
+    await this.settings;
+    const live = this.start();
+    let finished = false;
+    const aborted = new Promise<void>((resolve) => {
+      if (signal.aborted) resolve();
+      else signal.addEventListener("abort", () => resolve(), { once: true });
+    });
+    // Stopping interrupts the turn. The process stays up and still sends the turn's `result`.
+    void aborted.then(() => {
+      if (!finished && this.live === live) live.query.interrupt().catch(() => undefined);
     });
     try {
-      for await (const message of q) {
+      live.input.push(userMessage(prompt));
+      for (;;) {
+        const next = await nextTurnMessage<SDKMessage>(live.query, aborted, signal);
+        if (next === undefined) {
+          // The stopped turn did not finish in time.
+          this.stop();
+          return;
+        }
+        if (next.done) {
+          this.stop();
+          if (!signal.aborted) yield { type: "error", message: "The Claude process ended before the turn finished." };
+          return;
+        }
+        const message = next.value;
         if (message.type === "result") {
           this.sessionId = message.session_id;
           this.index.add(message.session_id);
         }
-        yield* mapClaudeMessage(message);
+        for (const event of mapClaudeMessage(message)) {
+          // A stopped turn ends with an error result. The TUI already reports the stop.
+          if (signal.aborted && event.type === "error") continue;
+          yield event;
+        }
+        if (message.type === "result") {
+          finished = true;
+          return;
+        }
       }
     } catch (error) {
+      this.stop();
       if (!signal.aborted) yield { type: "error", message: String(error) };
+    } finally {
+      // A turn that ends without its `result` would leave messages for the next turn.
+      if (!finished) this.stop();
+      finished = true;
     }
   }
 
-  async close(): Promise<void> {}
+  async close(): Promise<void> {
+    this.stop();
+  }
 }

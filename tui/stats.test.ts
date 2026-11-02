@@ -29,19 +29,27 @@ test("the last usage event sets the context tokens", () => {
   assert.equal(stats.contextTokens, 12_000);
 });
 
-test("turn costs add up to the session cost", () => {
+test("the latest running total is the session cost", () => {
   const stats = new SessionStats();
   stats.apply({ type: "usage", costUsd: 0.05 });
-  stats.apply({ type: "usage", costUsd: 0.033 });
+  stats.apply({ type: "usage", costUsd: 0.083 });
   assert.equal(stats.costLabel(), "$0.083");
 });
 
-test("a replay without cost data marks the cost as partial", () => {
+test("a usage event without cost keeps the session cost", () => {
+  const stats = new SessionStats();
+  stats.apply({ type: "usage", costUsd: 0.05 });
+  stats.apply({ type: "usage", contextTokens: 12_000 });
+  assert.equal(stats.costLabel(), "$0.050");
+});
+
+test("a replay without cost data is partial until the first live total", () => {
   const stats = SessionStats.fromReplay([{ type: "usage", contextTokens: 5_000 }]);
   assert.equal(stats.contextTokens, 5_000);
   assert.equal(stats.costLabel(), "~$0.000");
-  stats.apply({ type: "usage", costUsd: 0.01 });
-  assert.equal(stats.costLabel(), "~$0.010");
+  stats.apply({ type: "usage", costUsd: 0.21 });
+  assert.equal(stats.costLabel(), "$0.210");
+  assert.equal(stats.costComplete, true);
 });
 
 test("the last turn time shows in seconds", () => {
