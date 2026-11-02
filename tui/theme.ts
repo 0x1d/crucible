@@ -19,11 +19,14 @@ export interface Palette {
   success: string;
   error: string;
   warning: string;
+  /** Background of overlays. */
+  surface: string;
 }
 
 export interface Theme {
   name: string;
   fg: Record<keyof Palette, Style>;
+  bg: { surface: Style };
   bold: Style;
   italic: Style;
   /** Style for a context use ratio: muted below 60%, warning up to 85%, error above. */
@@ -42,6 +45,7 @@ export const themes = {
     success: "oklch(72% 0.15 150)",
     error: "oklch(65% 0.18 25)",
     warning: "oklch(78% 0.14 70)",
+    surface: "oklch(27% 0.02 260)",
   },
 } satisfies Record<string, Palette>;
 
@@ -57,6 +61,7 @@ export function createTheme(
   const fg = Object.fromEntries(
     Object.entries(palette).map(([token, value]) => [token, color(value)]),
   ) as Record<keyof Palette, Style>;
+  const surface = parseColor(palette.surface);
   const bold: Style = (text) => styleText(text, { bold: true }, mode);
   const italic: Style = (text) => styleText(text, { italic: true }, mode);
 
@@ -71,6 +76,7 @@ export function createTheme(
   return {
     name,
     fg,
+    bg: { surface: (text) => styleText(text, { bg: surface }, mode) },
     bold,
     italic,
     contextColor: (ratio) => (ratio > 0.85 ? fg.error : ratio >= 0.6 ? fg.warning : fg.muted),

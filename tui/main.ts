@@ -6,15 +6,19 @@
  */
 import { logFile } from "./log.ts";
 import {
+  Box,
   CombinedAutocompleteProvider,
   Container,
   Editor,
   Loader,
   ProcessTerminal,
+  ScrollView,
   type SelectItem,
   SelectList,
+  Spacer,
   Text,
-  TuiMainScreen,
+  TuiAltScreen,
+  VStack,
   matchesKey,
 } from "@earendil-works/pi-tui";
 import { repoRoot } from "../core/elixir-bridge.ts";
@@ -39,7 +43,7 @@ try {
   process.exit(1);
 }
 
-const tui = new TuiMainScreen(new ProcessTerminal());
+const tui = new TuiAltScreen(new ProcessTerminal());
 const transcript = new Transcript(theme);
 const status = new Container();
 const editor = new Editor(tui, theme.editor);
@@ -52,10 +56,18 @@ let turn: AbortController | undefined;
 let lastCtrlC = 0;
 
 editor.setAutocompleteProvider(new CombinedAutocompleteProvider(COMMANDS, repoRoot));
-tui.addChild(transcript);
-tui.addChild(status);
-tui.addChild(editor);
-tui.addChild(footer);
+// The transcript scrolls. Status, editor, and footer stay at the bottom of the screen.
+tui.setLayoutRoot(
+  new VStack([
+    {
+      component: new ScrollView(transcript, { follow: "end", primary: true }),
+      basis: 0,
+      grow: 1,
+      minSize: 1,
+    },
+    { component: new VStack([status, editor, footer]), basis: "auto", shrink: 1, minSize: 1 },
+  ]),
+);
 
 function render(): void {
   if (adapter) {
@@ -73,11 +85,14 @@ function errorText(error: unknown): string {
 /** Shows a select list as an overlay. Resolves with the selected value, or undefined on Esc. */
 function pick(title: string, items: SelectItem[]): Promise<string | undefined> {
   return new Promise((resolve) => {
-    const box = new Container();
+    const box = new Box(2, 1, theme.bg.surface);
     const list = new SelectList(items, 12, theme.selectList);
-    box.addChild(new Text(theme.bold(theme.fg.accent(title)), 1, 0));
+    box.addChild(new Text(theme.bold(theme.fg.accent(title)), 0, 0));
+    box.addChild(new Spacer(1));
     box.addChild(list);
-    const handle = tui.showOverlay(box, { width: "80%", anchor: "center" });
+    box.addChild(new Spacer(1));
+    box.addChild(new Text(theme.fg.muted("↑↓ move · Enter select · Esc cancel"), 0, 0));
+    const handle = tui.showOverlay(box, { width: "60%", minWidth: 50, maxHeight: "80%", anchor: "center" });
     tui.setFocus(list);
     const done = (value: string | undefined) => {
       handle.hide();

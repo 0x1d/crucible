@@ -23,6 +23,14 @@ test("palette styles wrap the text in color escapes", () => {
   assert.ok(out.startsWith(ESC));
 });
 
+test("the surface style sets a background color and keeps it across inner colors", () => {
+  const theme = createTheme("alchemist", themes.alchemist, "truecolor");
+  const out = theme.bg.surface(`a ${theme.fg.accent("b")} c`);
+  assert.ok(out.startsWith(`${ESC}48;2;`));
+  assert.ok(!out.slice(0, -5).includes(`${ESC}49m`));
+  assert.ok(!out.includes(`${ESC}0m`));
+});
+
 test("pi-tui component themes come from the palette", () => {
   const theme = createTheme("alchemist", themes.alchemist, "truecolor");
   assert.equal(theme.markdown.heading("h"), theme.bold(theme.fg.accent("h")));

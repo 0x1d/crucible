@@ -25,11 +25,16 @@ Prerequisites: Node 24+, Elixir 1.20+ on `PATH`, and Claude Code credentials or 
    npm run tui
    ```
 
-2. Select a host.
-3. Select a session. "New session" is the first item.
+2. Select a host in the dialog.
+3. Select a session in the next dialog. "New session" is the first item.
 4. Type a prompt and press `Enter`.
 
 The transcript replays an opened session before the editor gets focus.
+
+The TUI uses the alternate screen of the terminal.
+The transcript fills the upper part of the screen and scrolls.
+The status line, the editor, and the footer stay at the bottom.
+When the TUI exits, the terminal shows the main screen again with the transcript printed on it.
 
 ## Commands
 
@@ -70,6 +75,9 @@ The checkpoint lines are part of the transcript, so a resumed session keeps them
 | `Ctrl+O` | Expand or collapse tool inputs and results. |
 | `Ctrl+T` | Show or hide reasoning. |
 | `Ctrl+P` | Open the model list, then the effort list of the selected model. |
+| `PageUp`, `PageDown`, mouse wheel | Scroll the transcript. |
+| `Ctrl+Home`, `Ctrl+End` | Scroll to the start or the end of the transcript. |
+| `Ctrl+Shift+F` | Search the transcript. |
 
 ## Transcript
 
@@ -78,6 +86,12 @@ The checkpoint lines are part of the transcript, so a resumed session keeps them
 - Reasoning streams as muted italic text.
 - A tool call is 1 line. The marker is `▸` while it runs, `✓` on success, and `✗` on failure.
 - A file change under `functions/` shows as `✎ functions/<path> +N −M` after the tool result.
+
+## Dialogs
+
+The host, session, model, and effort lists show as dialogs in the center of the screen.
+A dialog has the `surface` background, a title, the list, and a key hint line.
+`Up` and `Down` move the selection, `Enter` selects, and `Esc` closes the dialog.
 
 ## Footer
 
@@ -103,7 +117,8 @@ Its cost shows with a `~` prefix in the warning color.
 `ALCHEMIST_TUI_THEME` selects a theme by name.
 The default is `alchemist`, the only theme in the registry.
 An unknown name stops the TUI before it starts and lists the available names.
-The terminal sets the text color and the background color.
+The terminal sets the text color and the screen background.
+Dialogs use the `surface` background.
 
 | Token | Color | Use |
 | --- | --- | --- |
@@ -114,6 +129,7 @@ The terminal sets the text color and the background color.
 | `success` | `oklch(72% 0.15 150)` | `✓` markers, added diff lines |
 | `error` | `oklch(65% 0.18 25)` | `✗` markers, removed diff lines, error lines |
 | `warning` | `oklch(78% 0.14 70)` | Partial cost, context use from 60% to 85% |
+| `surface` | `oklch(27% 0.02 260)` | Dialog background |
 
 ## State files
 

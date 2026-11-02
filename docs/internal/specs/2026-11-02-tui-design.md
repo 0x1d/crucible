@@ -23,7 +23,7 @@ The footer shows context use and session cost.
 | --- | --- | --- |
 | Location | Top-level `tui/` | The TUI imports the hosts. No file under `hosts/` or `core/` imports the TUI. |
 | UI library | `@earendil-works/pi-tui` 1.4.0 | Differential rendering, `Editor`, `Markdown`, `SelectList`, overlays, and autocomplete. The user approved this dependency as an exception to the AGENTS.md rule against new dependencies on a first cut. |
-| Renderer | `TuiMainScreen` | The terminal keeps its scrollback. No alternate screen. |
+| Renderer | `TuiAltScreen` with a `VStack` layout | The editor and the footer stay at the bottom of the screen. The transcript scrolls in a `ScrollView`. On exit, pi-tui restores the main screen and prints the transcript. |
 | Host contract | One `HostAdapter` interface with a normalized event stream | Rendering and stats code is the same for both hosts. |
 | Claude transport | `query()` with `alchemistOptions()` from `hosts/claude/codex.ts` | Reuses the host as it is. |
 | Cursor transport (planned) | `serve("hosts/cursor", { mode: "single", port: 0 })` in the TUI process, then the HTTP session API | No child process and no port discovery. |
@@ -122,8 +122,8 @@ The design for it follows.
 
 ## Start flow and commands
 
-1. Select a host in a `SelectList`.
-2. Select a session in a second `SelectList`. "New session" is the first item.
+1. Select a host in a `SelectList` overlay.
+2. Select a session in a second `SelectList` overlay. "New session" is the first item.
 3. The transcript replays the opened session. The editor gets focus.
 
 | Command | Action |
@@ -152,6 +152,10 @@ The editor autocompletes slash commands.
 
 ## Rendering
 
+- The screen has 2 regions.
+  The upper region is a `ScrollView` with the transcript. It follows the end while the user does not scroll.
+  The lower region holds the status line, the editor, and the footer.
+- A selection list shows as a centered overlay: a `Box` with the `surface` background, 2 columns and 1 row of padding, a title, the list, and a key hint line.
 - A user prompt shows as a muted line that starts with `you>`.
 - Assistant text streams into a `Markdown` component. The view renders it again on each delta.
 - Reasoning streams as muted text above the reply. `Ctrl+T` hides it.
@@ -199,7 +203,8 @@ The marker is part of the transcript, so the next call finds its start point als
 The registry holds 1 theme, `alchemist`.
 `ALCHEMIST_TUI_THEME` selects a theme by name, and the default is `alchemist`.
 If the name is not in the registry, the TUI stops before it starts and lists the available names.
-The text color and the background color come from the terminal.
+The text color and the screen background come from the terminal.
+Overlays use the `surface` background.
 
 ### The alchemist palette
 
@@ -212,6 +217,7 @@ The text color and the background color come from the terminal.
 | `success` | `oklch(72% 0.15 150)` | `✓` markers, added diff lines |
 | `error` | `oklch(65% 0.18 25)` | `✗` markers, removed diff lines, error lines |
 | `warning` | `oklch(78% 0.14 70)` | The `~` cost marker, context use from 60% to 85% |
+| `surface` | `oklch(27% 0.02 260)` | Overlay background |
 
 Context use above 85% shows in `error`.
 
@@ -247,6 +253,6 @@ The terminal shows only the TUI.
 ## Out of scope
 
 - Session resume for sessions from `npm run chat:claude`.
-- Mouse support, the alternate screen, and images.
+- Images.
 - More than 1 theme.
 - Permission prompts. Both hosts allow only the codex tools.
