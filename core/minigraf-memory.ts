@@ -810,7 +810,9 @@ function parseFacts(record: Record<string, unknown>, optional: boolean): Fact[] 
 
 function parseFact(fact: unknown): Fact {
   if (fact === null || typeof fact !== "object" || Array.isArray(fact)) {
-    throw new MemoryError("unknown entity");
+    throw new MemoryError(
+      'fact must be an object like {"e": "decision/x", "a": "description", "v": "..."}',
+    );
   }
   const record = fact as Record<string, unknown>;
   const e = parseEntity(record.e);
@@ -824,16 +826,23 @@ function parseFact(fact: unknown): Fact {
   return { e, a, v, validFrom, validTo };
 }
 
+const entityHint =
+  "entity ids are <prefix>/<slug> with prefix decision, preference, constraint, or dependency and slug [a-z0-9_-]";
+const attributeHint = `allowed attributes: ${[...attributes].join(", ")}`;
+
 function parseEntity(value: unknown): string {
   if (typeof value !== "string" || !entityPattern.test(value)) {
-    throw new MemoryError("unknown entity");
+    throw new MemoryError(`unknown entity ${JSON.stringify(value ?? null)}; ${entityHint}`);
   }
   return value;
 }
 
 function parseAttribute(value: unknown): string {
   if (typeof value !== "string" || !attributes.has(value)) {
-    throw new MemoryError("unknown attribute");
+    throw new MemoryError(
+      `unknown attribute ${JSON.stringify(value ?? null)}; ${attributeHint}. ` +
+        "Put free-form detail in description or rationale.",
+    );
   }
   return value;
 }
@@ -909,10 +918,17 @@ function parseWhere(record: Record<string, unknown>): Clause[] {
     throw new MemoryError("where must be a non-empty list");
   }
   return record.where.map((clause) => {
-    if (clause === null || typeof clause !== "object" || Array.isArray(clause)) {
-      throw new MemoryError("unknown entity");
+    // Accept both {e, a, v} objects and [e, a, v] tuples.
+    let row: Record<string, unknown>;
+    if (Array.isArray(clause) && clause.length === 3) {
+      row = { e: clause[0], a: clause[1], v: clause[2] };
+    } else if (clause !== null && typeof clause === "object" && !Array.isArray(clause)) {
+      row = clause as Record<string, unknown>;
+    } else {
+      throw new MemoryError(
+        'where clause must be {"e": ..., "a": ..., "v": ...} or [e, a, v]; use "?name" for variables',
+      );
     }
-    const row = clause as Record<string, unknown>;
     return {
       e: parsePattern(row.e, "entity"),
       a: parsePattern(row.a, "attribute"),
@@ -927,7 +943,11 @@ function parsePattern(
   attribute = "",
 ): string {
   if (typeof value === "string" && value.startsWith("?")) {
-    if (!variablePattern.test(value)) throw new MemoryError("unbound find variable");
+    if (!variablePattern.test(value)) {
+      throw new MemoryError(
+        `invalid variable ${JSON.stringify(value)}; variables look like ?name (lowercase, digits, _)`,
+      );
+    }
     return value;
   }
   if (kind === "entity") return `:${parseEntity(value)}`;
@@ -957,10 +977,12 @@ function parseFind(record: Record<string, unknown>, clauses: Clause[]): string[]
   }
   const find: string[] = [];
   for (const name of record.find) {
-    if (typeof name !== "string") throw new MemoryError("unbound find variable");
-    const bare = name.startsWith("?") ? name.slice(1) : name;
-    if (!namePattern.test(bare) || !known.has(bare)) {
-      throw new MemoryError("unbound find variable");
+    const bare = typeof name === "string" && name.startsWith("?") ? name.slice(1) : name;
+    if (typeof bare !== "string" || !namePattern.test(bare) || !known.has(bare)) {
+      const bound = [...known].map((v) => `?${v}`).join(", ") || "none";
+      throw new MemoryError(
+        `unbound find variable ${JSON.stringify(name)}; variables bound in where: ${bound}`,
+      );
     }
     if (!find.includes(bare)) find.push(bare);
   }

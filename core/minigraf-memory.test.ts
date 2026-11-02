@@ -272,14 +272,14 @@ test("rejects schema and duplicate writes", () => {
       message(() => transact(graph, { facts: [] })),
       "reason is required",
     );
-    assert.equal(
+    assert.match(
       message(() =>
         transact(graph, {
           reason: "x",
           facts: [{ e: "nope", a: "description", v: "x" }],
         }),
       ),
-      "unknown entity",
+      /^unknown entity "nope"; entity ids are <prefix>\/<slug>/,
     );
     assert.equal(
       message(() =>
@@ -320,6 +320,64 @@ test("rejects schema and duplicate writes", () => {
       message(() => query(graph, { datalog: "(transact [[:a :b \"c\"]])" })),
       "datalog must be a query",
     );
+  } finally {
+    closeGraph(graph);
+  }
+});
+
+test("schema errors name the bad value and list what is allowed", () => {
+  const graph = fresh();
+  try {
+    const attr = message(() =>
+      transact(graph, {
+        reason: "x",
+        facts: [
+          { e: "constraint/layout", a: "description", v: "codex layout" },
+          { e: "constraint/layout", a: "language", v: "Elixir" },
+        ],
+      }),
+    );
+    assert.match(attr, /^unknown attribute "language"/);
+    for (const name of ["description", "rationale", "depends_on", "motivated_by", "governs", "supersedes", "source_session"]) {
+      assert.ok(attr.includes(name), `hint lists ${name}`);
+    }
+    assert.match(
+      message(() => transact(graph, { reason: "x", facts: [["decision/a", "description", "v"]] })),
+      /^fact must be an object/,
+    );
+    assert.match(
+      message(() => query(graph, { find: ["x"], where: ["decision/a"] })),
+      /^where clause must be/,
+    );
+    assert.match(
+      message(() =>
+        query(graph, { find: ["?nope"], where: [{ e: "?e", a: "description", v: "?d" }] }),
+      ),
+      /^unbound find variable "\?nope"; variables bound in where: \?e, \?d/,
+    );
+  } finally {
+    closeGraph(graph);
+  }
+});
+
+test("where accepts [e, a, v] tuples", () => {
+  const graph = fresh();
+  try {
+    transact(graph, {
+      reason: "seed",
+      facts: [
+        { e: "decision/a", a: "description", v: "alpha" },
+        { e: "decision/b", a: "description", v: "beta" },
+      ],
+    });
+    const rows = query(graph, {
+      find: ["?e", "?d"],
+      where: [["?e", "description", "?d"]],
+    });
+    assert.deepEqual(rows.rows, [
+      { e: "decision/a", d: "alpha" },
+      { e: "decision/b", d: "beta" },
+    ]);
   } finally {
     closeGraph(graph);
   }
