@@ -38,7 +38,7 @@ Use a **specific** query (`memory.overview`, not `memory` alone) when the slug i
 Do not call `find_function` or `load_function` for normal memory or codex use.
 The runtime compiles every entry under `functions/` when it starts.
 Use `load_function` only after you change source with `define_function`.
-To browse the full catalog with moduledoc, call `call_function` on `codex.docs` (heavier).
+To see all codex entries, call `call_function` on `codex.docs`.
 
 Do not simulate pipelines with many `call_function` invocations when a single entry
 module with **static composition** or one **dynamic dispatch** call would express
