@@ -13,6 +13,7 @@ import { fileURLToPath } from "node:url";
 import * as z from "zod/v4";
 import { repoRoot, runCodexOp } from "../../core/elixir-bridge.ts";
 import { HOST_TOOL_NAMES, type CodexRequest } from "../../core/protocol.ts";
+import { sessionHooks } from "./session-hook.ts";
 
 const hostDir = path.dirname(fileURLToPath(import.meta.url));
 
@@ -94,5 +95,7 @@ export function alchemistOptions(): Options {
     allowedTools: ALCHEMIST_TOOLS,
     permissionMode: "default",
     settingSources: [],
+    // Stamps the live session id onto memory.remember (see session-hook.ts).
+    hooks: { PreToolUse: sessionHooks },
   };
 }
