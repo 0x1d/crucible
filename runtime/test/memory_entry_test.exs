@@ -31,7 +31,8 @@ defmodule Runtime.Memory.EntryTest do
                ]
              })
 
-    assert {:ok, %{"tx" => 2}} =
+    # close mode: retract (tx 2) + re-transact of the closed window (tx 3)
+    assert {:ok, %{"tx" => 3, "mode" => "close"}} =
              AgentFn.Memory.Retract.run(%{
                "reason" => "Switching to CockroachDB",
                "facts" => [

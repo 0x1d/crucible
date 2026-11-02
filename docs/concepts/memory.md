@@ -3,7 +3,7 @@
 Memory stores durable facts for Alchemist.
 A fact is an entity, an attribute, and a value.
 The graph records when the fact was written and when it is true.
-Later corrections hide a fact from current queries and leave it visible at the earlier transaction.
+Closing a fact hides it from current queries and keeps it visible at the valid times it held and at earlier transactions.
 The store is MiniGraf, opened through the `minigraf` Node.js binding.
 
 The Cursor host journal at `hosts/cursor/bot/hooks/memory.ts` is a separate turn log.
@@ -20,6 +20,9 @@ When the Node process exits, the GenServer stops and the supervisor starts it ag
 
 The state file is a MiniGraf database.
 The transaction counter sits in a sibling file with the suffix `.tx`.
+It advances only after MiniGraf accepts a write, so it matches MiniGraf's own transaction count.
+On open the counter is reconciled against the graph: the true count is the smallest `as_of` whose view equals the latest view.
+A counter that ran ahead or fell behind is corrected and rewritten.
 MiniGraf compacts its own write-ahead log on checkpoint, after every successful write.
 
 The database path resolves in this order:
@@ -41,9 +44,9 @@ A retract of an identity that is not visible in that window is rejected.
 | Field | Contract |
 | --- | --- |
 | Entity | `decision/`, `preference/`, `constraint/`, or `dependency/`, then `/`, then `[a-z0-9][a-z0-9_-]*`. |
-| Attribute | `description`, `rationale`, `depends_on`, or `motivated_by`. |
-| Value | A string of 1 to 4000 characters. `depends_on` and `motivated_by` values are entity ids. |
-| `valid_from` | Inclusive start of valid time. Omitted means no start. |
+| Attribute | `description`, `rationale`, `depends_on`, `motivated_by`, `governs`, `supersedes`, or `source_session`. |
+| Value | A string of 1 to 4000 characters. `depends_on`, `motivated_by`, `governs`, and `supersedes` values are entity ids. |
+| `valid_from` | Inclusive start of valid time. Omitted means no start when `valid_to` is set, and the write time otherwise. |
 | `valid_to` | Exclusive end of valid time. Omitted means no end. |
 
 An assert transaction must include a `description` for every entity it names, unless that entity already has a `description`.
@@ -53,12 +56,14 @@ A date-only value is midnight UTC.
 `valid_from` must be earlier than `valid_to` when both are set.
 
 MiniGraf stores entities and attributes as keywords, and stores edge values as keywords.
-The binding also writes `:alchemist/ident` on each entity, mapping MiniGraf's internal id to the entity id, and `:alchemist/reason` with the call's reason.
-Those two attributes are not part of the closed schema above.
-A valid-time write puts them in the following transaction so the valid-time window does not apply to them.
-A retract records its reason in the following transaction.
-The `tx` returned by the call is the transaction of the fact write or the retract.
-The next call can therefore skip a number.
+The binding also writes `:alchemist/ident` on each entity, mapping MiniGraf's internal id to the entity id.
+That attribute is not part of the closed schema above.
+An ident is open-ended and must be valid wherever the entity's facts are valid.
+For a fact written now, the ident rides in the same transaction.
+For a valid-time fact, an ident starting at the fact's `valid_from` is written in the transaction before the facts, unless an earlier ident already covers it.
+An `as_of` that sees a fact therefore also sees its ident.
+The `reason` is required and echoed in the result; it is not stored in the graph.
+The `tx` returned by the call is the transaction of the last write the call made.
 
 Two values of one attribute on one entity are written as separate MiniGraf transactions.
 MiniGraf collapses two values of the same attribute inside a single transaction.
@@ -85,27 +90,46 @@ The graph adds these slugs.
 | Slug | Module | Effect |
 | --- | --- | --- |
 | `memory.transact` | `AgentFn.Memory.Transact` | Asserts facts and, optionally, installs rules. |
-| `memory.retract` | `AgentFn.Memory.Retract` | Retracts facts for the same identities. |
+| `memory.retract` | `AgentFn.Memory.Retract` | Closes facts (default) or withdraws facts recorded in error. |
 | `memory.query` | `AgentFn.Memory.Query` | Runs a pattern query or one Datalog query. |
 | `memory.overview` | `AgentFn.Memory.Overview` | Lists current entity ids (catalog only). |
 | `memory.remember` | `AgentFn.Memory.Remember` | Asserts many facts in one call (same as transact). |
 
 Arguments are JSON objects with string keys.
 `memory.transact` and `memory.retract` take `reason` and `facts`.
+`memory.retract` may also take `mode` and `valid_at`.
 `memory.transact` may also take `rules`.
 Each fact takes `e`, `a`, `v`, and optional `valid_from` and `valid_to`.
 A successful write returns `tx`, `at`, `reason`, and `count`.
 `count` is the number of user facts written.
 
-A correction is a `memory.retract` of the old identity followed by a `memory.transact` of the new one.
-The earlier transaction remains in the database.
+## Retract
+
+`memory.retract` takes `reason`, `facts`, and optional `mode` and `valid_at`.
+
+| Mode | Meaning | Effect |
+| --- | --- | --- |
+| `close` (default) | The fact stopped being true. | The fact's live window ends at `valid_at`, or now. `valid_at` queries inside the window still find it. |
+| `correct` | The fact was recorded in error. | MiniGraf's own retract. The fact leaves every valid time; only an earlier `as_of` still shows it. |
+
+In `close` mode each fact takes `e`, `a`, and `v` only, and must have a live window: open-ended and already started.
+`valid_at` must not be in the future and must be after the fact's `valid_from`.
+MiniGraf's retract removes every window of a triple, so `close` retracts the triple, writes its other windows back, and writes the closed window last.
+Each window is its own transaction.
+The result lists each closed window under `closed`.
+Every fact is checked before anything is written.
+
+A change of value is a `memory.retract` of the old identity followed by a `memory.transact` of the new one.
+The old value stays visible at `valid_at` instants before the change and at earlier `as_of` transactions.
 
 ## Rules
 
 `rules` is a list of MiniGraf `(rule ...)` forms.
 Each form is one s-expression, at most 20 forms, and at most 4000 characters each.
-Each rule is stored in the database and uses one transaction before the facts of that call.
+Every rule is registered with MiniGraf before any is stored, so a rule MiniGraf rejects stores nothing and fails the call.
+Each accepted rule is stored in the database as an `:alchemist/rule-seq` and `:alchemist/rule-text` pair and uses one transaction before the facts of that call.
 The Node process installs those rules again whenever it opens the file.
+A stored rule that MiniGraf rejects on open is skipped and reported on stderr; the open still succeeds.
 A recursive rule is how a dependency is followed past a fixed join.
 
 ## Query
@@ -165,12 +189,17 @@ The other messages are:
 | Attribute rejected | `unknown attribute` |
 | Value missing, empty, or not a string | `value must be a string` |
 | Value longer than 4000 characters | `value is too long` |
-| `depends_on` or `motivated_by` value is not an entity id | `value must be an entity` |
+| `depends_on`, `motivated_by`, `governs`, or `supersedes` value is not an entity id | `value must be an entity` |
 | Timestamp rejected | `invalid timestamp` |
 | `valid_from` not before `valid_to` | `valid_from must be before valid_to` |
 | Assert without a description for a new entity | `description is required` |
 | Assert of a visible identity | `fact is already current` |
-| Retract of an identity that is not visible | `fact is not current` |
+| Retract of an identity that is not visible, or close of a fact with no live window | `fact is not current` |
+| Retract `mode` other than `close` or `correct` | `mode must be close or correct` |
+| `valid_at` with `mode: "correct"` | `mode correct takes no valid_at` |
+| Close `valid_at` in the future | `valid_at must not be in the future` |
+| Close `valid_at` not after the fact's `valid_from` | `valid_at must be after the fact's valid_from` |
+| Close fact with `valid_from` or `valid_to` | `close takes e, a, v only; pass valid_at for the end, or use mode correct` |
 | Overview `prefix` rejected | `unknown prefix` |
 | Overview `limit` not an integer | `limit must be an integer` |
 | Overview `limit` out of 1–50 | `limit must be between 1 and 50` |
