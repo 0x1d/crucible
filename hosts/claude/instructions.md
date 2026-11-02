@@ -95,4 +95,42 @@ Replace a fact (close the old one, then write the new one):
 { "name": "memory.retract", "args": { "reason": "Moved to CockroachDB.", "facts": [{ "e": "decision/db", "a": "description", "v": "Use PostgreSQL 16." }] } }
 ```
 
-For a fact recorded in error, add `"mode": "correct"` to the retract args.
+Withdraw a fact that was recorded in error (it disappears from every valid time):
+
+```json
+{ "name": "memory.retract", "args": { "reason": "Recorded in error.", "mode": "correct", "facts": [{ "e": "decision/db", "a": "rationale", "v": "Team already runs it." }] } }
+```
+
+Record history with a valid-time window, plus a Datalog rule:
+
+```json
+{
+  "name": "memory.transact",
+  "args": {
+    "reason": "Imported cache history.",
+    "facts": [
+      { "e": "decision/cache", "a": "description", "v": "Use Redis.", "valid_from": "2024-01-01", "valid_to": "2025-01-01" },
+      { "e": "decision/cache", "a": "depends_on", "v": "dependency/postgres", "valid_from": "2024-01-01", "valid_to": "2025-01-01" }
+    ],
+    "rules": ["(rule [(needs ?a ?b) [?a :depends_on ?b]])"]
+  }
+}
+```
+
+What was true at a point in valid time (`"any"` searches all valid time):
+
+```json
+{ "name": "memory.query", "args": { "valid_at": "2024-06-01", "where": [["decision/cache", "description", "?d"]], "find": ["d"] } }
+```
+
+Use a stored rule:
+
+```json
+{ "name": "memory.query", "args": { "datalog": "(query [:find ?b :valid-at :any-valid-time :where (needs :decision/cache ?b)])" } }
+```
+
+Entities remembered in a session:
+
+```json
+{ "name": "memory.by_session", "args": { "session_id": "<session id>" } }
+```

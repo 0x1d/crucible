@@ -191,7 +191,63 @@ Replace a fact (close the old one, then write the new one):
 }
 ```
 
-For a fact recorded in error, add `"mode": "correct"` to the retract args.
+Withdraw a fact that was recorded in error (it disappears from every valid time):
+
+```json
+{
+  "name": "memory.retract",
+  "args": {
+    "reason": "Recorded in error.",
+    "mode": "correct",
+    "facts": [{ "e": "decision/factory-git-integration", "a": "description", "v": "Four git seams: agent commit, merge handoff, build SHA pin, Argo CD deploy." }]
+  }
+}
+```
+
+Record history with a valid-time window, plus a Datalog rule:
+
+```json
+{
+  "name": "memory.transact",
+  "args": {
+    "reason": "Imported deploy history.",
+    "facts": [
+      { "e": "decision/factory-deploy", "a": "description", "v": "Deploy with Argo CD.", "valid_from": "2024-01-01", "valid_to": "2025-01-01" },
+      { "e": "decision/factory-deploy", "a": "depends_on", "v": "dependency/argo-cd", "valid_from": "2024-01-01", "valid_to": "2025-01-01" },
+      { "e": "dependency/argo-cd", "a": "description", "v": "Argo CD GitOps controller." }
+    ],
+    "rules": ["(rule [(needs ?a ?b) [?a :depends_on ?b]])"]
+  }
+}
+```
+
+What was true at a point in valid time (`"any"` searches all valid time):
+
+```json
+{
+  "name": "memory.query",
+  "args": {
+    "valid_at": "2024-06-01",
+    "where": [["decision/factory-deploy", "description", "?text"]],
+    "find": ["text"]
+  }
+}
+```
+
+Rules, negation, and aggregates use `datalog` (attributes are keywords, entities are `:decision/x`):
+
+```json
+{
+  "name": "memory.query",
+  "args": { "datalog": "(query [:find ?b :valid-at :any-valid-time :where (needs :decision/factory-deploy ?b)])" }
+}
+```
+
+Entities remembered in a session (`memory.remember` takes an optional `source_session`):
+
+```json
+{ "name": "memory.by_session", "args": { "session_id": "<session id>" } }
+```
 
 ## Safety
 

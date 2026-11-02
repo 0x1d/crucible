@@ -13,7 +13,7 @@
     "test:check-docs": "node --test scripts/check-docs.test.mjs",
     "test:tui": "node --test \"tui/**/*.test.ts\"",
     "test:core": "node --test \"core/**/*.test.ts\"",
-    "test:hosts": "node --test \"hosts/claude/*.test.ts\"",
+    "test:hosts": "node --test \"hosts/*.test.ts\" \"hosts/claude/*.test.ts\"",
     "test:runtime": "cd runtime && mix test",
     "test:functions": "cd runtime && ALCHEMIST_TEST_SCOPE=functions mix test",
     "test": "npm run test:runtime && npm run test:functions && npm run test:check-docs && npm run test:tui && npm run test:core && npm run test:hosts",
