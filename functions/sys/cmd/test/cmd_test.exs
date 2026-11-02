@@ -42,12 +42,6 @@ defmodule AgentFn.Sys.CmdTest do
     assert Path.basename(pwd) == Path.basename(dir)
   end
 
-  test "does not leave stderr capture files behind" do
-    before = capture_files()
-    {:ok, _} = Cmd.run(%{"argv" => ["sh", "-c", "echo err >&2"]})
-    assert capture_files() -- before == []
-  end
-
   test "times out" do
     assert {:error, "command timed out after 100ms"} =
              Cmd.run(%{"argv" => ["sleep", "5"], "timeout_ms" => 100})
@@ -62,6 +56,21 @@ defmodule AgentFn.Sys.CmdTest do
 
     assert {:error, "executable not found: no-such-exe-xyz"} =
              Cmd.run(%{"argv" => ["no-such-exe-xyz"]})
+  end
+end
+
+defmodule AgentFn.Sys.CmdCleanupTest do
+  # Sync on purpose: capture files are named by OS pid, so any async test
+  # calling sys.cmd at the same moment would show up in the glob below.
+  # ExUnit runs sync modules only after every async module has finished.
+  use ExUnit.Case, async: false
+
+  alias AgentFn.Sys.Cmd
+
+  test "does not leave stderr capture files behind" do
+    before = capture_files()
+    {:ok, _} = Cmd.run(%{"argv" => ["sh", "-c", "echo err >&2"]})
+    assert capture_files() -- before == []
   end
 
   defp capture_files do
