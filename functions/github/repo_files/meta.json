@@ -1,0 +1,12 @@
+{
+  "description": "List file paths (blobs) in a public GitHub repo via the git trees API.\n\n  Args:\n  - `repo` (required) — `owner/name`\n  - `ref` — branch/sha (default `HEAD`)\n  - `contains` — optional substring filter on path\n  - `ext` — optional list of extensions (e.g. [\".rs\", \".md\"])\n  - `limit` — max paths returned (default 500)\n\n  Returns `paths` (with `size`), `count`, `total`, `truncated`.",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Github.RepoFiles",
+  "moduledoc": "List file paths (blobs) in a public GitHub repo via the git trees API.\n\n  Args:\n  - `repo` (required) — `owner/name`\n  - `ref` — branch/sha (default `HEAD`)\n  - `contains` — optional substring filter on path\n  - `ext` — optional list of extensions (e.g. [\".rs\", \".md\"])\n  - `limit` — max paths returned (default 500)\n\n  Returns `paths` (with `size`), `count`, `total`, `truncated`.",
+  "name": "github.repo_files",
+  "source_sha256": "db9cd61aced8a7395af6e44992f8edfd7f5b6037a77ac569d64b06166d2373c8",
+  "specs": [
+    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-11-02T12:10:08.136868Z"
+}

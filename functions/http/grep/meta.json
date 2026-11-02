@@ -1,0 +1,12 @@
+{
+  "description": "Fetch a URL (text) and return lines matching a regex, with context.\n\n  Args:\n  - `url` (required)\n  - `pattern` (required) — Elixir/PCRE regex\n  - `ignore_case` — default false\n  - `context` — lines before/after each hit (default 0)\n  - `max_matches` — default 50\n  - `range` — optional `[start, end]` 1-based inclusive line range to return verbatim instead of grepping",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Http.Grep",
+  "moduledoc": "Fetch a URL (text) and return lines matching a regex, with context.\n\n  Args:\n  - `url` (required)\n  - `pattern` (required) — Elixir/PCRE regex\n  - `ignore_case` — default false\n  - `context` — lines before/after each hit (default 0)\n  - `max_matches` — default 50\n  - `range` — optional `[start, end]` 1-based inclusive line range to return verbatim instead of grepping",
+  "name": "http.grep",
+  "source_sha256": "64262253a15ffab9b7094c93708f1e95e87da5904f2cf557cc7192df738c5941",
+  "specs": [
+    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-11-02T12:10:34.154136Z"
+}
