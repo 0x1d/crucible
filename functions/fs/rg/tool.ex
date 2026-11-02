@@ -59,7 +59,6 @@ defmodule AgentFn.Fs.Rg do
       end
     else
       {:error, reason} -> {:error, reason}
-      false -> {:error, "invalid arguments"}
     end
   end
 

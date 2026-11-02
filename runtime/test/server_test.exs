@@ -64,8 +64,9 @@ defmodule Runtime.ServerTest do
   end
 
   test "application supervises a task supervisor and a permanent acceptor" do
-    [memory, tasks, server, warmup, acceptor] = Runtime.Application.children()
+    [owner_watch, memory, tasks, server, warmup, acceptor] = Runtime.Application.children()
 
+    assert owner_watch == Runtime.OwnerWatch
     assert memory == Runtime.Memory
     assert tasks == {Task.Supervisor, name: Runtime.TaskSupervisor}
     assert server == Runtime.Server
@@ -82,6 +83,7 @@ defmodule Runtime.ServerTest do
 
     assert ids ==
              MapSet.new([
+               Runtime.OwnerWatch,
                Runtime.Memory,
                Runtime.TaskSupervisor,
                Runtime.Server,

@@ -180,7 +180,6 @@ defmodule AgentFn.Pipeline.Run do
     end
   end
 
-  defp resolve_args(args, _, _, _) when is_nil(args) or args == %{}, do: {:ok, %{}}
   defp resolve_args(_, _, _, _), do: {:error, "step.args must be a map"}
 
   defp resolve_value(%{"$ref" => path}, prev, ctx, seed) when is_binary(path) do
@@ -220,7 +219,7 @@ defmodule AgentFn.Pipeline.Run do
         ["seed", r] -> {seed, r}
         # bare path defaults to prev
         [r] -> {prev, r}
-        [head | _] = parts ->
+        parts ->
           # "hits.0.x" → prev
           {prev, Enum.join(parts, ".")}
       end

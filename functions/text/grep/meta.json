@@ -4,9 +4,9 @@
   "module": "Elixir.AgentFn.Text.Grep",
   "moduledoc": "Search text with a regular expression.\n\n  Args:\n  - `pattern` (required) — regex source\n  - `text` or `path` — subject (exactly one)\n  - `ignore_case` — optional boolean\n  - `max_matches` — optional cap (default 1000)\n\n  Returns `matches` as `%{line, column, text, match}` maps.",
   "name": "text.grep",
-  "source_sha256": "6c3f2f83ba85a030fd8cc5f57965910201f0dec29405ff7cdef35e144a5c78d2",
+  "source_sha256": "12510c11d8ddf6227357ac045ae4b0a9f4b5d0ac91d4d6a1f7ddcd3e3fb82589",
   "specs": [
     "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
   ],
-  "updated_at": "2026-11-01T14:40:58.109385Z"
+  "updated_at": "2026-11-02T10:25:55.748249Z"
 }

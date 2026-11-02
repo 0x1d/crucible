@@ -51,7 +51,6 @@ defmodule AgentFn.Text.Grep do
        }}
     else
       {:error, reason} -> {:error, reason}
-      false -> {:error, "max_matches must be a positive integer"}
     end
   end
 
@@ -73,6 +72,8 @@ defmodule AgentFn.Text.Grep do
         {:error, "failed to read #{path}: :enoent"}
     end
   end
+
+  defp resolve_subject(_, _), do: {:error, "provide exactly one of text or path"}
 
   defp read_directory(root) do
     files =
@@ -96,8 +97,6 @@ defmodule AgentFn.Text.Grep do
       {:ok, Enum.join(parts, "\n\n"), root}
     end
   end
-
-  defp resolve_subject(_, _), do: {:error, "provide exactly one of text or path"}
 
   defp compile(pattern, _) when not is_binary(pattern) or pattern == "",
     do: {:error, "pattern is required"}

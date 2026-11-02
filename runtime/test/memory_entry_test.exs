@@ -1,6 +1,9 @@
+# Codex warm load normally compiles these at app start; compile only what is
+# missing so the suite does not redefine live modules.
 root = Path.expand("../../functions/memory", __DIR__)
 
-for name <- ~w(transact retract query overview) do
+for name <- ~w(transact retract query overview),
+    not Code.ensure_loaded?(Module.concat([AgentFn.Memory, Macro.camelize(name)])) do
   Code.compile_file(Path.join([root, name, "tool.ex"]))
 end
 
@@ -67,6 +70,7 @@ defmodule Runtime.Memory.EntryTest do
       |> Enum.sort()
 
     assert names == [
+             "memory.by_session",
              "memory.overview",
              "memory.query",
              "memory.remember",

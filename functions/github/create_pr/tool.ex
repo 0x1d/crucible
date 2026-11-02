@@ -140,7 +140,7 @@ defmodule AgentFn.Github.CreatePr do
 
   defp maybe_title_body(argv, title, body)
        when is_binary(title) and title != "" and is_binary(body) do
-    argv ++ ["--title", title, "--body", body || ""]
+    argv ++ ["--title", title, "--body", body]
   end
 
   defp maybe_title_body(argv, title, _body) when is_binary(title) and title != "" do

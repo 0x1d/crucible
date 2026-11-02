@@ -36,7 +36,6 @@ defmodule AgentFn.Data.Sort do
        }}
     else
       {:error, reason} -> {:error, reason}
-      false -> {:error, "invalid arguments"}
     end
   end
 
@@ -82,6 +81,4 @@ defmodule AgentFn.Data.Sort do
   rescue
     ArgumentError -> nil
   end
-
-  defp safe_atom(_), do: nil
 end

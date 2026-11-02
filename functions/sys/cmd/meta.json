@@ -1,12 +1,12 @@
 {
-  "description": "Run an executable with an argv list (no shell interpolation).\n\n  Args:\n  - `argv` (required) — `[executable | args...]` non-empty list of strings\n  - `cwd` — optional working directory\n  - `timeout_ms` — optional timeout (default 30_000)\n  - `env` — optional map of string env overrides",
+  "description": "Run an executable with an argv list (no shell interpolation).\n\n  Args:\n  - `argv` (required) — `[executable | args...]` non-empty list of strings\n  - `cwd` — optional working directory\n  - `timeout_ms` — optional timeout (default 30_000)\n  - `env` — optional map of string env overrides\n  - `merge_stderr` — optional boolean; when true stderr is interleaved into\n    `stdout` and `stderr` is `\"\"` (default false)\n\n  Returns `argv`, `stdout`, `stderr`, `status`, `timeout_ms`.\n  stderr is captured separately: the executable is exec'd by `/bin/sh` with\n  fd 2 redirected to a temp file. argv entries are passed as positional\n  parameters (`\"$@\"`), never interpolated into the script.",
   "loaded": true,
   "module": "Elixir.AgentFn.Sys.Cmd",
-  "moduledoc": "Run an executable with an argv list (no shell interpolation).\n\n  Args:\n  - `argv` (required) — `[executable | args...]` non-empty list of strings\n  - `cwd` — optional working directory\n  - `timeout_ms` — optional timeout (default 30_000)\n  - `env` — optional map of string env overrides",
+  "moduledoc": "Run an executable with an argv list (no shell interpolation).\n\n  Args:\n  - `argv` (required) — `[executable | args...]` non-empty list of strings\n  - `cwd` — optional working directory\n  - `timeout_ms` — optional timeout (default 30_000)\n  - `env` — optional map of string env overrides\n  - `merge_stderr` — optional boolean; when true stderr is interleaved into\n    `stdout` and `stderr` is `\"\"` (default false)\n\n  Returns `argv`, `stdout`, `stderr`, `status`, `timeout_ms`.\n  stderr is captured separately: the executable is exec'd by `/bin/sh` with\n  fd 2 redirected to a temp file. argv entries are passed as positional\n  parameters (`\"$@\"`), never interpolated into the script.",
   "name": "sys.cmd",
-  "source_sha256": "32cf24ffe2d5e6c4e38bfd1ca6c10e62883ece30bbc329a49c28b0fa01f99203",
+  "source_sha256": "dba9d3dc6f9f8ed42332f725dc8df2551b130391324ae28badfa668bfa2e66ab",
   "specs": [
     "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
   ],
-  "updated_at": "2026-11-01T14:40:58.079784Z"
+  "updated_at": "2026-11-02T10:23:24.063335Z"
 }

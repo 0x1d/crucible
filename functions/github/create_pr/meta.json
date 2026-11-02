@@ -4,9 +4,9 @@
   "module": "Elixir.AgentFn.Github.CreatePr",
   "moduledoc": "Create a GitHub pull request, or return a compare URL if `gh` cannot run.\n\n  Flow:\n  1. Resolve repo `cwd`, head branch, base (default `main`), and `origin` URL\n  2. Build a web compare URL from the remote\n  3. If `gh` is missing / auth fails / create fails — return `compare_url` and stop\n     (do **not** search the filesystem for a `gh` binary)\n  4. Otherwise create (or reuse an open PR for that head) and return `url`\n\n  Args:\n  - `cwd` / `repo` (required) — git repository root\n  - `base` — base branch (default `main`)\n  - `head` — head branch (default: current branch in `cwd`)\n  - `title` — PR title (optional; uses `gh pr create --fill` when omitted with body)\n  - `body` — PR body (optional)\n  - `draft` — when true, create as draft\n  - `dry_run` — when true, do not call `gh`; return planned fields + `compare_url`\n  - `timeout_ms` — forwarded to `sys.cmd` (default 60_000)\n\n  Result always includes `head`, `base`, `cwd`, and `compare_url` when derivable.\n  On success with `gh`: `url` (and `created` / `existing`).\n  On soft failure: `ok` => false, `error`, `message`, plus `compare_url`.",
   "name": "github.create_pr",
-  "source_sha256": "906cdf12549c8671d5981e8b70f63e32fb9eca226e49b59e2ba24550b89f45d8",
+  "source_sha256": "2c98a91e21bf75d95923e1dfb11b192de75ae99749482e78dbad39402cc7d2c1",
   "specs": [
     "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
   ],
-  "updated_at": "2026-11-01T14:40:57.660481Z"
+  "updated_at": "2026-11-02T10:25:56.760442Z"
 }

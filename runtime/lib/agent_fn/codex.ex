@@ -17,7 +17,6 @@ defmodule AgentFn.Codex do
     case Engine.call(slug, args) do
       %{ok: true, result: value} -> {:ok, value}
       %{ok: false, error: message} -> {:error, to_string(message)}
-      other -> {:error, "unexpected codex response: #{inspect(other)}"}
     end
   end
 

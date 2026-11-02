@@ -70,7 +70,6 @@ defmodule AgentFn.Http.Get do
           {:ok, {{_http, status, reason}, resp_headers, body}} ->
             body_bin =
               cond do
-                is_binary(body) -> body
                 is_list(body) -> List.to_string(body)
                 true -> inspect(body)
               end

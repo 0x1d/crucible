@@ -42,15 +42,48 @@ defmodule Runtime.Engine do
   """
   def warm_load_all! do
     Runtime.Server.serialize(fn ->
-      Codex.list_all()
-      |> Enum.each(fn meta ->
-        slug = meta["name"]
-        warm_load_slug(slug)
-      end)
+      {:ok, diagnostics} =
+        Code.with_diagnostics(fn ->
+          Codex.list_all()
+          |> Enum.each(fn meta ->
+            slug = meta["name"]
+            warm_load_slug(slug)
+          end)
+
+          :ok
+        end)
+
+      diagnostics
+      |> Enum.reject(&resolved_forward_reference?/1)
+      |> Enum.each(&Code.print_diagnostic/1)
 
       :ok
     end)
   end
+
+  # Entries compile one slug at a time in slug order, so a call into an entry
+  # that sorts later (codex.docs -> md.table) is reported as undefined even
+  # though it resolves once warm load finishes. Drop only those; a reference
+  # that is still missing after every entry loaded is a real problem and stays.
+  defp resolved_forward_reference?(%{severity: :warning, message: message}) do
+    undefined_remote = ~r/^([A-Z][\w.]*)\.([a-z_]\w*[!?]?)\/(\d+) is undefined \(module /
+
+    case Regex.run(undefined_remote, message) do
+      [_, mod, fun, arity] ->
+        module = Module.concat([mod])
+        arity = String.to_integer(arity)
+
+        Code.ensure_loaded?(module) and
+          Enum.any?(module.__info__(:functions), fn {name, a} ->
+            a == arity and Atom.to_string(name) == fun
+          end)
+
+      _ ->
+        false
+    end
+  end
+
+  defp resolved_forward_reference?(_), do: false
 
   def find(query, opts \\ %{}) when is_binary(query) and is_map(opts) do
     q = String.downcase(String.trim(query))

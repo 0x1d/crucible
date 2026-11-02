@@ -4,9 +4,9 @@
   "module": "Elixir.AgentFn.Http.Get",
   "moduledoc": "Perform an HTTP GET request.\n\n  Args:\n  - `url` (required)\n  - `headers` — optional map of header name => value\n  - `timeout_ms` — default 15_000\n  - `max_bytes` — optional response body cap (truncates when exceeded)",
   "name": "http.get",
-  "source_sha256": "cc58da7c2ccc1d670569f93912550e1e9737d4d76b05d8265f53af329c58b4c2",
+  "source_sha256": "d3d5b598cb2cefdc5c0fc290f56c22eb2c6091c16ac9e9153419c012e2366319",
   "specs": [
     "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
   ],
-  "updated_at": "2026-11-01T14:40:57.686351Z"
+  "updated_at": "2026-11-02T10:25:57.808134Z"
 }
