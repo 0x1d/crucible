@@ -1,0 +1,12 @@
+{
+  "description": "Inspect a binary file (e.g. a MiniGraf `.graph` page file).\n\n  Args:\n  - `path` (required)\n  - `min_len` — minimum printable run length (default 4)\n  - `filter` — optional regex; only strings matching it are returned\n  - `limit` — max strings returned (default 200)\n  - `uuids` — optional list of UUID strings; reports byte offsets where each\n    occurs as raw 16 bytes and as text\n  - `needles` — optional list of strings; reports offsets for utf8,\n    utf16le and utf16be encodings of each\n\n  Returns `size`, `strings`, `string_count`, `uuid_hits`, `needle_hits`.",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Util.BinaryStrings",
+  "moduledoc": "Inspect a binary file (e.g. a MiniGraf `.graph` page file).\n\n  Args:\n  - `path` (required)\n  - `min_len` — minimum printable run length (default 4)\n  - `filter` — optional regex; only strings matching it are returned\n  - `limit` — max strings returned (default 200)\n  - `uuids` — optional list of UUID strings; reports byte offsets where each\n    occurs as raw 16 bytes and as text\n  - `needles` — optional list of strings; reports offsets for utf8,\n    utf16le and utf16be encodings of each\n\n  Returns `size`, `strings`, `string_count`, `uuid_hits`, `needle_hits`.",
+  "name": "util.binary_strings",
+  "source_sha256": "bcdc0bd4a7dafb92ecb03e68889fce1e9672f670337a60d9b3aa915c5a47b4e0",
+  "specs": [
+    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-11-02T15:09:46.276512Z"
+}
