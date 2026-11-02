@@ -29,23 +29,34 @@ const maxReconcileSteps = 10_000;
 
 const retractModes = new Set(["close", "correct"]);
 
+// Attribute names follow the temporal_reasoning SKILL.md convention: flat
+// (no namespace) and hyphenated, e.g. `:depends-on`.
 const attributes = new Set([
   "description",
   "rationale",
-  "depends_on",
-  "motivated_by",
+  "depends-on",
+  "motivated-by",
   "governs",
   "supersedes",
-  "source_session",
+  "source-session",
 ]);
 const edges = new Set([
-  "depends_on",
-  "motivated_by",
+  "depends-on",
+  "motivated-by",
   "governs",
   "supersedes",
 ]);
+// System attributes: written by the binding with every entity, readable in
+// queries, never writable by callers.
+// - `:ident` maps MiniGraf's internal entity id back to the entity id.
+// - `:entity-type` is `:type/<prefix>`, derived from the entity id.
+const identAttribute = "ident";
+const typeAttribute = "entity-type";
+const systemAttributes = new Set([identAttribute, typeAttribute]);
+const entityPrefixes = new Set(["decision", "preference", "constraint", "dependency"]);
 const entityPattern =
-  /^(decision|preference|constraint|dependency)\/[a-z0-9][a-z0-9_-]*$/;
+  /^(decision|preference|constraint|dependency)\/[a-z0-9_](?:[a-z0-9_-]*[a-z0-9_])?$/;
+const typePattern = /^type\/(decision|preference|constraint|dependency)$/;
 const variablePattern = /^\?[a-z][a-z0-9_]*$/;
 const namePattern = /^[a-z][a-z0-9_]*$/;
 const keywordCell = /^:[a-zA-Z][a-zA-Z0-9_./-]*$/;
@@ -129,7 +140,15 @@ export function transact(graph: Graph, args: unknown): Record<string, unknown> {
     return { tx: graph.tx, at: new Date().toISOString(), reason, count: 0 };
   }
   const written = writeFacts(graph, facts);
-  return { tx: written.tx, at: written.at, reason, count: facts.length };
+  return {
+    tx: written.tx,
+    at: written.at,
+    reason,
+    count: facts.length,
+    // Canonical ids, so callers see what an input like "decision/Redis Cache"
+    // was stored as.
+    entities: [...new Set(facts.map((fact) => fact.e))].sort(),
+  };
 }
 
 export function retract(graph: Graph, args: unknown): Record<string, unknown> {
@@ -183,7 +202,7 @@ export function overview(graph: Graph, args: unknown): Record<string, unknown> {
   sections.push(":valid-at", validAt.edn);
   sections.push(
     ":where",
-    "[?e :alchemist/ident ?id]",
+    `[?e :${identAttribute} ?id]`,
     "[?e :description ?v]",
     ":max-results",
     String(maxRows + 1),
@@ -223,7 +242,7 @@ function writeFacts(graph: Graph, facts: Fact[]): { tx: number; at: string } {
     const triples = batch.map((fact) => triple(fact));
     if (!timed) {
       for (const entity of new Set(batch.map((fact) => fact.e))) {
-        if (untimed.delete(entity)) triples.push(identTriple(entity));
+        if (untimed.delete(entity)) triples.push(...identTriples(entity));
       }
     }
     last = commit(graph, transactForm(triples, timed ? windowOf(batch[0]) : null));
@@ -233,7 +252,7 @@ function writeFacts(graph: Graph, facts: Fact[]): { tx: number; at: string } {
 }
 
 /**
- * Make sure every entity has an `:alchemist/ident` that is valid wherever its
+ * Make sure every entity has an `:ident` (and `:entity-type`) that is valid wherever its
  * new facts are valid. Idents are open-ended, so one that starts at or before
  * the fact's valid_from covers the whole fact window.
  *
@@ -257,7 +276,7 @@ function ensureTimedIdents(graph: Graph, facts: Fact[]): Set<string> {
     byStart.set(start, group);
   }
   for (const [start, entities] of byStart) {
-    const triples = [...entities].map((entity) => identTriple(entity));
+    const triples = [...entities].flatMap((entity) => identTriples(entity));
     commit(graph, transactForm(triples, { from: start, to: null }));
     for (const entity of entities) untimed.delete(entity);
   }
@@ -268,13 +287,18 @@ function identVisibleAt(graph: Graph, entity: string, instant: string | null): b
   const section = instant ? `:valid-at ${ednString(instant)}` : "";
   const parsed = readQuery(
     graph,
-    `(query [:find ?id ${section} :where [:${entity} :alchemist/ident ?id]])`,
+    `(query [:find ?id ${section} :where [:${entity} :${identAttribute} ?id]])`,
   );
   return parsed.results.length > 0;
 }
 
-function identTriple(entity: string): string {
-  return `[:${entity} :alchemist/ident ${ednString(entity)}]`;
+/** The system facts every entity carries: its ident and its entity type. */
+function identTriples(entity: string): string[] {
+  const prefix = entity.slice(0, entity.indexOf("/"));
+  return [
+    `[:${entity} :${identAttribute} ${ednString(entity)}]`,
+    `[:${entity} :${typeAttribute} :type/${prefix}]`,
+  ];
 }
 
 function windowOf(fact: Fact): Window {
@@ -534,7 +558,7 @@ function readQuery(graph: Graph, datalog: string): QueryResult {
 function loadIdents(graph: Graph): void {
   const parsed = readQuery(
     graph,
-    "(query [:find ?e ?id :valid-at :any-valid-time :where [?e :alchemist/ident ?id]])",
+    `(query [:find ?e ?id :valid-at :any-valid-time :where [?e :${identAttribute} ?id]])`,
   );
   graph.idents.clear();
   graph.entities.clear();
@@ -632,7 +656,7 @@ function rejectCurrent(graph: Graph, facts: Fact[]): void {
 function describedEntities(graph: Graph): Set<string> {
   const parsed = readQuery(
     graph,
-    "(query [:find ?id :valid-at :any-valid-time :where [?e :alchemist/ident ?id] [?e :description ?v]])",
+    `(query [:find ?id :valid-at :any-valid-time :where [?e :${identAttribute} ?id] [?e :description ?v]])`,
   );
   const described = new Set<string>();
   for (const row of parsed.results) {
@@ -827,17 +851,53 @@ function parseFact(fact: unknown): Fact {
 }
 
 const entityHint =
-  "entity ids are <prefix>/<slug> with prefix decision, preference, constraint, or dependency and slug [a-z0-9_-]";
+  "entity ids are <prefix>/<slug> with prefix decision, preference, constraint, or dependency; " +
+  "the slug is lowercased, _ and - are kept, every other character becomes -, and leading/trailing - are stripped";
 const attributeHint = `allowed attributes: ${[...attributes].join(", ")}`;
 
-function parseEntity(value: unknown): string {
-  if (typeof value !== "string" || !entityPattern.test(value)) {
-    throw new MemoryError(`unknown entity ${JSON.stringify(value ?? null)}; ${entityHint}`);
-  }
-  return value;
+/**
+ * Canonical entity id, per the temporal_reasoning SKILL.md rule: lowercase;
+ * `_` and `-` are both preserved, every other character becomes `-`;
+ * leading/trailing hyphens are stripped (underscores are not). Hyphen runs
+ * are kept so distinct names never fold into one entity.
+ * `decision/Redis_cache` → `decision/redis_cache`,
+ * `dependency/pydantic.v2` → `dependency/pydantic-v2`.
+ */
+export function canonicalEntity(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const slash = value.indexOf("/");
+  if (slash < 0) return null;
+  const prefix = value.slice(0, slash).trim().toLowerCase();
+  if (!entityPrefixes.has(prefix)) return null;
+  const slug = value
+    .slice(slash + 1)
+    .toLowerCase()
+    // `u`: one `-` per code point, matching the Elixir side.
+    .replace(/[^a-z0-9_-]/gu, "-")
+    .replace(/^-+|-+$/g, "");
+  const id = `${prefix}/${slug}`;
+  return entityPattern.test(id) ? id : null;
 }
 
-function parseAttribute(value: unknown): string {
+function parseEntity(value: unknown): string {
+  const id = canonicalEntity(value);
+  if (id === null) {
+    throw new MemoryError(`unknown entity ${JSON.stringify(value ?? null)}; ${entityHint}`);
+  }
+  return id;
+}
+
+/**
+ * Writable attributes only. `read` also admits the system attributes
+ * (`ident`, `entity-type`) so queries can filter on them.
+ */
+function parseAttribute(value: unknown, read = false): string {
+  if (typeof value === "string" && read && systemAttributes.has(value)) return value;
+  if (typeof value === "string" && systemAttributes.has(value)) {
+    throw new MemoryError(
+      `attribute ${JSON.stringify(value)} is written automatically; ${attributeHint}`,
+    );
+  }
   if (typeof value !== "string" || !attributes.has(value)) {
     throw new MemoryError(
       `unknown attribute ${JSON.stringify(value ?? null)}; ${attributeHint}. ` +
@@ -852,8 +912,10 @@ function parseValue(value: unknown, attribute: string): string {
     throw new MemoryError("value must be a string");
   }
   if ([...value].length > maxValue) throw new MemoryError("value is too long");
-  if (edges.has(attribute) && !entityPattern.test(value)) {
-    throw new MemoryError("value must be an entity");
+  if (edges.has(attribute)) {
+    const id = canonicalEntity(value);
+    if (id === null) throw new MemoryError("value must be an entity");
+    return id;
   }
   return value;
 }
@@ -951,17 +1013,30 @@ function parsePattern(
     return value;
   }
   if (kind === "entity") return `:${parseEntity(value)}`;
-  if (kind === "attribute") return `:${parseAttribute(value)}`;
+  if (kind === "attribute") return `:${parseAttribute(value, true)}`;
   if (typeof value !== "string" || value === "") {
     throw new MemoryError("value must be a string");
   }
+  if (attribute === typeAttribute) {
+    if (!typePattern.test(value)) {
+      throw new MemoryError(
+        "entity-type value must be type/decision, type/preference, type/constraint, or type/dependency",
+      );
+    }
+    return `:${value}`;
+  }
+  if (edges.has(attribute)) {
+    const id = canonicalEntity(value);
+    if (id === null) throw new MemoryError("value must be an entity");
+    return `:${id}`;
+  }
+  // Unknown (variable) attribute: an exact entity or type id is a keyword.
   if (
-    (edges.has(attribute) || variablePattern.test(attribute)) &&
-    entityPattern.test(value)
+    variablePattern.test(attribute) &&
+    (entityPattern.test(value) || typePattern.test(value))
   ) {
     return `:${value}`;
   }
-  if (edges.has(attribute)) throw new MemoryError("value must be an entity");
   return ednString(value);
 }
 

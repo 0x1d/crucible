@@ -141,13 +141,13 @@ test("joins on edges and keeps two values of one attribute", () => {
         { e: "decision/pay", a: "description", v: "use stripe" },
         { e: "decision/pay", a: "description", v: "card network" },
         { e: "dependency/stripe", a: "description", v: "stripe billing" },
-        { e: "decision/pay", a: "motivated_by", v: "dependency/stripe" },
+        { e: "decision/pay", a: "motivated-by", v: "dependency/stripe" },
       ],
     });
     const joined = query(graph, {
       find: ["name"],
       where: [
-        { e: "decision/pay", a: "motivated_by", v: "?dep" },
+        { e: "decision/pay", a: "motivated-by", v: "?dep" },
         { e: "?dep", a: "description", v: "?name" },
       ],
     });
@@ -211,15 +211,15 @@ test("datalog rules, negation, and aggregates", () => {
     transact(graph, {
       reason: "graph",
       rules: [
-        "(rule [(reachable ?a ?b) [?a :depends_on ?b]])",
-        "(rule [(reachable ?a ?b) [?a :depends_on ?m] (reachable ?m ?b)])",
+        "(rule [(reachable ?a ?b) [?a :depends-on ?b]])",
+        "(rule [(reachable ?a ?b) [?a :depends-on ?m] (reachable ?m ?b)])",
       ],
       facts: [
         { e: "dependency/a", a: "description", v: "alpha service" },
         { e: "dependency/b", a: "description", v: "beta service" },
         { e: "dependency/c", a: "description", v: "gamma service" },
-        { e: "dependency/a", a: "depends_on", v: "dependency/b" },
-        { e: "dependency/b", a: "depends_on", v: "dependency/c" },
+        { e: "dependency/a", a: "depends-on", v: "dependency/b" },
+        { e: "dependency/b", a: "depends-on", v: "dependency/c" },
       ],
     });
     const reached = query(graph, {
@@ -230,12 +230,12 @@ test("datalog rules, negation, and aggregates", () => {
       ["dependency/b", "dependency/c"],
     );
     const counted = query(graph, {
-      datalog: "(query [:find (count ?e) :where [?e :depends_on ?d]])",
+      datalog: "(query [:find (count ?e) :where [?e :depends-on ?d]])",
     });
     assert.deepEqual(counted.results, [[2]]);
     const open = query(graph, {
       datalog:
-        "(query [:find ?id :where [?e :alchemist/ident ?id] [?e :description ?v] (not [?e :depends_on :dependency/b])])",
+        "(query [:find ?id :where [?e :ident ?id] [?e :description ?v] (not [?e :depends-on :dependency/b])])",
     });
     const ids = (open.results as string[][]).map((row) => row[0]).sort();
     assert.deepEqual(ids, ["dependency/b", "dependency/c"]);
@@ -338,7 +338,7 @@ test("schema errors name the bad value and list what is allowed", () => {
       }),
     );
     assert.match(attr, /^unknown attribute "language"/);
-    for (const name of ["description", "rationale", "depends_on", "motivated_by", "governs", "supersedes", "source_session"]) {
+    for (const name of ["description", "rationale", "depends-on", "motivated-by", "governs", "supersedes", "source-session"]) {
       assert.ok(attr.includes(name), `hint lists ${name}`);
     }
     assert.match(
@@ -354,6 +354,101 @@ test("schema errors name the bad value and list what is allowed", () => {
         query(graph, { find: ["?nope"], where: [{ e: "?e", a: "description", v: "?d" }] }),
       ),
       /^unbound find variable "\?nope"; variables bound in where: \?e, \?d/,
+    );
+  } finally {
+    closeGraph(graph);
+  }
+});
+
+test("entity ids are canonicalized on write and read", () => {
+  const graph = fresh();
+  try {
+    const written = transact(graph, {
+      reason: "seed",
+      facts: [
+        { e: "Decision/Redis Cache", a: "description", v: "use redis" },
+        { e: "dependency/pydantic.v2", a: "description", v: "pydantic" },
+        { e: "decision/Redis Cache", a: "depends-on", v: "dependency/Pydantic.V2" },
+        { e: "preference/_private-", a: "description", v: "keeps underscore" },
+      ],
+    });
+    assert.deepEqual(written.entities, [
+      "decision/redis-cache",
+      "dependency/pydantic-v2",
+      "preference/_private",
+    ]);
+    assert.deepEqual(overview(graph, {}).entities, [
+      "decision/redis-cache",
+      "dependency/pydantic-v2",
+      "preference/_private",
+    ]);
+    const joined = query(graph, {
+      find: ["d"],
+      where: [
+        ["decision/REDIS cache", "depends-on", "?dep"],
+        ["?dep", "description", "?d"],
+      ],
+    });
+    assert.deepEqual(joined.rows, [{ d: "pydantic" }]);
+    // Distinct names stay distinct: hyphen runs are not collapsed.
+    transact(graph, {
+      reason: "seed",
+      facts: [{ e: "decision/redis--cache", a: "description", v: "other" }],
+    });
+    assert.equal(overview(graph, { prefix: "decision/" }).count, 2);
+    assert.match(
+      message(() =>
+        transact(graph, { reason: "x", facts: [{ e: "decision/---", a: "description", v: "x" }] }),
+      ),
+      /^unknown entity/,
+    );
+  } finally {
+    closeGraph(graph);
+  }
+});
+
+test("every entity carries ident and entity-type, which callers cannot write", () => {
+  const graph = fresh();
+  try {
+    transact(graph, {
+      reason: "seed",
+      facts: [
+        { e: "decision/db", a: "description", v: "PostgreSQL" },
+        { e: "constraint/ops", a: "description", v: "no new infra" },
+        { e: "dependency/pg", a: "description", v: "pg server", valid_from: "2020-01-01" },
+      ],
+    });
+    const constraints = query(graph, {
+      find: ["e", "d"],
+      where: [
+        ["?e", "entity-type", "type/constraint"],
+        ["?e", "description", "?d"],
+      ],
+    });
+    assert.deepEqual(constraints.rows, [{ e: "constraint/ops", d: "no new infra" }]);
+    const typed = query(graph, {
+      valid_at: "2021-01-01",
+      find: ["t"],
+      where: [["dependency/pg", "entity-type", "?t"]],
+    });
+    assert.deepEqual(typed.rows, [{ t: "type/dependency" }]);
+    const viaDatalog = query(graph, {
+      datalog: "(query [:find ?id :where [?e :entity-type :type/decision] [?e :ident ?id]])",
+    });
+    assert.deepEqual(viaDatalog.results, [["decision/db"]]);
+    for (const a of ["ident", "entity-type"]) {
+      assert.match(
+        message(() =>
+          transact(graph, { reason: "x", facts: [{ e: "decision/db", a, v: "type/decision" }] }),
+        ),
+        /is written automatically/,
+      );
+    }
+    assert.match(
+      message(() =>
+        query(graph, { find: ["e"], where: [["?e", "entity-type", "type/topic"]] }),
+      ),
+      /^entity-type value must be/,
     );
   } finally {
     closeGraph(graph);
@@ -605,7 +700,7 @@ test("writes store no reason facts on entities", () => {
       datalog: "(query [:find ?a :valid-at :any-valid-time :where [:decision/db ?a ?v]])",
     });
     const names = (attrs.results as string[][]).map((row) => row[0]).sort();
-    assert.deepEqual(names, ["alchemist/ident", "description"]);
+    assert.deepEqual(names, ["description", "entity-type", "ident"]);
   } finally {
     closeGraph(graph);
   }

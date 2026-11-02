@@ -67,7 +67,7 @@ export default defineEval({
             "remember these",
             "Persist the git integration points we just discussed for the lighter Restate factory stack.",
             "Use memory.remember with facts as {e,a,v} objects.",
-            "Allowed attributes: description, rationale, depends_on, motivated_by only.",
+            "Allowed attributes: description, rationale, depends-on, motivated-by only.",
             "Do not read repository source to infer the schema.",
           ].join(" "),
         );

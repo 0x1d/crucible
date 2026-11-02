@@ -43,11 +43,22 @@ A retract of an identity that is not visible in that window is rejected.
 
 | Field | Contract |
 | --- | --- |
-| Entity | `decision/`, `preference/`, `constraint/`, or `dependency/`, then `/`, then `[a-z0-9][a-z0-9_-]*`. |
-| Attribute | `description`, `rationale`, `depends_on`, `motivated_by`, `governs`, `supersedes`, or `source_session`. |
-| Value | A string of 1 to 4000 characters. `depends_on`, `motivated_by`, `governs`, and `supersedes` values are entity ids. |
+| Entity | `decision`, `preference`, `constraint`, or `dependency`, then `/`, then a slug. The id is canonicalized before it is used. |
+| Attribute | `description`, `rationale`, `depends-on`, `motivated-by`, `governs`, `supersedes`, or `source-session`. |
+| Value | A string of 1 to 4000 characters. `depends-on`, `motivated-by`, `governs`, and `supersedes` values are entity ids, canonicalized the same way. |
 | `valid_from` | Inclusive start of valid time. Omitted means no start when `valid_to` is set, and the write time otherwise. |
 | `valid_to` | Exclusive end of valid time. Omitted means no end. |
+
+The schema follows the conventions of the [temporal_reasoning SKILL.md](https://github.com/project-minigraf/temporal_reasoning/blob/master/SKILL.md): entity ids are namespaced, attribute names are flat and hyphenated.
+
+An entity id is canonicalized on every write and every query, by the same rule SKILL.md uses.
+The prefix and slug are lowercased.
+`_` and `-` are kept; every other character becomes `-`.
+Leading and trailing `-` are stripped; `_` is not.
+Runs of `-` are kept, so two distinct names never fold into one entity.
+`decision/Redis Cache` becomes `decision/redis-cache`, and `dependency/pydantic.v2` becomes `dependency/pydantic-v2`.
+A slug that is empty after canonicalization is rejected.
+A successful write lists the canonical ids it touched under `entities`.
 
 An assert transaction must include a `description` for every entity it names, unless that entity already has a `description`.
 A transaction carries 1 to 100 facts and a `reason` of 1 to 2000 characters after trimming.
@@ -56,12 +67,18 @@ A date-only value is midnight UTC.
 `valid_from` must be earlier than `valid_to` when both are set.
 
 MiniGraf stores entities and attributes as keywords, and stores edge values as keywords.
-The binding also writes `:alchemist/ident` on each entity, mapping MiniGraf's internal id to the entity id.
-That attribute is not part of the closed schema above.
-An ident is open-ended and must be valid wherever the entity's facts are valid.
-For a fact written now, the ident rides in the same transaction.
-For a valid-time fact, an ident starting at the fact's `valid_from` is written in the transaction before the facts, unless an earlier ident already covers it.
-An `as_of` that sees a fact therefore also sees its ident.
+The binding also writes two system attributes on each entity:
+
+| Attribute | Value |
+| --- | --- |
+| `:ident` | The entity id as a string. It maps MiniGraf's internal id back to the entity id. |
+| `:entity-type` | `:type/decision`, `:type/preference`, `:type/constraint`, or `:type/dependency`, from the id prefix. |
+
+Both can be read in `where` clauses and Datalog, but a write that names them is rejected.
+They are open-ended and must be valid wherever the entity's facts are valid.
+For a fact written now, they ride in the same transaction.
+For a valid-time fact, they are written starting at the fact's `valid_from` in the transaction before the facts, unless an earlier ident already covers it.
+An `as_of` that sees a fact therefore also sees its ident and type.
 The `reason` is required and echoed in the result; it is not stored in the graph.
 The `tx` returned by the call is the transaction of the last write the call made.
 
@@ -100,8 +117,10 @@ Arguments are JSON objects with string keys.
 `memory.retract` may also take `mode` and `valid_at`.
 `memory.transact` may also take `rules`.
 Each fact takes `e`, `a`, `v`, and optional `valid_from` and `valid_to`.
-A successful write returns `tx`, `at`, `reason`, and `count`.
+A successful write returns `tx`, `at`, `reason`, `count`, and `entities`.
 `count` is the number of user facts written.
+`entities` is the sorted list of canonical entity ids those facts name.
+`memory.remember` also stamps each entity with `source-session` when a session id is given, unless that stamp is already in the call or already current.
 
 ## Retract
 
@@ -138,7 +157,7 @@ A recursive rule is how a dependency is followed past a fixed join.
 `datalog` is one MiniGraf `(query ...)` form of at most 8000 characters.
 The result of `datalog` is MiniGraf's `results` and `variables`.
 Keyword cells are returned without the leading colon.
-A MiniGraf entity id is returned as the entity id when `:alchemist/ident` records it.
+A MiniGraf entity id is returned as the entity id when `:ident` records it.
 That form is the path for negation, disjunction, aggregates, and rule calls.
 
 `where` is a non-empty list of clauses.
@@ -146,7 +165,9 @@ Each clause has `e`, `a`, and `v`.
 A clause value is a literal string or a variable.
 A variable is `?` plus `[a-z][a-z0-9_]*`.
 Clauses share variables, and that sharing is the join.
-A concrete entity or attribute must be one the graph accepts on write.
+A concrete entity must be one the graph accepts on write; it is canonicalized first.
+A concrete attribute is one the graph accepts on write, or `ident` or `entity-type`.
+An `entity-type` value is `type/decision`, `type/preference`, `type/constraint`, or `type/dependency`.
 `find` lists variable names, with or without the leading `?`.
 Every find variable appears in `where`.
 Result rows are maps from those names, without `?`, sorted by the find values.
@@ -187,9 +208,11 @@ The other messages are:
 | More than 100 facts | `too many facts` |
 | Entity id rejected | `unknown entity` |
 | Attribute rejected | `unknown attribute` |
+| Write of `ident` or `entity-type` | `attribute ... is written automatically` |
+| `entity-type` clause value is not a type | `entity-type value must be ...` |
 | Value missing, empty, or not a string | `value must be a string` |
 | Value longer than 4000 characters | `value is too long` |
-| `depends_on`, `motivated_by`, `governs`, or `supersedes` value is not an entity id | `value must be an entity` |
+| `depends-on`, `motivated-by`, `governs`, or `supersedes` value is not an entity id | `value must be an entity` |
 | Timestamp rejected | `invalid timestamp` |
 | `valid_from` not before `valid_to` | `valid_from must be before valid_to` |
 | Assert without a description for a new entity | `description is required` |

@@ -8,12 +8,18 @@ defmodule AgentFn.Memory.Transact do
     (objects, not tuples). Optional `valid_from` / `valid_to` ISO timestamps.
   - `rules` — optional list of `(rule [...])` strings.
 
-  Schema (closed; anything else is rejected):
+  Schema (closed; anything else is rejected), aligned with the
+  temporal_reasoning SKILL.md conventions:
   - `e`: `<prefix>/<slug>`, prefix one of `decision`, `preference`,
-    `constraint`, `dependency`; slug `[a-z0-9][a-z0-9_-]*`.
-  - `a`: one of `description`, `rationale`, `source_session` (string values)
-    or the edges `depends_on`, `motivated_by`, `governs`, `supersedes`
-    (value must be another entity id).
+    `constraint`, `dependency`. Ids are canonicalized: lowercased, `_` and `-`
+    kept, every other character becomes `-`, leading/trailing `-` stripped
+    (`decision/Redis Cache` → `decision/redis-cache`). The result lists the
+    canonical ids under `entities`.
+  - `a`: one of `description`, `rationale`, `source-session` (string values)
+    or the edges `depends-on`, `motivated-by`, `governs`, `supersedes`
+    (value must be another entity id, canonicalized the same way).
+  - Every entity automatically gets `ident` (its id) and `entity-type`
+    (`type/<prefix>`). Both are queryable but cannot be written.
   - New entities need a `description` fact in the same call.
   - Put free-form detail (language, owner, ...) in `description` or `rationale`.
 
@@ -21,7 +27,7 @@ defmodule AgentFn.Memory.Transact do
       %{"reason" => "seed", "facts" => [
         %{"e" => "decision/db", "a" => "description", "v" => "Use PostgreSQL"},
         %{"e" => "decision/db", "a" => "rationale", "v" => "Team knows it"},
-        %{"e" => "decision/db", "a" => "depends_on", "v" => "dependency/pg"},
+        %{"e" => "decision/db", "a" => "depends-on", "v" => "dependency/pg"},
         %{"e" => "dependency/pg", "a" => "description", "v" => "PostgreSQL 16"}
       ]}
   """
