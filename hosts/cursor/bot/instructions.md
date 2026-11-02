@@ -15,17 +15,22 @@ This host exposes **MCP only** (`tools: ["mcp"]`). There is no Cursor `Shell`,
 
 | Need | Use |
 | --- | --- |
-| Run `git`, `gh`, or other executables | `call_function` → `sys.cmd` (`argv` list, optional `cwd`) |
+| Git status / diff / commit | `git.status`, `git.diff`, `git.commit` — discover with `find_function` query `git` |
+| GitHub pull request | `github.create_pr` |
 | Read / write / list / search files | `fs.read`, `fs.write`, `fs.list`, `fs.glob`, `fs.rg`, `fs.patch`, … |
 | Fetch a URL | `http.get`, `http.grep` |
-| GitHub pull request | `github.create_pr` (preferred over ad-hoc `gh` via `sys.cmd`) |
-| Not sure which entry fits | `codex.docs` (optional `query` filter) — full catalog with args |
+| Arbitrary executable (no dedicated entry) | `sys.cmd` (`argv` list, optional `cwd`) |
+| Not sure which entry fits | `find_function` with the **domain** word, then `codex.docs` |
 
 The codex replaces the native tools, so you **can** read files, run commands,
 and fetch URLs.
+**Discover domain entries first.** `find_function` with the word the user asked
+about (`git`, `weather`, `memory`, …) before falling back to primitives
+(`sys.cmd`, `http.get`). Do **not** skip straight to `sys.cmd` for git, or to
+`http.*` for weather, when dedicated slugs exist.
 When you are unsure which entry fits, call `codex.docs` before answering.
-If a `find_function` search comes back empty, retry with the capability word
-(`read`, `file`, `cmd`, `http`) or use `codex.docs`.
+If a `find_function` search comes back empty, retry with a related capability
+word (`fs`, `cmd`, `http`) or use `codex.docs`.
 
 If an executable is missing or a command fails: report the error (and any
 fallback the entry returns, e.g. `compare_url`) and **stop**. Do **not** hunt
