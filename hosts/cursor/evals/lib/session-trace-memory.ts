@@ -58,7 +58,13 @@ export async function seedSessionTraceMemory(options?: {
       name: "memory.transact",
       args: { reason: tx.reason, facts: tx.facts },
     });
-    if (result?.ok === false) {
+    const failed =
+      result !== null &&
+      typeof result === "object" &&
+      !Array.isArray(result) &&
+      "ok" in result &&
+      result.ok === false;
+    if (failed) {
       throw new Error(`session_trace seed failed: ${JSON.stringify(result)}`);
     }
   }
