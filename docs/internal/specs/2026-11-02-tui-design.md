@@ -7,7 +7,8 @@ tags: [tui, host, claude, cursor, design]
 
 # Terminal UI design
 
-Status: Proposed.
+Status: Implemented for the Claude host.
+The Cursor adapter is planned and is not part of the TUI.
 
 ## Goal
 
@@ -25,9 +26,9 @@ The footer shows context use and session cost.
 | Renderer | `TuiMainScreen` | The terminal keeps its scrollback. No alternate screen. |
 | Host contract | One `HostAdapter` interface with a normalized event stream | Rendering and stats code is the same for both hosts. |
 | Claude transport | `query()` with `alchemistOptions()` from `hosts/claude/codex.ts` | Reuses the host as it is. |
-| Cursor transport | `serve("hosts/cursor", { mode: "single", port: 0 })` in the TUI process, then the HTTP session API | No child process and no port discovery. |
-| Cursor context window | Fixed at 200,000 tokens | Model `auto` reports no window size. |
-| Session index for Claude | `.alchemist/tui/sessions.json` | `listSessions()` for the repository root also returns Claude Code CLI sessions. The index keeps only sessions that the TUI created. |
+| Cursor transport (planned) | `serve("hosts/cursor", { mode: "single", port: 0 })` in the TUI process, then the HTTP session API | No child process and no port discovery. |
+| Cursor context window (planned) | Fixed at 200,000 tokens | Model `auto` reports no window size. |
+| Session index for Claude | `.alchemist/tui/claude-sessions.json` | `listSessions()` for the repository root also returns Claude Code CLI sessions. The index keeps only sessions that the TUI created. |
 | Memory checkpoint | A marker line inside the `/remember` prompt | The transcript holds the checkpoint. The TUI keeps no state for it. |
 | Theme | One theme, `alchemist`, in a theme registry | Every component reads its styles from the active theme. |
 | Script | `npm run tui` runs `node tui/main.ts` | Matches `npm run chat:claude`. |
@@ -37,6 +38,8 @@ The footer shows context use and session cost.
 ```text
 tui/
   main.ts            start flow, slash commands, key bindings, wiring
+  log.ts             console redirect to the log file
+  commands.ts        slash command list and parser
   view.ts            transcript components and footer
   stats.ts           per-session token, context, and cost totals
   changes.ts         git snapshots of functions/ and the /diff output
@@ -45,7 +48,6 @@ tui/
   adapters/
     types.ts         HostAdapter, SessionSummary, HostEvent
     claude.ts
-    cursor.ts
   *.test.ts          node:test unit tests
 ```
 
@@ -53,11 +55,14 @@ tui/
 
 ```ts
 interface HostAdapter {
-  readonly name: "claude" | "cursor";
+  readonly name: string;
+  readonly sessionId: string | undefined;
+  readonly model: string | undefined;
+  readonly effort: string | undefined;
   listSessions(): Promise<SessionSummary[]>;
   openSession(id: string | undefined): Promise<HostEvent[]>; // replayed events
   listModels(): Promise<ModelChoice[]>;
-  setModel(model: string, effort: string | undefined): Promise<void>;
+  setModel(model: string | undefined, effort: string | undefined): void;
   send(prompt: string, signal: AbortSignal): AsyncIterable<HostEvent>;
   close(): Promise<void>;
 }
@@ -65,11 +70,13 @@ interface HostAdapter {
 
 `openSession(undefined)` starts a new session.
 `send()` stops the turn when the signal aborts.
+After a stop, the TUI shows the line `Stopped.`.
 
 ### Events
 
 | Event | Fields | Claude source | Cursor source |
 | --- | --- | --- | --- |
+| `user` | `text` | A stored user message, in a replay only | `message.received`, in a replay only |
 | `text` | `delta` | `stream_event` with a text `content_block_delta` | `message.appended` |
 | `reasoning` | `delta` | `stream_event` with a `thinking_delta` | `reasoning.appended` |
 | `tool` | `id`, `name`, `input` | `tool_use` block in an `assistant` message | `actions.requested` |
@@ -87,7 +94,10 @@ interface HostAdapter {
 - `openSession(id)` replays `getSessionMessages(id)` as events.
 - The adapter writes each new session id to the session index after the first `result` message.
 
-### Cursor adapter
+### Cursor adapter (planned)
+
+The TUI host registry does not include this adapter.
+The design for it follows.
 
 - The adapter starts the in-process server on first use with the same state root as `agent-sdk dev`.
 - `openSession(undefined)` defers creation to the first `send()`, which calls `POST /v1/session` with `modelConfig`.

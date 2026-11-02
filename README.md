@@ -55,10 +55,17 @@ npm run chat:claude
 npm run eval:claude
 ```
 
+Optional terminal UI for the hosts:
+
+```bash
+npm run tui
+```
+
 ## Documentation
 
 - [Documentation index](docs/index.md) — goal-oriented reading paths
 - [Getting started](docs/guides/getting-started.md) — install, validate, first call
+- [Terminal UI](docs/guides/tui.md) — run a host in the terminal with streamed output and usage stats
 - [Architecture](docs/concepts/architecture.md) — components, lifecycle, composition
 - [Memory](docs/concepts/memory.md) — MiniGraf memory and bi-temporal queries
 - [Codex protocol](docs/reference/protocol.md) — operation contracts

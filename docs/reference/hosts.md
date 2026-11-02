@@ -73,6 +73,7 @@ No single vendor SDK bills across Cursor, OpenCode, and Anthropic. Unify at the
 - **Adapter:** `hosts/claude/codex.ts` registers the four codex tools on an in-process MCP server and builds the `query()` options.
 - **Prompt:** `hosts/claude/instructions.md` replaces the Claude Code system prompt. Built-in tools are removed with `tools: []`.
 - **Chat and evals:** `npm run chat:claude` and `npm run eval:claude`. See the [host README](../../hosts/claude/README.md).
+- **Terminal UI:** `npm run tui` runs this host in the terminal UI under `tui/`. See [Terminal UI](../guides/tui.md).
 
 ## Anthropic Messages API (direct)
 

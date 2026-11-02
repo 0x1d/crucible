@@ -23,6 +23,13 @@ npm run dev:session-trace
 npm run eval:session-trace
 ```
 
+Terminal UI (`tui/`, Claude host):
+
+```bash
+npm run tui
+npm run test:tui
+```
+
 Run the CLI under Node, never Bun.
 
 ## Git commits
@@ -56,6 +63,7 @@ Do not hand-author that HTML or copy a full rendered PR comment into a commit.
 - `hosts/cursor/evals/` is filesystem evals (`evals.config.ts` required).
   Not `bot/evals/`. That path is ignored.
 - `hosts/claude/` is the Claude Agent SDK example host. `npm run eval:claude` runs its evals.
+- `tui/` is the terminal UI. It imports the hosts. No file under `hosts/` or `core/` imports it.
 
 ## Documentation
 
@@ -73,6 +81,7 @@ Name the long-lived process, its supervision tree, and its state files.
   evidence seeding, and side-effect gates.
 - Add npm deps on a first cut. Stick to what `@grok/agent-sdk` and
   `@anthropic-ai/claude-agent-sdk` already ship.
+  `@earendil-works/pi-tui` is the one exception. Only `tui/` imports it.
 - Point `serve` at a parent folder during bring-up. It mounts every sibling.
 
 ## Full codebase review (Elixir)
