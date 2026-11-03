@@ -27,6 +27,7 @@ import { CursorAdapter } from "./adapters/cursor.ts";
 import type { HostAdapter } from "./adapters/types.ts";
 import { ChangeTracker } from "./changes.ts";
 import { COMMANDS, parseCommand } from "./commands.ts";
+import { applyContextCommand } from "./context-improvements.ts";
 import { rememberPrompt } from "./remember.ts";
 import { SessionStats } from "./stats.ts";
 import { type Theme, resolveTheme } from "./theme.ts";
@@ -305,6 +306,12 @@ async function handleCommand(name: string, arg: string): Promise<void> {
         `/remember${arg ? ` ${arg}` : ""}`,
       );
       break;
+    case "ctx": {
+      const { message } = applyContextCommand(arg);
+      transcript.info(message);
+      render();
+      break;
+    }
     case "exit":
       await shutdown();
       break;
