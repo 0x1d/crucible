@@ -1,7 +1,7 @@
 import { appendFileSync, mkdirSync } from "node:fs";
 import path from "node:path";
 
-import { defaultStateRoot } from "./context-improvements.ts";
+import { defaultStateRoot } from "./host-flags.ts";
 
 export function logToolResultSize(
   toolName: string,

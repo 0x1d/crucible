@@ -8,7 +8,8 @@ export const COMMANDS: SlashCommand[] = [
   { name: "effort", description: "Set the effort level", argumentHint: "[level]" },
   { name: "diff", description: "Show the changes under functions/ in this run" },
   { name: "remember", description: "Store knowledge from this conversation in memory", argumentHint: "[instructions]" },
-  { name: "ctx", description: "Toggle context-window improvements", argumentHint: "[list|on|off|reset] [id]" },
+  { name: "flags", description: "Toggle cursor host feature flags", argumentHint: "[list|on|off|reset] [id]" },
+  { name: "ctx", description: "Alias for /flags", argumentHint: "[list|on|off|reset] [id]" },
   { name: "exit", description: "Exit the TUI" },
 ];
 

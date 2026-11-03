@@ -20,6 +20,6 @@ test("a command without an argument has an empty argument", () => {
 test("the command list holds every command for autocomplete", () => {
   assert.deepEqual(
     COMMANDS.map((c) => c.name),
-    ["host", "session", "new", "model", "effort", "diff", "remember", "ctx", "exit"],
+    ["host", "session", "new", "model", "effort", "diff", "remember", "flags", "ctx", "exit"],
   );
 });
