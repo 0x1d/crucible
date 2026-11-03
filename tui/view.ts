@@ -12,7 +12,7 @@ import type { FileChange } from "./changes.ts";
 import { SessionStats, formatTokens } from "./stats.ts";
 import type { Theme } from "./theme.ts";
 
-/** Context, cache result, cached tokens, and new tokens for one turn. */
+/** Context, cache result, cache read/write, and new tokens for one turn. */
 export function tokenStatsLine(theme: Theme, stats: SessionStats): string {
   const sep = theme.fg.muted(" · ");
   const hit = stats.cacheHit();
@@ -23,7 +23,8 @@ export function tokenStatsLine(theme: Theme, stats: SessionStats): string {
       ? []
       : [
           hit ? cache("hit") : theme.fg.warning("miss"),
-          cache(`cached ${formatTokens(stats.cachedTokens() ?? 0)}`),
+          cache(`read ${formatTokens(stats.cacheReadTokens ?? 0)}`),
+          cache(`write ${formatTokens(stats.cacheWriteTokens ?? 0)}`),
           theme.fg.accent(`new ${formatTokens(stats.newTokens() ?? 0)}`),
         ]),
   ];

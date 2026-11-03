@@ -97,7 +97,7 @@ The checkpoint lines are part of the transcript, so a resumed session keeps them
 - A file change under `functions/` shows as `✎ functions/<path> +N −M` after the tool result.
 - Each finished turn adds a token line below its reply.
 - Tool calls and file changes for that turn stay above the token line.
-- The line shows that turn's context use, cache result, cached tokens, and new tokens, in the same colors as the footer.
+- The line shows that turn's context use, cache result, cache read, cache write, and new tokens, in the same colors as the footer.
 - A turn that reports no context size omits the line.
 
 ## Dialogs
@@ -111,17 +111,17 @@ A dialog has the `surface` background, a title, the list, and a key hint line.
 The footer shows the host, the model, the effort level, the context use, the prompt-cache result, the session cost, and the time of the last turn.
 
 ```text
-claude · opus · high · ctx 90.1k/200k (45%) · hit · cached 80.9k · new 9.2k · $0.083 · 12.4s
+claude · opus · high · ctx 90.1k/200k (45%) · hit · read 80.9k · write 0 · new 9.2k · $0.083 · 12.4s
 ```
 
 | Field | Source |
 | --- | --- |
 | Context | The prompt size of the last turn. Claude adds input, cache-read, and cache-write, which are disjoint. Cursor uses input when that count already includes the cache, and adds the cache buckets when input is smaller than them. The Claude window comes from the SDK result. The Cursor window is 200,000 tokens. |
-| Cache | `hit` when the last turn read from the prompt cache, `miss` when the host reported a read of zero. `cached` is cache read plus cache write. `new` is the rest of the prompt. A turn that does not report cache counters omits these fields. |
+| Cache | `hit` when the last turn read from the prompt cache, `miss` when the host reported a read of zero. `read` and `write` are the cache-read and cache-write token counts. `new` is the rest of the prompt (`context − read − write`). A turn that does not report cache counters omits these fields. |
 | Cost | The running total of the session. Claude uses `total_cost_usd` of the latest SDK result. Cursor uses `costUsd` from `GET /v1/session/:id/cost`. |
 
 The context field, including the percentage, is green below 150,000 tokens, yellow from 150,000 through 200,000 tokens, and red above 200,000 tokens.
-`hit` and the cached token count use the success color.
+`hit`, `read`, and `write` use the success color.
 `miss` uses the warning color.
 The new token count uses the accent color.
 A replayed session has no cost data for its earlier turns.
@@ -144,7 +144,7 @@ Dialogs use the `surface` background.
 | `secondary` | `oklch(72% 0.10 190)` | Tool names, links, inline code, diff hunk headers |
 | `muted` | `oklch(62% 0.01 260)` | User prompt lines, reasoning, descriptions, the footer |
 | `border` | `oklch(45% 0.02 260)` | Editor border, code block border, quote border, rules |
-| `success` | `oklch(72% 0.15 150)` | `✓` markers, added diff lines, context below 150,000 tokens, cache hits, cached tokens |
+| `success` | `oklch(72% 0.15 150)` | `✓` markers, added diff lines, context below 150,000 tokens, cache hits, cache read/write counts |
 | `error` | `oklch(65% 0.18 25)` | `✗` markers, removed diff lines, error lines, context above 200,000 tokens |
 | `warning` | `oklch(78% 0.14 70)` | Partial cost, cache misses, context from 150,000 through 200,000 tokens |
 | `surface` | `oklch(27% 0.02 260)` | Dialog background |

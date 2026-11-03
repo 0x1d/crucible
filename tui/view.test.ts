@@ -16,7 +16,7 @@ test("the footer joins host, model, effort, context, cost, and turn time", () =>
   assert.equal(stripTerminalSequences(line), "claude · opus · high · ctx 41.2k/200k (21%) · $0.083 · 12.4s");
 });
 
-test("the footer shows a cache hit with cached and new tokens", () => {
+test("the footer shows a cache hit with read, write, and new tokens", () => {
   const stats = new SessionStats();
   stats.apply({
     type: "usage",
@@ -29,7 +29,7 @@ test("the footer shows a cache hit with cached and new tokens", () => {
   const line = footerLine(theme, { host: "cursor", model: "auto", effort: undefined, stats });
   assert.equal(
     stripTerminalSequences(line),
-    "cursor · auto · ctx 90.1k/200k (45%) · hit · cached 80.9k · new 9.2k · $0.083",
+    "cursor · auto · ctx 90.1k/200k (45%) · hit · read 80.9k · write 0 · new 9.2k · $0.083",
   );
 });
 
@@ -45,7 +45,23 @@ test("the footer shows a cache miss when nothing was read", () => {
   const line = footerLine(theme, { host: "cursor", model: "auto", effort: undefined, stats });
   assert.equal(
     stripTerminalSequences(line),
-    "cursor · auto · ctx 26k/200k (13%) · miss · cached 0 · new 26k · $0.000",
+    "cursor · auto · ctx 26k/200k (13%) · miss · read 0 · write 0 · new 26k · $0.000",
+  );
+});
+
+test("the footer shows cache write separately from cache read", () => {
+  const stats = new SessionStats();
+  stats.apply({
+    type: "usage",
+    contextTokens: 2_400,
+    contextWindow: 200_000,
+    cacheReadTokens: 2_000,
+    cacheWriteTokens: 300,
+  });
+  const line = footerLine(theme, { host: "claude", model: "opus", effort: undefined, stats });
+  assert.equal(
+    stripTerminalSequences(line),
+    "claude · opus · ctx 2.4k/200k (1%) · hit · read 2k · write 300 · new 100 · $0.000",
   );
 });
 
@@ -61,7 +77,8 @@ test("the footer colors context, cache, and new tokens", () => {
   const line = footerLine(theme, { host: "cursor", model: "auto", effort: undefined, stats });
   assert.ok(line.includes(theme.fg.success("ctx 90.1k/200k (45%)")));
   assert.ok(line.includes(theme.fg.success("hit")));
-  assert.ok(line.includes(theme.fg.success("cached 80.9k")));
+  assert.ok(line.includes(theme.fg.success("read 80.9k")));
+  assert.ok(line.includes(theme.fg.success("write 0")));
   assert.ok(line.includes(theme.fg.accent("new 9.2k")));
 
   const warn = new SessionStats();
@@ -105,7 +122,7 @@ test("a finished turn shows its token stats under the reply", () => {
   const answer = lines.findIndex((line) => line.includes("Hi there"));
   const stats = lines.findIndex((line) => line.includes("ctx 90.1k/200k (45%)"));
   assert.ok(answer >= 0 && stats > answer);
-  assert.equal(lines[stats].trimEnd(), "ctx 90.1k/200k (45%) · hit · cached 80.9k · new 9.2k");
+  assert.equal(lines[stats].trimEnd(), "ctx 90.1k/200k (45%) · hit · read 80.9k · write 0 · new 9.2k");
   assert.ok(view.render(80).join("\n").includes(theme.fg.success("hit")));
   assert.ok(view.render(80).join("\n").includes(theme.fg.accent("new 9.2k")));
 
@@ -133,8 +150,8 @@ test("each reply keeps its own token line", () => {
   const secondPrompt = lines.findIndex((line) => line.includes("you> two"));
   const second = lines.findIndex((line) => line.includes("ctx 160k/200k (80%)"));
   assert.ok(first >= 0 && first < secondPrompt && secondPrompt < second);
-  assert.equal(lines[first].trimEnd(), "ctx 1k · miss · cached 0 · new 1k");
-  assert.equal(lines[second].trimEnd(), "ctx 160k/200k (80%) · hit · cached 150k · new 10k");
+  assert.equal(lines[first].trimEnd(), "ctx 1k · miss · read 0 · write 0 · new 1k");
+  assert.equal(lines[second].trimEnd(), "ctx 160k/200k (80%) · hit · read 150k · write 0 · new 10k");
 });
 
 test("a turn without a context size has no token line", () => {
