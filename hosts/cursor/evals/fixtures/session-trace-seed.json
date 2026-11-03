@@ -15,17 +15,17 @@
         },
         {
           "e": "decision/k8s-durable-execution",
-          "a": "depends_on",
+          "a": "depends-on",
           "v": "dependency/temporal"
         },
         {
           "e": "decision/k8s-durable-execution",
-          "a": "depends_on",
+          "a": "depends-on",
           "v": "dependency/argo-cd"
         },
         {
           "e": "decision/k8s-durable-execution",
-          "a": "depends_on",
+          "a": "depends-on",
           "v": "dependency/tekton"
         },
         {
@@ -55,7 +55,7 @@
         },
         {
           "e": "decision/factory-architecture",
-          "a": "motivated_by",
+          "a": "motivated-by",
           "v": "decision/k8s-durable-execution"
         },
         {

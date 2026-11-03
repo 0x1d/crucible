@@ -1,12 +1,13 @@
 {
-  "description": "Report Docker containers by composing `docker.ps`.\n\n  Args:\n  - `all` — if true, include stopped containers (default false)",
+  "description": "Summarize Docker containers from `docker.ps`.\n\n  Args:\n  - `all` — if true, include stopped containers (default false)\n\n  Returns `count`, `by_state`, `by_project`, `by_image`, and `published_ports`.\n  The container list stays out of the result.",
   "loaded": true,
   "module": "Elixir.AgentFn.Docker.PsReport",
-  "moduledoc": "Report Docker containers by composing `docker.ps`.\n\n  Args:\n  - `all` — if true, include stopped containers (default false)",
+  "moduledoc": "Summarize Docker containers from `docker.ps`.\n\n  Args:\n  - `all` — if true, include stopped containers (default false)\n\n  Returns `count`, `by_state`, `by_project`, `by_image`, and `published_ports`.\n  The container list stays out of the result.",
   "name": "docker.ps_report",
-  "source_sha256": "c72403e27a36447754f1e3ffb36650a3ce7943a696b909b2c5e8b3e6f960ae6e",
+  "source_sha256": "c8bf9201d5a731ff286c5582f96bd34b0d9981c500dbb7d5c90a27fc03f6c7c1",
   "specs": [
-    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}",
+    "@spec summarize([map()]) :: map()"
   ],
-  "updated_at": "2026-11-01T14:40:57.401828Z"
+  "updated_at": "2026-11-03T10:32:42.723729Z"
 }

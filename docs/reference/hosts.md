@@ -56,6 +56,7 @@ No single vendor SDK bills across Cursor, OpenCode, and Anthropic. Unify at the
   That directory is gitignored.
   Each workspace is its own git root, so turns do not load this repository's `AGENTS.md` or ambient MCP servers.
 - **Bridge:** `core/elixir-bridge.ts` compiles `runtime/` when sources change, starts `elixir --no-halt` with `Application.ensure_all_started(:runtime, :permanent)`, and sends length-prefixed JSON over TCP.
+- **Terminal UI:** `npm run tui` runs this host in the terminal UI under `tui/`. See [Terminal UI](../guides/tui.md).
 - **Session-trace memory:** Factory Q&A evals and playground replay use a committed MiniGraf fixture.
   Default graph: `hosts/cursor/.eval-memory/session-trace.graph`.
   Commands: `npm run seed:session-trace`, `npm run dev:session-trace`, `npm run eval:session-trace`.
@@ -73,6 +74,7 @@ No single vendor SDK bills across Cursor, OpenCode, and Anthropic. Unify at the
 - **Adapter:** `hosts/claude/codex.ts` registers the four codex tools on an in-process MCP server and builds the `query()` options.
 - **Prompt:** `hosts/claude/instructions.md` replaces the Claude Code system prompt. Built-in tools are removed with `tools: []`.
 - **Chat and evals:** `npm run chat:claude` and `npm run eval:claude`. See the [host README](../../hosts/claude/README.md).
+- **Terminal UI:** `npm run tui` runs this host in the terminal UI under `tui/`. See [Terminal UI](../guides/tui.md).
 
 ## Anthropic Messages API (direct)
 

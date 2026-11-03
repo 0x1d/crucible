@@ -7,7 +7,7 @@ defmodule AgentFn.Codex.UncommittedReport do
   2. Resolve dirty paths to slugs
   3. Ensure each slug is compiled/loaded (`Runtime.Engine.load/1` when missing)
   4. Read codex meta (summary, module, updated_at, specs)
-  5. Enrich from memory (`source_session` + description) and journal
+  5. Enrich from memory (`source-session` + description) and journal
      (`sessions.search` for first mention → `at` / `user_message`)
   6. Render a markdown table
 
@@ -243,7 +243,7 @@ defmodule AgentFn.Codex.UncommittedReport do
   defp source_session_for(entity) when is_binary(entity) do
     case AgentFn.Codex.call("memory.query", %{
            "where" => [
-             %{"e" => entity, "a" => "source_session", "v" => "?sid"}
+             %{"e" => entity, "a" => "source-session", "v" => "?sid"}
            ],
            "find" => ["sid"]
          }) do

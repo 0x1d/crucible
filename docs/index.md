@@ -20,6 +20,11 @@ Follow [Getting started](./guides/getting-started.md) for setup, then
 [Authoring codex entries](./guides/authoring-entries.md) for slug layout,
 composition, and codex operations.
 
+### Chat with a host in the terminal
+
+Read the [Terminal UI](./guides/tui.md) guide for the start flow, commands,
+keys, footer, and theme.
+
 ### Integrate a host
 
 Read [Host adapters](./reference/hosts.md) for adapter patterns and deployment
@@ -52,6 +57,7 @@ subsystems.
 | [Domain language](./concepts/domain-language.md) | All readers and contributors | Interpreting canonical product and implementation terms. |
 | [Getting started](./guides/getting-started.md) | Operators and authors | Installing dependencies and making the first codex call. |
 | [Authoring codex entries](./guides/authoring-entries.md) | Codex entry authors | Slugs, modules, codex operations, and testing entries. |
+| [Terminal UI](./guides/tui.md) | Operators and host integrators | Running a host in the terminal with streamed output, session selection, and usage stats. |
 | [Codex protocol](./reference/protocol.md) | Host integrators and contributors | Request and response contracts for all four operations. |
 | [Host adapters](./reference/hosts.md) | Host integrators | Mapping environments to the codex protocol. |
 | [Claude host README](../hosts/claude/README.md) | Host integrators | Running and evaluating the Claude Agent SDK example host. |

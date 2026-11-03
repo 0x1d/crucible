@@ -2,12 +2,12 @@ defmodule AgentFn.Memory.BySession do
   @moduledoc """
   Reverse lookup: session id → memory entities.
 
-  Finds entities that have `source_session` equal to (or containing) the
+  Finds entities whose `source-session` attribute equals (or contains) the
   given id, and returns their `description` when present.
 
   Args:
   - `session_id` / `source_session` (required) — `ses_…` id or substring
-  - `exact` — when true (default), require exact `source_session` match;
+  - `exact` — when true (default), require exact `source-session` match;
     when false, substring match on the value
   - `as_of` / `valid_at` — optional temporal args forwarded to `memory.query`
   """
@@ -62,7 +62,7 @@ defmodule AgentFn.Memory.BySession do
   defp query_links(sid, true, args) do
     q = %{
       "where" => [
-        %{"e" => "?entity", "a" => "source_session", "v" => sid}
+        %{"e" => "?entity", "a" => "source-session", "v" => sid}
       ],
       "find" => ["entity"]
     }
@@ -81,11 +81,11 @@ defmodule AgentFn.Memory.BySession do
   end
 
   defp query_links(sid, false, args) do
-    # Pull all source_session triples and filter in Elixir (MiniGraf
+    # Pull all source-session triples and filter in Elixir (MiniGraf
     # predicate helpers are not always available).
     q = %{
       "where" => [
-        %{"e" => "?entity", "a" => "source_session", "v" => "?sid"}
+        %{"e" => "?entity", "a" => "source-session", "v" => "?sid"}
       ],
       "find" => ["entity", "sid"]
     }

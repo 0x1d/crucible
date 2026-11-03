@@ -19,6 +19,8 @@ function asResponse(value: unknown): CodexResponse {
 
 const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "alchemist-bridge-"));
 process.env.ALCHEMIST_STATE_DIR = stateDir;
+// Own memory graph: the repo graph is held open by any running runtime.
+process.env.AGENT_MEMORY_PATH = path.join(stateDir, "minigraf.graph");
 
 test("codex ops share one started Erlang VM", { timeout: 180_000 }, async () => {
   const echo = await runCodexOp({

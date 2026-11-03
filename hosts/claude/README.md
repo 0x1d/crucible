@@ -16,6 +16,7 @@ The Elixir bridge in `core/elixir-bridge.ts` owns the long-lived BEAM, as for ev
 | --- | --- |
 | `codex.ts` | Defines the four tools, the MCP server, and `alchemistOptions()` for `query()`. |
 | `instructions.md` | The system prompt. It tells Claude to use and extend the codex tools. |
+| `session-hook.ts` | `PreToolUse` hook that stamps the live session id as `source_session` on `memory.remember` calls. |
 | `chat.ts` | Interactive terminal loop. One `query()` per turn, resumed by session id. |
 | `evals/run.ts` | Eval runner. Sends one prompt and records tool calls and the final text. |
 | `evals/*.eval.ts` | Eval cases under `node:test`. |
@@ -29,6 +30,7 @@ The Elixir bridge in `core/elixir-bridge.ts` owns the long-lived BEAM, as for ev
 - `allowedTools` lists `mcp__alchemist__<tool>` for each codex tool, so no permission prompt appears.
 - `settingSources: []` ignores user and project settings files.
 - `cwd` is the repository root.
+- `hooks.PreToolUse` runs `session-hook.ts`, so remembered facts can be traced back with `memory.by_session`.
 
 Tool names follow `core/protocol.ts`: `find_function`, `define_function`, `load_function`, and `call_function`.
 Each tool returns the codex JSON response as text.
@@ -56,6 +58,8 @@ npm run eval:claude
 | --- | --- |
 | `smoke.eval.ts` | `call_function` runs the bundled `echo` entry. `find_function` lists entries. |
 | `extend.eval.ts` | `define_function` writes a new entry and `call_function` runs it. The test removes the entry afterwards. |
+| `memory.eval.ts` | `memory.remember` is stamped with the live session id by the hook, and `memory.by_session` finds it. |
 
 Each eval sends real requests to Claude and starts the BEAM through the bridge.
+`evals/run.ts` gives every eval run its own temporary state directory and memory graph, so an eval never stops a live chat or TUI BEAM and never writes to the repo memory graph. Set `ALCHEMIST_EVAL_STATE_DIR` to pin the folder.
 The `extend` eval writes to `functions/scratch/claude_eval/`. Its `after` hook removes every entry under `functions/` that did not exist before the run.

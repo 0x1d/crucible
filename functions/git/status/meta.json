@@ -1,0 +1,12 @@
+{
+  "description": "Structured git working-tree status for one repository.\n\n  Runs `git status --porcelain=v1 -z --branch` (NUL-separated, so paths with\n  spaces, quotes or non-ASCII bytes come through exactly as they are) and parses it.\n\n  Args:\n  - `cwd` / `repo` — repository directory (default: runtime cwd)\n  - `paths` — optional list of pathspecs to limit the report (passed after `--`)\n  - `untracked` — `\"all\"` (default), `\"normal\"` (collapse untracked dirs), or `\"no\"`\n  - `ignored` — when true, also list ignored files (default false)\n\n  Returns:\n  - `branch`, `upstream`, `ahead`, `behind`, `detached`, `clean`\n  - `entries` — list of `%{path, orig_path, index, worktree, code}` (raw XY codes)\n  - `staged`, `unstaged`, `untracked`, `conflicted`, `ignored` — path lists\n  - `counts` — size of each list",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Git.Status",
+  "moduledoc": "Structured git working-tree status for one repository.\n\n  Runs `git status --porcelain=v1 -z --branch` (NUL-separated, so paths with\n  spaces, quotes or non-ASCII bytes come through exactly as they are) and parses it.\n\n  Args:\n  - `cwd` / `repo` — repository directory (default: runtime cwd)\n  - `paths` — optional list of pathspecs to limit the report (passed after `--`)\n  - `untracked` — `\"all\"` (default), `\"normal\"` (collapse untracked dirs), or `\"no\"`\n  - `ignored` — when true, also list ignored files (default false)\n\n  Returns:\n  - `branch`, `upstream`, `ahead`, `behind`, `detached`, `clean`\n  - `entries` — list of `%{path, orig_path, index, worktree, code}` (raw XY codes)\n  - `staged`, `unstaged`, `untracked`, `conflicted`, `ignored` — path lists\n  - `counts` — size of each list",
+  "name": "git.status",
+  "source_sha256": "c856fc0dc5e12391ba036342c622f9fecd54e30e1161bf94b2b447e0f36f4e99",
+  "specs": [
+    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-11-02T16:07:41.957795Z"
+}

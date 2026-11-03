@@ -13,6 +13,7 @@ import { fileURLToPath } from "node:url";
 import * as z from "zod/v4";
 import { repoRoot, runCodexOp } from "../../core/elixir-bridge.ts";
 import { HOST_TOOL_NAMES, type CodexRequest } from "../../core/protocol.ts";
+import { sessionHooks } from "./session-hook.ts";
 
 const hostDir = path.dirname(fileURLToPath(import.meta.url));
 
@@ -84,15 +85,27 @@ export const instructions = fs.readFileSync(
   "utf8",
 );
 
-/** Query options: minimal prompt, codex tools only, no built-in tools, no local settings. */
+/**
+ * Query options: minimal prompt, codex tools only, no built-in tools, no local settings,
+ * and no MCP servers besides the codex server.
+ *
+ * claude.ai connectors load even with `settingSources: []`. Their tools are not in
+ * `allowedTools`, so the model cannot use them, but their schemas add tens of thousands
+ * of tokens to every request. They also connect in the background, so the tool list
+ * changes during a session and the prompt cache has to be written again.
+ */
 export function alchemistOptions(): Options {
   return {
     cwd: repoRoot,
     systemPrompt: instructions,
     tools: [],
     mcpServers: { alchemist: alchemistServer },
+    strictMcpConfig: true,
+    settings: { disableClaudeAiConnectors: true },
     allowedTools: ALCHEMIST_TOOLS,
     permissionMode: "default",
     settingSources: [],
+    // Stamps the live session id onto memory.remember (see session-hook.ts).
+    hooks: { PreToolUse: sessionHooks },
   };
 }

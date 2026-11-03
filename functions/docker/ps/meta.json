@@ -1,12 +1,12 @@
 {
-  "description": "List Docker containers via `docker ps`.\n\n  Args:\n  - `all` — if true, include stopped containers (default false)\n\n  Returns `containers` as normalized maps (`id`, `name`, `image`, `status`,\n  `state`, `ports`, `created`, `command`) and `count`.",
+  "description": "List Docker containers via `docker ps`.\n\n  Args:\n  - `all` — if true, include stopped containers (default false)\n\n  Returns `containers` as normalized maps (`id`, `name`, `image`, `status`,\n  `state`, `ports`, `created`, `command`, `project`) and `count`.\n  `project` is the Compose project label, or nil.",
   "loaded": true,
   "module": "Elixir.AgentFn.Docker.Ps",
-  "moduledoc": "List Docker containers via `docker ps`.\n\n  Args:\n  - `all` — if true, include stopped containers (default false)\n\n  Returns `containers` as normalized maps (`id`, `name`, `image`, `status`,\n  `state`, `ports`, `created`, `command`) and `count`.",
+  "moduledoc": "List Docker containers via `docker ps`.\n\n  Args:\n  - `all` — if true, include stopped containers (default false)\n\n  Returns `containers` as normalized maps (`id`, `name`, `image`, `status`,\n  `state`, `ports`, `created`, `command`, `project`) and `count`.\n  `project` is the Compose project label, or nil.",
   "name": "docker.ps",
-  "source_sha256": "de1e914a6bd662d619bc946a40c09607d09161c57f19161ca17e91c6fa9a5d0a",
+  "source_sha256": "778a8165ff194806f8c1eb209fe253b5fc87c4f498a3a86b8f2dc3d9c19158b3",
   "specs": [
     "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
   ],
-  "updated_at": "2026-11-01T14:40:57.393939Z"
+  "updated_at": "2026-11-03T10:32:42.708606Z"
 }

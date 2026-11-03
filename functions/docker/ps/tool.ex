@@ -6,7 +6,8 @@ defmodule AgentFn.Docker.Ps do
   - `all` — if true, include stopped containers (default false)
 
   Returns `containers` as normalized maps (`id`, `name`, `image`, `status`,
-  `state`, `ports`, `created`, `command`) and `count`.
+  `state`, `ports`, `created`, `command`, `project`) and `count`.
+  `project` is the Compose project label, or nil.
   """
   @behaviour AgentFn.Tool
 
@@ -57,9 +58,23 @@ defmodule AgentFn.Docker.Ps do
       state: Map.get(m, "State"),
       ports: Map.get(m, "Ports"),
       created: Map.get(m, "RunningFor") || Map.get(m, "CreatedAt"),
-      command: Map.get(m, "Command")
+      command: Map.get(m, "Command"),
+      project: compose_project(Map.get(m, "Labels"))
     }
   end
+
+  defp compose_project(labels) when is_binary(labels) do
+    labels
+    |> String.split(",")
+    |> Enum.find_value(fn part ->
+      case String.split(part, "=", parts: 2) do
+        ["com.docker.compose.project", value] when value != "" -> value
+        _ -> nil
+      end
+    end)
+  end
+
+  defp compose_project(_), do: nil
 
   defp short(nil), do: nil
   defp short(id) when is_binary(id), do: String.slice(id, 0, 12)

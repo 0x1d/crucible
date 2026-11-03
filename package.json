@@ -11,18 +11,24 @@
     "check:types": "tsc --noEmit",
     "check:docs": "node scripts/check-docs.mjs",
     "test:check-docs": "node --test scripts/check-docs.test.mjs",
+    "test:tui": "node --test \"tui/**/*.test.ts\"",
+    "test:core": "node --test \"core/**/*.test.ts\"",
+    "test:hosts": "node --test \"hosts/*.test.ts\" \"hosts/claude/*.test.ts\" \"hosts/cursor/**/*.test.ts\"",
     "test:runtime": "cd runtime && mix test",
     "test:functions": "cd runtime && ALCHEMIST_TEST_SCOPE=functions mix test",
-    "test": "npm run test:runtime && npm run test:functions && npm run test:check-docs",
+    "test": "npm run test:runtime && npm run test:functions && npm run test:check-docs && npm run test:tui && npm run test:core && npm run test:hosts",
     "dev": "agent-sdk dev --dir hosts/cursor",
     "seed:session-trace": "node --experimental-strip-types scripts/seed-session-trace-memory.mjs",
     "dev:session-trace": "node --experimental-strip-types scripts/dev-session-trace.mjs",
     "eval:session-trace": "node --experimental-strip-types scripts/eval-session-trace.mjs",
     "chat:claude": "node hosts/claude/chat.ts",
-    "eval:claude": "node --test hosts/claude/evals/*.eval.ts"
+    "tui": "node tui/main.ts",
+    "eval:claude": "node --test hosts/claude/evals/*.eval.ts",
+    "eval:cursor": "node --experimental-strip-types scripts/eval-cursor.mjs"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.3.311",
+    "@earendil-works/pi-tui": "1.4.0",
     "@grok/agent-sdk": "^0.5.0",
     "minigraf": "^2.0.11",
     "zod": "^4.6.7"
