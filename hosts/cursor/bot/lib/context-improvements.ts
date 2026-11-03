@@ -77,11 +77,16 @@ export function isImprovementEnabled(
   return loadContextImprovements(stateRoot)[id];
 }
 
+/** Env key for serve / eval: `ALCHEMIST_CTX_RESULT_DIGEST`, `ALCHEMIST_CTX_HANDOFF_TOOL`, … */
+export function envKeyForImprovement(id: ContextImprovementId): string {
+  return `ALCHEMIST_CTX_${id.replace(/([A-Z])/g, "_$1").toUpperCase()}`;
+}
+
 /** Env override for the serve child: ALCHEMIST_CTX_<ID>=1|0 */
 export function envOverrides(): Partial<ContextImprovementsConfig> {
   const out: Partial<ContextImprovementsConfig> = {};
   for (const id of CONTEXT_IMPROVEMENT_IDS) {
-    const key = `ALCHEMIST_CTX_${id.replace(/([A-Z])/g, "_$1").toUpperCase()}`;
+    const key = envKeyForImprovement(id);
     const raw = process.env[key];
     if (raw === "1" || raw === "true") out[id] = true;
     if (raw === "0" || raw === "false") out[id] = false;

@@ -12,7 +12,6 @@ export default defineEval({
       id: "compact",
       description: "The model writes handoff.md when asked to compact.",
       async test(t) {
-        process.env.ALCHEMIST_CTX_handoffTool = "1";
         const turn = await t.send("Compact the context.");
         const usage = turn.events
           .slice()
@@ -20,7 +19,12 @@ export default defineEval({
           .find((event) => event.type === "turn.completed")?.data.usage;
         const inputTokens = usage ? contextTokens(usage) : -1;
         t.succeeded();
-        t.calledTool("handoff");
+        t.calledTool("handoff", {
+          output: (value) => {
+            const text = typeof value === "string" ? value : JSON.stringify(value ?? "");
+            return text.includes("Wrote handoff.md");
+          },
+        });
         t.check(
           t.reply,
           satisfies(

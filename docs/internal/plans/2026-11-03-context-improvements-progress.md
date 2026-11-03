@@ -8,6 +8,10 @@ Toggle improvements with `/ctx` in the TUI or edit
 `hosts/cursor/.agent-serve/context-improvements.json`.
 Host-side flags apply on the next `serve()` start (restart the TUI or `/host`).
 
+Serve and eval overrides use `ALCHEMIST_CTX_<SNAKE_CASE>` env vars
+(for example `ALCHEMIST_CTX_RESULT_DIGEST=0`, not `ALCHEMIST_CTX_resultDigest`).
+See `envKeyForImprovement()` in `hosts/cursor/bot/lib/context-improvements.ts`.
+
 ## Improvement matrix
 
 | Id | Source item | Default | Effect on context window |
@@ -43,9 +47,13 @@ Plain shell without nix still passes token-budget gates but fails tool-output ch
 | `npx @grok/agent-sdk validate --dir hosts/cursor` | pass | |
 | `npm run eval:cursor -- smoke` | pass | 9.8s; artifacts `…/evals/2026-11-03T15-00-28-442Z` |
 | `nix develop -- npm run eval:cursor -- context-size` | pass | 4/4; artifacts `…/evals/2026-11-03T15-01-42-338Z` |
-| `nix develop -- ALCHEMIST_CTX_handoffTool=1 npm run eval:cursor -- handoff/compact` | pass | 17.1s; `inputTokens=21636`; artifacts `…/evals/2026-11-03T15-02-34-273Z` |
-| `nix develop -- ALCHEMIST_CTX_pinnedModel=1 npm run eval:cursor -- prompt-cache/pong` | pass | 7.7s; `prompt1=6819`, `prompt2=6915`, `cache2=6784`; artifacts `…/evals/2026-11-03T15-02-52-392Z` |
-| `npm run eval:cursor -- context-size` (no nix) | fail | 0/4; budgets ok but reply gates fail on Elixir errors |
+| `nix develop -- ALCHEMIST_CTX_HANDOFF_TOOL=1 npm run eval:cursor -- handoff/compact` | pass | writes `handoff.md`; gate on tool output; `inputTokens≈21608` |
+| `nix develop -- ALCHEMIST_CTX_PINNED_MODEL=1 npm run eval:cursor -- prompt-cache/pong` | pass | `prompt1=6575`, `cache2=6592` (≥ prompt1−1k) |
+| `npm run test` (nix develop) | pass | runtime 28 + functions 32 + node suites; cursor instructions examples skipped (no `### Examples`) |
+| `npm run eval:cursor -- memory` | pass | |
+| `npm run eval:cursor -- memory-time` | pass | 3/3 |
+| `node scripts/measure-call-function.mjs` (digest A/B) | pass | digest on **1782** B vs off **144150** B; off + `DEFAULT_MAX_BYTES` **66609** B |
+| `npm run eval:cursor -- context-size` (no nix) | fail | 0/4; reply gates fail on `spawn elixir ENOENT` |
 
 ## Measurements
 
@@ -62,6 +70,20 @@ Baseline from [cursor host context](2026-11-03-cursor-host-context.md) (2026-11-
 | `handoffTool` + compact ask | handoff/compact pass | `inputTokens=21636` (gate ≤32k named-read budget) |
 | `handoffFork` | unit tests only | TUI fork path covered by `tui/adapters/handoff.test.ts`; no live over-200k fork eval yet |
 
+## Effectiveness (2026-11-03, nix develop)
+
+| Lever | Measurement | Verdict |
+| --- | --- | --- |
+| **Always-on prompt** (named read, one-shot `fs.read`) | `context-size/named-read` **26–27k** input vs search-before-read **62.8k** (historical fail) | **High** — keeps gate under 32k |
+| **`resultDigest` (default on)** | Tool output **1.8kB** vs **144kB** off; eval `large-read` **~21.5k** tokens on vs **59.9k** off (6 tools, budget fail) | **High** — ~81× smaller tool blob; prevents runaway turns when off |
+| **`defaultMaxBytes` alone** | With digest on, `large-read` **~21.6k** (same as baseline); with digest off, **148k** tokens and 13 tools (worse than digest-only off) | **Low alone** when digest stays on; **partial** as safety net when digest off (**66kB** tool payload vs **144kB**) |
+| **`handoffTool`** | Disabled: model may still call `handoff` (error). Enabled: **802 B** `handoff.md`, same turn budget as named read | **Medium** — compaction path works; eval now requires successful write |
+| **`pinnedModel` + cache** | Turn 2 **cache read ≈ full prompt** (`6592` read vs `6575` prompt1) | **High** for multi-turn cost/latency when flag on |
+| **`toolResultLog`** | Not re-run (needs `ALCHEMIST_CTX_TOOL_RESULT_LOG=1` on serve) | Observability only |
+| **`handoffFork`** | Not live-tested | Design: drop old transcript after handoff; covered by unit tests |
+
+Env override naming: camelCase ids map to `ALCHEMIST_CTX_SNAKE_CASE` (see header). Wrong names silently leave defaults.
+
 Latest `context-size` gate metrics (2026-11-03, `93e2162`, nix develop):
 
 | Case | inputTokens | cacheRead | newTokens |
@@ -71,4 +93,7 @@ Latest `context-size` gate metrics (2026-11-03, `93e2162`, nix develop):
 | docker-report | 14,668 | 9,728 | 4,940 |
 | structured-list | 14,447 | 9,728 | 4,719 |
 
-Toggle comparison: `/ctx list`, `/ctx on resultDigest`, `/ctx off resultDigest` (restart TUI), then repeat `context-size/named-read`.
+Toggle comparison: `/ctx list`, `/ctx off resultDigest` (restart TUI), then
+`ALCHEMIST_CTX_RESULT_DIGEST=0 npm run eval:cursor -- context-size/large-read`
+vs default (digest on). Deterministic tool sizing:
+`nix develop -- node scripts/measure-call-function.mjs`.

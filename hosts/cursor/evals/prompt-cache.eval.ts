@@ -11,7 +11,6 @@ export default defineEval({
       id: "pong",
       description: "Second turn cache read approaches the first prompt size.",
       async test(t) {
-        process.env.ALCHEMIST_CTX_pinnedModel = "1";
         const first = await t.send("Reply with exactly the word pong and nothing else.");
         const second = await t.send("Reply with exactly the word pong2 and nothing else.");
         const usage = (events: typeof first.events) => {

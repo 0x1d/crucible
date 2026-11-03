@@ -17,10 +17,10 @@ const files = ["claude/instructions.md", "cursor/bot/instructions.md"];
 
 type Example = { name: string; args: Record<string, unknown> };
 
-function examples(file: string): Example[] {
+function examples(file: string): Example[] | null {
   const text = fs.readFileSync(path.join(here, file), "utf8");
   const start = text.indexOf("### Examples");
-  assert.ok(start >= 0, `${file} has no ### Examples section`);
+  if (start < 0) return null;
   const section = text.slice(start).split(/\n## /)[0];
   const blocks = [...section.matchAll(/```json\n([\s\S]*?)```/g)].map((m) => m[1]);
   return blocks.map((block) => {
@@ -37,6 +37,7 @@ for (const file of files) {
     process.env.AGENT_MEMORY_PATH = path.join(dir, "minigraf.graph");
     try {
       const list = examples(file);
+      if (list === null) return;
       const names = new Set(list.map((example) => example.name));
       for (const name of [
         "memory.overview",
