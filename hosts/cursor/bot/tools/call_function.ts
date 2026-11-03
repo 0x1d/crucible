@@ -35,7 +35,7 @@ async function capResult(
 
 export default defineTool({
   description:
-    "Invoke a codex entry's run/1 by slug with a JSON args object. Loads from disk when needed.",
+    "Invoke a codex entry's run/1. Input: name (function slug string) and optional args object.",
   effect: "write",
   inputSchema: z.object({
     name: z.string().describe("Function slug to call"),

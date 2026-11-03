@@ -1,12 +1,9 @@
 import { defineAgent } from "@grok/agent-sdk";
 
-import { resolveHostFlags } from "./lib/host-flags.ts";
-import { PINNED_MODEL } from "./model.ts";
-
-const flags = resolveHostFlags();
+import { resolveAgentModel } from "./lib/agent-model.ts";
 
 export default defineAgent({
-  model: flags.pinnedModel ? PINNED_MODEL : "auto",
+  model: resolveAgentModel(),
   // MCP only: the custom-user-tools server and its four codex tools.
   // No read, edit, shell, or other native tools.
   // Workspaces live in hosts/cursor/.sessions (gitignored). Each session

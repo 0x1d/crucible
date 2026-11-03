@@ -6,7 +6,10 @@ import {
   HOST_FLAG_IDS,
   hostFlagEnvKey,
   loadHostFlags,
+  loadSessionModel,
+  saveSessionModel,
 } from "../../hosts/cursor/bot/lib/host-flags.ts";
+import { applySessionModelEnv } from "../../hosts/cursor/bot/lib/agent-model.ts";
 import { nextTurnMessage } from "./claude.ts";
 import {
   HANDOFF_REQUEST,
@@ -65,8 +68,6 @@ type CursorEvent = {
     message?: string;
   };
 };
-
-type ModelConfigMode = "unknown" | "on" | "off";
 
 /**
  * Prompt size of one Cursor turn.
@@ -285,7 +286,7 @@ type ListedSession = {
   mode?: string;
 };
 
-type SubmitResult = { ok: true; modelFallback: boolean } | { ok: false; message: string };
+type SubmitResult = { ok: true } | { ok: false; message: string };
 
 /**
  * Cursor host adapter.
@@ -307,8 +308,6 @@ export class CursorAdapter implements HostAdapter {
   effort: string | undefined;
   private continuationToken: string | undefined;
   private nextIndex = 0;
-  /** `on` once a create with `modelConfig` is accepted. `off` once the API rejects it. */
-  private modelConfigMode: ModelConfigMode = "unknown";
   private starting: Promise<AgentServeHandle> | undefined;
   private lastContextTokens = 0;
   private pendingHandoff = false;
@@ -321,6 +320,7 @@ export class CursorAdapter implements HostAdapter {
       for (const id of HOST_FLAG_IDS) {
         process.env[hostFlagEnvKey(id)] = config[id] ? "1" : "0";
       }
+      applySessionModelEnv(loadSessionModel(stateRoot));
       this.starting = serve(hostDir, {
         mode: "single",
         port: 0,
@@ -423,13 +423,16 @@ export class CursorAdapter implements HostAdapter {
   }
 
   setModel(model: string | undefined, effort: string | undefined): void {
-    const changed = model !== this.model || effort !== this.effort;
     this.model = model;
     this.effort = effort;
-    // Detach only when a previous create stored modelConfig. Otherwise the
-    // open agent is the cached conversation, and a new session would not
-    // change its model.
-    if (changed && this.sessionId && this.modelConfigMode === "on") this.detachSession();
+    if (model && model !== "auto") {
+      saveSessionModel({ id: model, effort }, stateRoot);
+    } else {
+      saveSessionModel(undefined, stateRoot);
+    }
+    applySessionModelEnv(
+      model && model !== "auto" ? { id: model, effort } : undefined,
+    );
   }
 
   private async stopTurn(base: string, id: string): Promise<void> {
@@ -467,8 +470,8 @@ export class CursorAdapter implements HostAdapter {
     prompt: string,
     title?: string,
   ): Promise<SubmitResult & { sessionId?: string }> {
-    const send = (withModel: boolean, withTitle: boolean) => {
-      const body = createBody(prompt, withModel ? this.model : undefined, this.effort);
+    const send = (withTitle: boolean) => {
+      const body = createBody(prompt, undefined, undefined);
       if (withTitle && title) (body as { title?: string }).title = title;
       return this.request(`${base}/v1/session`, {
         method: "POST",
@@ -476,33 +479,25 @@ export class CursorAdapter implements HostAdapter {
         body: JSON.stringify(body),
       });
     };
-    const useModel = this.model !== undefined && this.modelConfigMode !== "off";
-    let { status, body } = await send(useModel, Boolean(title));
-    let modelFallback = false;
-    if (useModel && status === 400 && errorText(body, status).includes("modelConfig requires dryRun")) {
-      this.modelConfigMode = "off";
-      modelFallback = true;
-      ({ status, body } = await send(false, Boolean(title)));
-    }
+    let { status, body } = await send(Boolean(title));
     if (status === 400 && title && errorText(body, status).toLowerCase().includes("title")) {
-      ({ status, body } = await send(useModel && !modelFallback, false));
+      ({ status, body } = await send(false));
     }
     if (status !== 200) return { ok: false, message: errorText(body, status) };
     const created = body as { sessionId?: string; continuationToken?: string };
     if (!created.sessionId || !created.continuationToken) {
       return { ok: false, message: "The session response had no session id." };
     }
-    if (useModel && !modelFallback) this.modelConfigMode = "on";
     this.sessionId = created.sessionId;
     this.continuationToken = created.continuationToken;
     this.nextIndex = 0;
-    return { ok: true, modelFallback, sessionId: created.sessionId };
+    return { ok: true, sessionId: created.sessionId };
   }
 
   private async create(base: string, prompt: string): Promise<SubmitResult> {
     const result = await this.createSession(base, prompt);
     if (!result.ok) return result;
-    return { ok: true, modelFallback: result.modelFallback };
+    return { ok: true };
   }
 
   private async followUp(base: string, prompt: string): Promise<SubmitResult> {
@@ -526,7 +521,7 @@ export class CursorAdapter implements HostAdapter {
       if (status !== 200) return { ok: false, message: errorText(body, status) };
       const next = (body as { continuationToken?: string }).continuationToken;
       if (typeof next === "string") this.continuationToken = next;
-      return { ok: true, modelFallback: false };
+      return { ok: true };
     }
     return { ok: false, message: "The continuation token was rejected." };
   }
@@ -651,13 +646,6 @@ export class CursorAdapter implements HostAdapter {
         if (!started.ok) {
           if (!signal.aborted) yield { type: "error", message: started.message };
           return;
-        }
-        if (started.modelFallback) {
-          yield {
-            type: "error",
-            message:
-              "The session API did not accept a model override. This session runs the model from hosts/cursor/bot/agent.ts.",
-          };
         }
       }
       if (signal.aborted && this.sessionId) await this.stopTurn(handle.url, this.sessionId);

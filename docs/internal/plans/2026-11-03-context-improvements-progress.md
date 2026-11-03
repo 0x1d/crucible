@@ -17,9 +17,9 @@ Legacy `ALCHEMIST_CTX_*` env names are still accepted.
 | --- | --- | --- | --- |
 | `resultDigest` | §1 bridge cap / digest | on | Shrinks large `call_function` results in the transcript; baseline named-read ~25.7k vs uncapped read ~119k. |
 | `defaultMaxBytes` | §6 default caps | off | Injects `max_bytes` on `fs.read` / `http.get`; lowers per-turn blobs; may hide tail unless user reads `path`. |
-| `pinnedModel` | prompt-cache design | off | Pins server default to `composer-2.5` at `reasoning_effort=high` (no `fast`); follow-up cache read should approach full prompt (eval gate). |
+| `pinnedModel` | prompt-cache design | off | Pins server default to `composer-2.5` at `reasoning_effort=high` (no `fast`); follow-up cache read should approach full prompt (eval gate). TUI `/model` overrides are ignored while this is on. |
 | `handoffTool` | handoff design | off | Exposes `handoff` server tool (~schema tokens); model can write `handoff.md`. |
-| `handoffFork` | handoff design | off | TUI forks to a new session after handoff when over 200k or user compacted; drops old transcript from live prompt. |
+| `handoffFork` | handoff design | off | TUI opens a **new** session after handoff when over 200k or user compacted; the old agent store and transcript stay on disk—only the **live** prompt stops including that history. |
 | `toolResultLog` | §7 observability | off | Logs largest tool results per turn to `.agent-serve/context-tool-sizes.log`. |
 
 Already shipped without a flag (measured in the host-context plan):
@@ -79,7 +79,7 @@ Baseline from [cursor host context](2026-11-03-cursor-host-context.md) (2026-11-
 | **`handoffTool`** | Disabled: model may still call `handoff` (error). Enabled: **802 B** `handoff.md`, same turn budget as named read | **Medium** — compaction path works; eval now requires successful write |
 | **`pinnedModel` + cache** | Turn 2 **cache read ≈ full prompt** (`6592` read vs `6575` prompt1) | **High** for multi-turn cost/latency when flag on |
 | **`toolResultLog`** | Not re-run (needs `ALCHEMIST_CTX_TOOL_RESULT_LOG=1` on serve) | Observability only |
-| **`handoffFork`** | Not live-tested | Design: drop old transcript after handoff; covered by unit tests |
+| **`handoffFork`** | Not live-tested | Design: fork to a new session (old transcript retained); `tui/adapters/handoff.test.ts` only—see below |
 
 Env override naming: camelCase ids map to `ALCHEMIST_CTX_SNAKE_CASE` (see header). Wrong names silently leave defaults.
 

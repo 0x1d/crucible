@@ -30,6 +30,15 @@ export const DEFAULT_HOST_FLAGS: HostFlags = {
   toolResultLog: false,
 };
 
+export type SessionModelPicker = {
+  id: string;
+  effort?: string;
+};
+
+type HostConfigFile = HostFlags & {
+  sessionModel?: SessionModelPicker;
+};
+
 const hostDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 
 const LEGACY_CONFIG_BASENAME = "context-improvements.json";
@@ -46,22 +55,12 @@ function legacyConfigPath(stateRoot = defaultStateRoot()): string {
   return path.join(stateRoot, LEGACY_CONFIG_BASENAME);
 }
 
-function mergeConfig(raw: unknown): HostFlags {
-  const base = { ...DEFAULT_HOST_FLAGS };
-  if (!raw || typeof raw !== "object") return base;
-  for (const id of HOST_FLAG_IDS) {
-    const value = (raw as Record<string, unknown>)[id];
-    if (typeof value === "boolean") base[id] = value;
-  }
-  return base;
-}
-
-export function loadHostFlags(stateRoot = defaultStateRoot()): HostFlags {
+function readConfigFile(stateRoot = defaultStateRoot()): HostConfigFile {
   const candidates = [configPath(stateRoot), legacyConfigPath(stateRoot)];
   for (const file of candidates) {
     if (!existsSync(file)) continue;
     try {
-      return mergeConfig(JSON.parse(readFileSync(file, "utf8")) as unknown);
+      return mergeConfigFile(JSON.parse(readFileSync(file, "utf8")) as unknown);
     } catch {
       continue;
     }
@@ -69,9 +68,52 @@ export function loadHostFlags(stateRoot = defaultStateRoot()): HostFlags {
   return { ...DEFAULT_HOST_FLAGS };
 }
 
-export function saveHostFlags(config: HostFlags, stateRoot = defaultStateRoot()): void {
+function mergeConfigFile(raw: unknown): HostConfigFile {
+  const base: HostConfigFile = { ...DEFAULT_HOST_FLAGS };
+  if (!raw || typeof raw !== "object") return base;
+  const record = raw as Record<string, unknown>;
+  for (const id of HOST_FLAG_IDS) {
+    const value = record[id];
+    if (typeof value === "boolean") base[id] = value;
+  }
+  const sessionModel = record.sessionModel;
+  if (sessionModel && typeof sessionModel === "object") {
+    const id = (sessionModel as SessionModelPicker).id;
+    const effort = (sessionModel as SessionModelPicker).effort;
+    if (typeof id === "string" && id.length > 0) {
+      base.sessionModel = typeof effort === "string" ? { id, effort } : { id };
+    }
+  }
+  return base;
+}
+
+function writeConfigFile(stateRoot: string, config: HostConfigFile): void {
   mkdirSync(stateRoot, { recursive: true });
   writeFileSync(configPath(stateRoot), `${JSON.stringify(config, null, 2)}\n`, "utf8");
+}
+
+export function loadHostFlags(stateRoot = defaultStateRoot()): HostFlags {
+  const { sessionModel: _ignored, ...flags } = readConfigFile(stateRoot);
+  return flags;
+}
+
+export function loadSessionModel(stateRoot = defaultStateRoot()): SessionModelPicker | undefined {
+  return readConfigFile(stateRoot).sessionModel;
+}
+
+export function saveSessionModel(
+  picker: SessionModelPicker | undefined,
+  stateRoot = defaultStateRoot(),
+): void {
+  const file = readConfigFile(stateRoot);
+  if (picker?.id && picker.id !== "auto") file.sessionModel = picker;
+  else delete file.sessionModel;
+  writeConfigFile(stateRoot, file);
+}
+
+export function saveHostFlags(config: HostFlags, stateRoot = defaultStateRoot()): void {
+  const file = readConfigFile(stateRoot);
+  writeConfigFile(stateRoot, { ...file, ...config });
 }
 
 export function isHostFlagEnabled(id: HostFlagId, stateRoot = defaultStateRoot()): boolean {

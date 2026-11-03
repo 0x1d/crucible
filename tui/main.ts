@@ -28,6 +28,7 @@ import type { HostAdapter } from "./adapters/types.ts";
 import { ChangeTracker } from "./changes.ts";
 import { COMMANDS, parseCommand } from "./commands.ts";
 import { applyHostFlagsCommand } from "./host-flags.ts";
+import { loadSessionModel, defaultStateRoot } from "../hosts/cursor/bot/lib/host-flags.ts";
 import { rememberPrompt } from "./remember.ts";
 import { SessionStats } from "./stats.ts";
 import { type Theme, resolveTheme } from "./theme.ts";
@@ -173,6 +174,10 @@ async function selectHost(): Promise<boolean> {
     adapter = HOSTS[name].create();
     stats = new SessionStats();
     transcript.reset();
+    if (name === "cursor") {
+      const saved = loadSessionModel(defaultStateRoot());
+      if (saved) adapter.setModel(saved.id, saved.effort);
+    }
   }
   await selectSession();
   return true;
@@ -184,17 +189,18 @@ function assignModel(model: string | undefined, effort: string | undefined): voi
   const previousId = host.sessionId;
   const changed = model !== host.model || effort !== host.effort;
   host.setModel(model, effort);
-  const label = `${host.model ?? "default"}${host.effort ? `, effort ${host.effort}` : ""}`;
-  // A Cursor model sticks at session create. Dropping the open session is
-  // only safe once the API has stored an override; otherwise the warm agent,
-  // and its prompt cache, stay up.
-  if (previousId !== undefined && host.sessionId === undefined) {
+  const label = `${host.model ?? "auto"}${host.effort ? `, effort ${host.effort}` : ""}`;
+  if (host.name === "cursor" && changed) {
+    transcript.info(
+      `Model ${label} saved in host-flags.json. Exit and restart the TUI so the Cursor serve host reloads agent.ts with that model. Open sessions keep their original model.`,
+    );
+  } else if (previousId !== undefined && host.sessionId === undefined) {
     transcript.reset();
     stats = new SessionStats();
     transcript.info(`Model ${label}. The next prompt starts a new session.`);
-  } else if (host.name === "cursor" && changed && previousId !== undefined) {
+  } else if (host.name === "claude" && changed && previousId !== undefined) {
     transcript.info(`Model ${label}. This session stays open. /new uses this model.`);
-  } else {
+  } else if (host.name !== "cursor" || !changed) {
     transcript.info(`Model ${label}.`);
   }
   render();

@@ -57,7 +57,10 @@ the filesystem (`find /nix/store`, path guessing, endless `which` retries).
 | `find_function` | `find` | Discover slugs with a **tight** non-empty `query` (default: name + one-line summary, max 12 hits) |
 | `define_function` | `define` | Write or update modules under `functions/` |
 | `load_function` | `load` | Recompile after **`define_function`** edits only (all entries compile at runtime boot) |
-| `call_function` | `call` | Invoke one slug's `run/1` with JSON `args` (entry already loaded unless just defined) |
+| `call_function` | `call` | Invoke one slug's `run/1` with JSON **`name`** (the slug string) and **`args`** — not `slug` |
+
+Every `call_function` input is `{ "name": "<slug>", "args": { ... } }`.
+The codex slug goes in **`name`**. Do not use a top-level `slug` key.
 
 `find_function` needs a non-empty query and returns at most 12 slim hits unless `detail: true`.
 Do not call `find_function` or `load_function` for normal memory or codex use.
