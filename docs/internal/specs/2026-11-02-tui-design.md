@@ -7,8 +7,7 @@ tags: [tui, host, claude, cursor, design]
 
 # Terminal UI design
 
-Status: Implemented for the Claude host.
-The Cursor adapter is planned and is not part of the TUI.
+Status: Implemented for the Claude host and the Cursor host.
 
 ## Goal
 
@@ -26,8 +25,8 @@ The footer shows context use and session cost.
 | Renderer | `TuiAltScreen` with a `VStack` layout | The editor and the footer stay at the bottom of the screen. The transcript scrolls in a `ScrollView`. On exit, pi-tui restores the main screen and prints the transcript. |
 | Host contract | One `HostAdapter` interface with a normalized event stream | Rendering and stats code is the same for both hosts. |
 | Claude transport | `query()` with `alchemistOptions()` from `hosts/claude/codex.ts` | Reuses the host as it is. |
-| Cursor transport (planned) | `serve("hosts/cursor", { mode: "single", port: 0 })` in the TUI process, then the HTTP session API | No child process and no port discovery. |
-| Cursor context window (planned) | Fixed at 200,000 tokens | Model `auto` reports no window size. |
+| Cursor transport | `serve("hosts/cursor", { mode: "single", port: 0 })` in the TUI process, then the HTTP session API | No child process and no port discovery. One process stays up so the runner can keep the Cursor agent handle. |
+| Cursor context window | Fixed at 200,000 tokens | Model `auto` reports no window size. |
 | Session index for Claude | `.alchemist/tui/claude-sessions.json` | `listSessions()` for the repository root also returns Claude Code CLI sessions. The index keeps only sessions that the TUI created. |
 | Memory checkpoint | A marker line inside the `/remember` prompt | The transcript holds the checkpoint. The TUI keeps no state for it. |
 | Theme | One theme, `alchemist`, in a theme registry | Every component reads its styles from the active theme. |
@@ -48,6 +47,7 @@ tui/
   adapters/
     types.ts         HostAdapter, SessionSummary, HostEvent
     claude.ts
+    cursor.ts
   *.test.ts          node:test unit tests
 ```
 
@@ -100,25 +100,26 @@ After a stop, the TUI shows the line `Stopped.`.
 - `openSession(id)` replays `getSessionMessages(id)` as events.
 - The adapter writes each new session id to the session index after the first `result` message.
 
-### Cursor adapter (planned)
+### Cursor adapter
 
-The TUI host registry does not include this adapter.
-The design for it follows.
-
-- The adapter starts the in-process server on first use with the same state root as `agent-sdk dev`.
-- `openSession(undefined)` defers creation to the first `send()`, which calls `POST /v1/session` with `modelConfig`.
-- Later turns call `POST /v1/session/:id` with the current continuation token.
+- The adapter starts one in-process server on first use, with state in `hosts/cursor/.agent-serve`, the same directory as `agent-sdk dev --dir hosts/cursor`.
+- The server stays up across turns and across session switches. Restarting it would drop the runner's cached agent handle.
+- `openSession(undefined)` clears the local session id and defers `POST /v1/session` to the first `send()`. It does not paste a transcript into that request.
+- A follow-up calls `POST /v1/session/:id` with the new prompt and the current continuation token. The body has no earlier turns. The server resumes the stored agent, which is what keeps the prompt cache prefix stable.
 - `send()` reads `GET /v1/session/:id/stream` from the last index plus 1 until `turn.completed` or `turn.failed`.
-- An aborted signal calls `POST /v1/session/:id/stop`.
-- `listSessions()` calls `GET /v1/sessions`.
-- `openSession(id)` replays `GET /v1/session/:id/events`.
+- An aborted signal calls `POST /v1/session/:id/stop`. The adapter keeps reading until the terminal event, or for 10 seconds. The server stays up either way.
+- A stale continuation token is refreshed from `GET /v1/sessions` and the follow-up is tried once. The prompt is not rewritten into a new session.
+- `listSessions()` calls `GET /v1/sessions` and skips task sessions.
+- `openSession(id)` replays `GET /v1/session/:id/events?format=json` and stores that session's continuation token.
 - `listModels()` returns a fixed list: `auto`, `composer-2.5`, `grok-4.7`. The user can also type a model id.
-- Effort maps to the model param `reasoning_effort` with the values `low`, `medium`, and `high`.
-- The SDK fixes `modelConfig` when it creates a session. A model or effort change on an existing Cursor session starts a new session. The TUI tells the user before it does this.
+- Effort maps to the model param `reasoning_effort` (`reasoning` for a gpt id) with the values `low`, `medium`, and `high`. The create body also sends `fast=true`, which the session API requires next to an effort param.
+- `modelConfig` is sent only on create. Follow-ups omit it so the frozen model, and the cache prefix, do not change.
+- The installed session API accepts `modelConfig` only when `dryRun` is set. A live create that is rejected for that reason is retried without `modelConfig` and runs the model from `hosts/cursor/bot/agent.ts`.
+- A model or effort change detaches the open session only after a create has stored `modelConfig`. Until then the open agent stays, and the TUI tells the user that `/new` starts the session that carries the selection.
 
 ## Stats
 
-- Context tokens are the input, cache-read, and cache-write tokens of the last model call in the last turn.
+- Context tokens are the prompt size of the last turn. Claude's input, cache-read, and cache-write counters are disjoint, so they are added. Cursor's `inputTokens` already include the cache when input is at least the cache total, and that input total is the prompt size. When Cursor input is smaller than the cache buckets, the counters are disjoint and are added.
 - The context window comes from `modelUsage[model].contextWindow` for Claude and is 200,000 for Cursor.
 - Session cost for Claude is `total_cost_usd` of the latest `result`. The SDK reports a running total for the session, and a resumed session continues from the total in its transcript.
 - Session cost for Cursor is `costUsd` from the cost route for the whole session.
@@ -235,7 +236,7 @@ The terminal shows only the TUI.
 
 ## Error handling
 
-- If the Cursor server cannot start, the host picker shows the error and the user can select Claude.
+- If the Cursor server cannot start, the transcript shows the error. The session dialog still offers "New session", and `/host` can select Claude.
 - If a turn fails, the transcript shows an `error` line and the session stays open.
 - If an adapter call fails while the session list loads, the dialog shows the error and offers "New session".
 

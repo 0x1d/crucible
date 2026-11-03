@@ -2,7 +2,7 @@
 title: Terminal UI
 description: Start flow, commands, keys, footer, theme, and state files of the Alchemist terminal UI.
 project: alchemist
-tags: [tui, host, claude, guide]
+tags: [tui, host, claude, cursor, guide]
 ---
 
 # Terminal UI
@@ -13,11 +13,13 @@ The code is in `tui/`.
 It imports the hosts, and no host imports it.
 It uses `@earendil-works/pi-tui` for rendering.
 
-The host registry holds the Claude Agent SDK host.
+The host registry holds the Claude Agent SDK host and the Cursor Agent SDK host.
 
 ## Start the TUI
 
-Prerequisites: Node 24+, Elixir 1.20+ on `PATH`, and Claude Code credentials or `ANTHROPIC_API_KEY`.
+Prerequisites: Node 24+, Elixir 1.20+ on `PATH`, and credentials for the host you select.
+Claude uses Claude Code credentials or `ANTHROPIC_API_KEY`.
+Cursor uses a Cursor credential (`CURSOR_API_KEY`, `CURSOR_API_KEY_FILE`, `CURSOR_SERVICE_ACCOUNT_KEY`, or `agent-sdk login`).
 
 1. Run the TUI:
 
@@ -53,6 +55,13 @@ The editor autocompletes slash commands.
 
 A model or effort change applies to the next turn of the Claude host.
 The session continues.
+On the Cursor host, the open session stays on the model it was created with.
+`/new` starts another session and sends the selected model.
+The server stores that model when it accepts `modelConfig`.
+A server that only accepts `modelConfig` for a dry run keeps the model from `hosts/cursor/bot/agent.ts`, and the open session is not replaced.
+A Cursor follow-up sends the new prompt and the current continuation token.
+The server resumes the same agent, so earlier turns are not sent again.
+The transcript stream starts at the last event index plus 1.
 
 ### The /remember prompt
 
@@ -103,8 +112,8 @@ claude · opus · high · ctx 41.2k/200k (21%) · $0.083 · 12.4s
 
 | Field | Source |
 | --- | --- |
-| Context | Input, cache-read, and cache-write tokens of the last model call. The window comes from the SDK result. |
-| Cost | `total_cost_usd` of the latest SDK result. It is the running total of the session. |
+| Context | The prompt size of the last turn. Claude adds input, cache-read, and cache-write, which are disjoint. Cursor uses input when that count already includes the cache, and adds the cache buckets when input is smaller than them. The Claude window comes from the SDK result. The Cursor window is 200,000 tokens. |
+| Cost | The running total of the session. Claude uses `total_cost_usd` of the latest SDK result. Cursor uses `costUsd` from `GET /v1/session/:id/cost`. |
 
 The context field is muted below 60%, warning from 60% to 85%, and error above 85%.
 A replayed session has no cost data for its earlier turns.
@@ -138,9 +147,11 @@ Dialogs use the `surface` background.
 | --- | --- |
 | `.alchemist/tui/claude-sessions.json` | Ids of the Claude sessions that the TUI created. The session list shows only these sessions. |
 | `.alchemist/tui/tui.log` | Console output of the TUI process, the Elixir bridge, and the hosts. |
+| `hosts/cursor/.agent-serve` | Session state for the Cursor host. This is the same directory `agent-sdk dev --dir hosts/cursor` uses. |
 
-The repository `.gitignore` ignores `.alchemist/`.
+The repository `.gitignore` ignores `.alchemist/` and `.agent-serve`.
 The Claude Agent SDK stores the session transcripts under `~/.claude/projects/`.
+The TUI and `agent-sdk dev --dir hosts/cursor` should not serve `hosts/cursor/.agent-serve` at the same time.
 
 ## Tests
 
@@ -148,5 +159,5 @@ The Claude Agent SDK stores the session transcripts under `~/.claude/projects/`.
 npm run test:tui
 ```
 
-The tests under `tui/` cover the theme, stats, change tracking, the `/remember` prompt, the command parser, the view components, and the Claude event mapping.
+The tests under `tui/` cover the theme, stats, change tracking, the `/remember` prompt, the command parser, the view components, and the Claude and Cursor event mapping.
 They use recorded SDK messages and temporary git repositories, and they make no network calls.

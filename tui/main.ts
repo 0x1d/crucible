@@ -23,6 +23,7 @@ import {
 } from "@earendil-works/pi-tui";
 import { repoRoot } from "../core/elixir-bridge.ts";
 import { ClaudeAdapter } from "./adapters/claude.ts";
+import { CursorAdapter } from "./adapters/cursor.ts";
 import type { HostAdapter } from "./adapters/types.ts";
 import { ChangeTracker } from "./changes.ts";
 import { COMMANDS, parseCommand } from "./commands.ts";
@@ -33,6 +34,7 @@ import { Transcript, footerLine } from "./view.ts";
 
 const HOSTS: Record<string, { description: string; create: () => HostAdapter }> = {
   claude: { description: "Claude Agent SDK", create: () => new ClaudeAdapter() },
+  cursor: { description: "Cursor Agent SDK", create: () => new CursorAdapter() },
 };
 
 let theme: Theme;
@@ -148,7 +150,12 @@ async function selectSession(): Promise<void> {
   }
   const id = await pick(`Sessions on ${host.name}`, items);
   if (id === undefined) return;
-  await openSession(id || undefined);
+  try {
+    await openSession(id || undefined);
+  } catch (error) {
+    transcript.error(`Cannot open the session: ${errorText(error)}`);
+    render();
+  }
 }
 
 async function selectHost(): Promise<boolean> {
@@ -169,6 +176,28 @@ async function selectHost(): Promise<boolean> {
   return true;
 }
 
+function assignModel(model: string | undefined, effort: string | undefined): void {
+  if (!adapter) return;
+  const host = adapter;
+  const previousId = host.sessionId;
+  const changed = model !== host.model || effort !== host.effort;
+  host.setModel(model, effort);
+  const label = `${host.model ?? "default"}${host.effort ? `, effort ${host.effort}` : ""}`;
+  // A Cursor model sticks at session create. Dropping the open session is
+  // only safe once the API has stored an override; otherwise the warm agent,
+  // and its prompt cache, stay up.
+  if (previousId !== undefined && host.sessionId === undefined) {
+    transcript.reset();
+    stats = new SessionStats();
+    transcript.info(`Model ${label}. The next prompt starts a new session.`);
+  } else if (host.name === "cursor" && changed && previousId !== undefined) {
+    transcript.info(`Model ${label}. This session stays open. /new uses this model.`);
+  } else {
+    transcript.info(`Model ${label}.`);
+  }
+  render();
+}
+
 async function selectModel(): Promise<void> {
   if (!adapter) return;
   const host = adapter;
@@ -182,9 +211,7 @@ async function selectModel(): Promise<void> {
   const effort = efforts.length
     ? await pick("Effort", efforts.map((e) => ({ value: e, label: e })))
     : undefined;
-  host.setModel(model, effort ?? (efforts.includes(host.effort ?? "") ? host.effort : undefined));
-  transcript.info(`Model ${model}${host.effort ? `, effort ${host.effort}` : ""}.`);
-  render();
+  assignModel(model, effort ?? (efforts.includes(host.effort ?? "") ? host.effort : undefined));
 }
 
 async function selectEffort(level: string): Promise<void> {
@@ -199,11 +226,10 @@ async function selectEffort(level: string): Promise<void> {
   if (!effort) return;
   if (!efforts.includes(effort)) {
     transcript.error(`Unknown effort "${effort}". Use one of: ${efforts.join(", ")}.`);
+    render();
   } else {
-    host.setModel(host.model, effort);
-    transcript.info(`Effort ${effort}.`);
+    assignModel(host.model, effort);
   }
-  render();
 }
 
 async function runTurn(prompt: string, shown: string): Promise<void> {
@@ -258,13 +284,8 @@ async function handleCommand(name: string, arg: string): Promise<void> {
       await openSession(undefined);
       break;
     case "model":
-      if (arg) {
-        adapter?.setModel(arg, adapter.effort);
-        transcript.info(`Model ${arg}.`);
-        render();
-      } else {
-        await selectModel();
-      }
+      if (arg) assignModel(arg, adapter?.effort);
+      else await selectModel();
       break;
     case "effort":
       await selectEffort(arg);
