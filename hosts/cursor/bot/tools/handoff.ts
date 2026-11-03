@@ -5,7 +5,7 @@ import type { ToolExecuteResult } from "@grok/agent-sdk";
 import { defineTool } from "@grok/agent-sdk/tools";
 import * as z from "zod/v4";
 
-import { effectiveContextImprovements } from "../lib/context-improvements.ts";
+import { resolveHostFlags } from "../lib/host-flags.ts";
 import { renderHandoff } from "../lib/handoff.ts";
 
 const stringList = (max: number, maxLen: number) =>
@@ -35,9 +35,9 @@ export default defineTool({
     };
   },
   async execute(input, ctx): Promise<ToolExecuteResult> {
-    if (!effectiveContextImprovements().handoffTool) {
+    if (!resolveHostFlags().handoffTool) {
       return {
-        content: [{ type: "text", text: "The handoff tool is disabled. Enable handoffTool in context improvements." }],
+        content: [{ type: "text", text: "The handoff tool is disabled. Enable the handoffTool host flag." }],
         isError: true,
       };
     }

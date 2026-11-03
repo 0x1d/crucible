@@ -2,7 +2,11 @@ import { serve, type AgentServeHandle } from "@grok/agent-sdk";
 import path from "node:path";
 import { repoRoot } from "../../core/elixir-bridge.ts";
 import { PINNED_MODEL } from "../../hosts/cursor/bot/model.ts";
-import { loadContextImprovements } from "../../hosts/cursor/bot/lib/context-improvements.ts";
+import {
+  HOST_FLAG_IDS,
+  hostFlagEnvKey,
+  loadHostFlags,
+} from "../../hosts/cursor/bot/lib/host-flags.ts";
 import { nextTurnMessage } from "./claude.ts";
 import {
   HANDOFF_REQUEST,
@@ -313,10 +317,9 @@ export class CursorAdapter implements HostAdapter {
   /** Starts the in-process server, or returns the running one. */
   private server(): Promise<AgentServeHandle> {
     if (!this.starting) {
-      const config = loadContextImprovements(stateRoot);
-      for (const [key, value] of Object.entries(config)) {
-        const envKey = `ALCHEMIST_CTX_${key.replace(/([A-Z])/g, "_$1").toUpperCase()}`;
-        process.env[envKey] = value ? "1" : "0";
+      const config = loadHostFlags(stateRoot);
+      for (const id of HOST_FLAG_IDS) {
+        process.env[hostFlagEnvKey(id)] = config[id] ? "1" : "0";
       }
       this.starting = serve(hostDir, {
         mode: "single",
@@ -530,8 +533,8 @@ export class CursorAdapter implements HostAdapter {
 
   async *send(prompt: string, signal: AbortSignal): AsyncIterable<HostEvent> {
     if (signal.aborted) return;
-    const improvements = loadContextImprovements(stateRoot);
-    if (improvements.handoffFork) {
+    const flags = loadHostFlags(stateRoot);
+    if (flags.handoffFork) {
       yield* this.sendWithHandoff(prompt, signal);
       return;
     }

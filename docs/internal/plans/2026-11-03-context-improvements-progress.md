@@ -4,13 +4,12 @@ Tracks work from [cursor host context](2026-11-03-cursor-host-context.md),
 [context handoff](../specs/2026-11-03-context-handoff-design.md),
 [prompt cache](../specs/2026-11-03-prompt-cache-design.md), and related plans.
 
-Toggle improvements with `/ctx` in the TUI or edit
-`hosts/cursor/.agent-serve/context-improvements.json`.
-Host-side flags apply on the next `serve()` start (restart the TUI or `/host`).
+Toggle host flags with `/flags` (or `/ctx`) in the TUI or edit
+`hosts/cursor/.agent-serve/host-flags.json` (legacy `context-improvements.json` is still read).
+Serve-side flags apply on the next `serve()` start (restart the TUI or `/host`).
 
-Serve and eval overrides use `ALCHEMIST_CTX_<SNAKE_CASE>` env vars
-(for example `ALCHEMIST_CTX_RESULT_DIGEST=0`, not `ALCHEMIST_CTX_resultDigest`).
-See `envKeyForImprovement()` in `hosts/cursor/bot/lib/context-improvements.ts`.
+Eval overrides use `ALCHEMIST_HOST_FLAG_<SNAKE_CASE>` (`hostFlagEnvKey()` in `hosts/cursor/bot/lib/host-flags.ts`).
+Legacy `ALCHEMIST_CTX_*` env names are still accepted.
 
 ## Improvement matrix
 

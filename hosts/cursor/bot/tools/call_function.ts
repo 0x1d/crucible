@@ -5,10 +5,7 @@ import type { ToolExecuteResult } from "@grok/agent-sdk";
 import { defineTool } from "@grok/agent-sdk/tools";
 import * as z from "zod/v4";
 import { runCodexTool } from "../lib/codex-tool";
-import {
-  DEFAULT_READ_HTTP_MAX_BYTES,
-  effectiveContextImprovements,
-} from "../lib/context-improvements.ts";
+import { DEFAULT_READ_HTTP_MAX_BYTES, resolveHostFlags } from "../lib/host-flags.ts";
 import { presentResult } from "../lib/result-digest";
 import { logToolResultSize } from "../lib/tool-result-log.ts";
 
@@ -22,9 +19,9 @@ async function capResult(
   ctx: CallContext,
   slug: string,
 ): Promise<ToolExecuteResult> {
-  const improvements = effectiveContextImprovements();
-  logToolResultSize(slug, result, improvements.toolResultLog);
-  if (!improvements.resultDigest) return result;
+  const flags = resolveHostFlags();
+  logToolResultSize(slug, result, flags.toolResultLog);
+  if (!flags.resultDigest) return result;
   const id =
     (ctx.toolCallId ?? "result").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 48) ||
     "result";
@@ -49,9 +46,9 @@ export default defineTool({
   }),
   async execute({ name, args }, ctx) {
     let callArgs = args ?? {};
-    const improvements = effectiveContextImprovements();
+    const flags = resolveHostFlags();
     if (
-      improvements.defaultMaxBytes &&
+      flags.defaultMaxBytes &&
       (name === "fs.read" || name === "http.get") &&
       (callArgs as Record<string, unknown>).max_bytes === undefined
     ) {
