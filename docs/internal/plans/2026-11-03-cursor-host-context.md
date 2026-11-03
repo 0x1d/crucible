@@ -175,8 +175,8 @@ The continuation token still replays prior tool results.
 The file is the compact working set.
 It does not shrink the live prompt.
 Shrinking the prompt on the same session needs a host API that replaces history with that file. This SDK does not have one.
-The host tool that forks the next TUI turn is specified in [Handoff tool](2026-11-03-handoff-tool.md).
-This sequence stays the operational limit until that tool exists.
+The current contract is the [context handoff design](../specs/2026-11-03-context-handoff-design.md).
+The TUI adapter forks into a new store. `memory.remember` is not the seed.
 
 ### 6. Agent / instruction policy
 
