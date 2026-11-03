@@ -148,7 +148,15 @@ test("a new session sends one prompt, and a follow-up does not resend it", () =>
   assert.deepEqual(createBody("hello", undefined, undefined), { message: "hello" });
   assert.deepEqual(createBody("hello", "grok-4.7", "high"), {
     message: "hello",
-    modelConfig: modelConfig("grok-4.7", "high"),
+    modelConfig: {
+      model: {
+        id: "grok-4.7",
+        params: [
+          { id: "reasoning_effort", value: "high" },
+          { id: "fast", value: "true" },
+        ],
+      },
+    },
   });
   assert.deepEqual(modelConfig("grok-4.7", "low"), {
     model: {
