@@ -127,6 +127,7 @@ async function openSession(id: string | undefined): Promise<void> {
   const events = await withStatus("Loading session…", () => host.openSession(id));
   transcript.reset();
   for (const event of events) transcript.apply(event);
+  transcript.endTurn();
   transcript.info(id ? `Session ${id} on ${host.name}.` : `New session on ${host.name}.`);
   stats = id ? SessionStats.fromReplay(events) : new SessionStats();
   render();
@@ -255,6 +256,7 @@ async function runTurn(prompt: string, shown: string): Promise<void> {
   } catch (error) {
     transcript.error(errorText(error));
   } finally {
+    transcript.endTurn();
     if (turn.signal.aborted) transcript.info("Stopped.");
     loader.stop();
     status.clear();

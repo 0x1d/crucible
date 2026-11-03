@@ -38,9 +38,10 @@ test("pi-tui component themes come from the palette", () => {
   assert.equal(theme.selectList.selectedText("x"), theme.fg.accent("x"));
 });
 
-test("contextColor picks the style for the context use ratio", () => {
+test("contextColor is green below 150k, yellow through 200k, and red above", () => {
   const theme = createTheme("alchemist", themes.alchemist, "truecolor");
-  assert.equal(theme.contextColor(0.59)("c"), theme.fg.muted("c"));
-  assert.equal(theme.contextColor(0.6)("c"), theme.fg.warning("c"));
-  assert.equal(theme.contextColor(0.86)("c"), theme.fg.error("c"));
+  assert.equal(theme.contextColor(149_999)("c"), theme.fg.success("c"));
+  assert.equal(theme.contextColor(150_000)("c"), theme.fg.warning("c"));
+  assert.equal(theme.contextColor(200_000)("c"), theme.fg.warning("c"));
+  assert.equal(theme.contextColor(200_001)("c"), theme.fg.error("c"));
 });

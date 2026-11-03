@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { stripTerminalSequences } from "@earendil-works/pi-tui";
 import { SessionStats } from "./stats.ts";
 import { createTheme, themes } from "./theme.ts";
-import { ToolLine, changeLine, colorDiff, footerLine } from "./view.ts";
+import { ToolLine, Transcript, changeLine, colorDiff, footerLine } from "./view.ts";
 
 const theme = createTheme("alchemist", themes.alchemist, "truecolor");
 const plain = (lines: string[]) => lines.map(stripTerminalSequences);
@@ -84,6 +84,65 @@ test("the footer colors context, cache, and new tokens", () => {
 test("the footer shows default when no model or effort is set", () => {
   const line = footerLine(theme, { host: "claude", model: undefined, effort: undefined, stats: new SessionStats() });
   assert.equal(stripTerminalSequences(line), "claude · default · ctx 0 · $0.000");
+});
+
+test("a finished turn shows its token stats under the reply", () => {
+  const view = new Transcript(theme);
+  view.apply({ type: "user", text: "hello" });
+  view.apply({ type: "text", delta: "Hi there" });
+  view.apply({
+    type: "usage",
+    contextTokens: 90_136,
+    cacheReadTokens: 80_896,
+    cacheWriteTokens: 0,
+  });
+  const pending = plain(view.render(80));
+  assert.equal(pending.some((line) => line.includes("ctx")), false);
+
+  view.apply({ type: "usage", contextWindow: 200_000, costUsd: 0.02 });
+  view.apply({ type: "done", sessionId: "s1" });
+  const lines = plain(view.render(80));
+  const answer = lines.findIndex((line) => line.includes("Hi there"));
+  const stats = lines.findIndex((line) => line.includes("ctx 90.1k/200k (45%)"));
+  assert.ok(answer >= 0 && stats > answer);
+  assert.equal(lines[stats].trimEnd(), "ctx 90.1k/200k (45%) · hit · cached 80.9k · new 9.2k");
+  assert.ok(view.render(80).join("\n").includes(theme.fg.success("hit")));
+  assert.ok(view.render(80).join("\n").includes(theme.fg.accent("new 9.2k")));
+
+  view.endTurn();
+  assert.equal(plain(view.render(80)).filter((line) => line.includes("ctx")).length, 1);
+});
+
+test("each reply keeps its own token line", () => {
+  const view = new Transcript(theme);
+  view.apply({ type: "user", text: "one" });
+  view.apply({ type: "text", delta: "First" });
+  view.apply({ type: "usage", contextTokens: 1_000, cacheReadTokens: 0, cacheWriteTokens: 0 });
+  view.apply({ type: "user", text: "two" });
+  view.apply({ type: "text", delta: "Second" });
+  view.apply({
+    type: "usage",
+    contextTokens: 160_000,
+    contextWindow: 200_000,
+    cacheReadTokens: 150_000,
+    cacheWriteTokens: 0,
+  });
+  view.endTurn();
+  const lines = plain(view.render(80));
+  const first = lines.findIndex((line) => line.includes("ctx 1k"));
+  const secondPrompt = lines.findIndex((line) => line.includes("you> two"));
+  const second = lines.findIndex((line) => line.includes("ctx 160k/200k (80%)"));
+  assert.ok(first >= 0 && first < secondPrompt && secondPrompt < second);
+  assert.equal(lines[first].trimEnd(), "ctx 1k · miss · cached 0 · new 1k");
+  assert.equal(lines[second].trimEnd(), "ctx 160k/200k (80%) · hit · cached 150k · new 10k");
+});
+
+test("a turn without a context size has no token line", () => {
+  const view = new Transcript(theme);
+  view.apply({ type: "text", delta: "Hi" });
+  view.apply({ type: "usage", costUsd: 0.02 });
+  view.apply({ type: "done", sessionId: "s1" });
+  assert.equal(plain(view.render(80)).some((line) => line.includes("ctx")), false);
 });
 
 test("a running tool call is 1 line with a run marker", () => {

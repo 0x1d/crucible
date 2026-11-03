@@ -95,6 +95,10 @@ The checkpoint lines are part of the transcript, so a resumed session keeps them
 - Reasoning streams as muted italic text.
 - A tool call is 1 line. The marker is `▸` while it runs, `✓` on success, and `✗` on failure.
 - A file change under `functions/` shows as `✎ functions/<path> +N −M` after the tool result.
+- Each finished turn adds a token line below its reply.
+- Tool calls and file changes for that turn stay above the token line.
+- The line shows that turn's context use, cache result, cached tokens, and new tokens, in the same colors as the footer.
+- A turn that reports no context size omits the line.
 
 ## Dialogs
 

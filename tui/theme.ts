@@ -29,8 +29,8 @@ export interface Theme {
   bg: { surface: Style };
   bold: Style;
   italic: Style;
-  /** Style for a context use ratio: muted below 60%, warning up to 85%, error above. */
-  contextColor(ratio: number): Style;
+  /** Style for a context size: success below 150k, warning through 200k, error above. */
+  contextColor(tokens: number): Style;
   markdown: MarkdownTheme;
   editor: EditorTheme;
   selectList: SelectListTheme;
@@ -79,7 +79,8 @@ export function createTheme(
     bg: { surface: (text) => styleText(text, { bg: surface }, mode) },
     bold,
     italic,
-    contextColor: (ratio) => (ratio > 0.85 ? fg.error : ratio >= 0.6 ? fg.warning : fg.muted),
+    contextColor: (tokens) =>
+      tokens > 200_000 ? fg.error : tokens >= 150_000 ? fg.warning : fg.success,
     markdown: {
       heading: (text) => bold(fg.accent(text)),
       link: fg.secondary,

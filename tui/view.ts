@@ -9,21 +9,15 @@ import {
 } from "@earendil-works/pi-tui";
 import type { HostEvent } from "./adapters/types.ts";
 import type { FileChange } from "./changes.ts";
-import { formatTokens, type SessionStats } from "./stats.ts";
+import { SessionStats, formatTokens } from "./stats.ts";
 import type { Theme } from "./theme.ts";
 
-export function footerLine(
-  theme: Theme,
-  state: { host: string; model: string | undefined; effort: string | undefined; stats: SessionStats },
-): string {
-  const { stats } = state;
+/** Context, cache result, cached tokens, and new tokens for one turn. */
+export function tokenStatsLine(theme: Theme, stats: SessionStats): string {
   const sep = theme.fg.muted(" · ");
   const hit = stats.cacheHit();
   const cache = theme.fg.success;
   const parts = [
-    theme.bold(theme.fg.accent(state.host)),
-    theme.fg.muted(state.model ?? "default"),
-    ...(state.effort ? [theme.fg.muted(state.effort)] : []),
     theme.contextColor(stats.contextTokens)(stats.contextLabel()),
     ...(hit === undefined
       ? []
@@ -32,6 +26,21 @@ export function footerLine(
           cache(`cached ${formatTokens(stats.cachedTokens() ?? 0)}`),
           theme.fg.accent(`new ${formatTokens(stats.newTokens() ?? 0)}`),
         ]),
+  ];
+  return parts.join(sep);
+}
+
+export function footerLine(
+  theme: Theme,
+  state: { host: string; model: string | undefined; effort: string | undefined; stats: SessionStats },
+): string {
+  const { stats } = state;
+  const sep = theme.fg.muted(" · ");
+  const parts = [
+    theme.bold(theme.fg.accent(state.host)),
+    theme.fg.muted(state.model ?? "default"),
+    ...(state.effort ? [theme.fg.muted(state.effort)] : []),
+    tokenStatsLine(theme, stats),
     (stats.costComplete ? theme.fg.muted : theme.fg.warning)(stats.costLabel()),
   ];
   const turn = stats.turnLabel();
@@ -129,6 +138,9 @@ export class Transcript extends Container {
   private reply: { component: Markdown; text: string } | undefined;
   private reasoning: Reasoning | undefined;
   private readonly tools = new Map<string, ToolLine>();
+  /** Usage gathered since the previous token line. */
+  private turnUsage = new SessionStats();
+  private turnHasContext = false;
 
   constructor(theme: Theme) {
     super();
@@ -139,6 +151,18 @@ export class Transcript extends Container {
     this.clear();
     this.tools.clear();
     this.endBlock();
+    this.clearTurnUsage();
+  }
+
+  /**
+   * Appends this turn's token line under the reply.
+   * A second call does nothing until the next turn reports a context size.
+   */
+  endTurn(): void {
+    this.endBlock();
+    if (!this.turnHasContext) return;
+    this.addChild(new Text(tokenStatsLine(this.theme, this.turnUsage), 0, 0));
+    this.clearTurnUsage();
   }
 
   user(text: string): void {
@@ -170,6 +194,7 @@ export class Transcript extends Container {
   apply(event: HostEvent): void {
     switch (event.type) {
       case "user":
+        this.endTurn();
         this.user(event.text);
         break;
       case "text":
@@ -199,12 +224,15 @@ export class Transcript extends Container {
         this.tools.get(event.id)?.finish(event.ok, event.output);
         break;
       case "error":
+        this.endTurn();
         this.error(event.message);
         break;
       case "done":
-        this.endBlock();
+        this.endTurn();
         break;
       case "usage":
+        this.turnUsage.apply(event);
+        if (event.contextTokens !== undefined) this.turnHasContext = true;
         break;
     }
   }
@@ -221,5 +249,10 @@ export class Transcript extends Container {
   private endBlock(): void {
     this.reply = undefined;
     this.reasoning = undefined;
+  }
+
+  private clearTurnUsage(): void {
+    this.turnUsage = new SessionStats();
+    this.turnHasContext = false;
   }
 }
