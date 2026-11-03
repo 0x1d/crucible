@@ -54,7 +54,7 @@ test("an assistant message gives tool calls and the context size, but no text", 
   });
   assert.deepEqual(events, [
     { type: "tool", id: "t1", name: "call_function", input: { name: "echo" } },
-    { type: "usage", contextTokens: 2400 },
+    { type: "usage", contextTokens: 2400, cacheReadTokens: 2000, cacheWriteTokens: 300 },
   ]);
 });
 
@@ -143,7 +143,7 @@ test("a replay maps prompts, replies, tools, and usage", () => {
     { type: "reasoning", delta: "plan" },
     { type: "text", delta: "Hi" },
     { type: "tool", id: "t1", name: "find_function", input: {} },
-    { type: "usage", contextTokens: 2400 },
+    { type: "usage", contextTokens: 2400, cacheReadTokens: 2000, cacheWriteTokens: 300 },
     { type: "tool_result", id: "t1", ok: true, output: "[]" },
   ]);
 });

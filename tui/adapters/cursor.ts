@@ -130,7 +130,10 @@ function nested(event: CursorEvent): boolean {
 
 function usageEvent(usage: Usage | undefined): HostEvent {
   const event: HostEvent = { type: "usage", contextWindow: CURSOR_CONTEXT_WINDOW };
-  if (usage) event.contextTokens = contextTokens(usage);
+  if (!usage) return event;
+  event.contextTokens = contextTokens(usage);
+  event.cacheReadTokens = usage.cacheReadTokens ?? 0;
+  event.cacheWriteTokens = usage.cacheWriteTokens ?? 0;
   return event;
 }
 

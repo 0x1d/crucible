@@ -87,7 +87,13 @@ test("a completed turn gives the context size, the window, and done", () => {
   assert.deepEqual(
     mapCursorEvent({ type: "turn.completed", sessionId: "ses_1", data: { usage } }),
     [
-      { type: "usage", contextTokens: 2400, contextWindow: CURSOR_CONTEXT_WINDOW },
+      {
+        type: "usage",
+        contextTokens: 2400,
+        contextWindow: CURSOR_CONTEXT_WINDOW,
+        cacheReadTokens: 2000,
+        cacheWriteTokens: 300,
+      },
       { type: "done", sessionId: "ses_1" },
     ],
   );
@@ -122,7 +128,13 @@ test("a replay maps prompts, replies, tools, and usage once", () => {
     { type: "text", delta: "Hi" },
     { type: "tool", id: "t1", name: "find_function", input: {} },
     { type: "tool_result", id: "t1", ok: true, output: "[]" },
-    { type: "usage", contextTokens: 2400, contextWindow: CURSOR_CONTEXT_WINDOW },
+    {
+      type: "usage",
+      contextTokens: 2400,
+      contextWindow: CURSOR_CONTEXT_WINDOW,
+      cacheReadTokens: 2000,
+      cacheWriteTokens: 300,
+    },
     { type: "done", sessionId: "ses_1" },
   ]);
 });

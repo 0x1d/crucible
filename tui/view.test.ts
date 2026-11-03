@@ -16,6 +16,71 @@ test("the footer joins host, model, effort, context, cost, and turn time", () =>
   assert.equal(stripTerminalSequences(line), "claude · opus · high · ctx 41.2k/200k (21%) · $0.083 · 12.4s");
 });
 
+test("the footer shows a cache hit with cached and new tokens", () => {
+  const stats = new SessionStats();
+  stats.apply({
+    type: "usage",
+    contextTokens: 90_136,
+    contextWindow: 200_000,
+    cacheReadTokens: 80_896,
+    cacheWriteTokens: 0,
+    costUsd: 0.083,
+  });
+  const line = footerLine(theme, { host: "cursor", model: "auto", effort: undefined, stats });
+  assert.equal(
+    stripTerminalSequences(line),
+    "cursor · auto · ctx 90.1k/200k (45%) · hit · cached 80.9k · new 9.2k · $0.083",
+  );
+});
+
+test("the footer shows a cache miss when nothing was read", () => {
+  const stats = new SessionStats();
+  stats.apply({
+    type: "usage",
+    contextTokens: 26_000,
+    contextWindow: 200_000,
+    cacheReadTokens: 0,
+    cacheWriteTokens: 0,
+  });
+  const line = footerLine(theme, { host: "cursor", model: "auto", effort: undefined, stats });
+  assert.equal(
+    stripTerminalSequences(line),
+    "cursor · auto · ctx 26k/200k (13%) · miss · cached 0 · new 26k · $0.000",
+  );
+});
+
+test("the footer colors context, cache, and new tokens", () => {
+  const stats = new SessionStats();
+  stats.apply({
+    type: "usage",
+    contextTokens: 90_136,
+    contextWindow: 200_000,
+    cacheReadTokens: 80_896,
+    cacheWriteTokens: 0,
+  });
+  const line = footerLine(theme, { host: "cursor", model: "auto", effort: undefined, stats });
+  assert.ok(line.includes(theme.fg.success("ctx 90.1k/200k (45%)")));
+  assert.ok(line.includes(theme.fg.success("hit")));
+  assert.ok(line.includes(theme.fg.success("cached 80.9k")));
+  assert.ok(line.includes(theme.fg.accent("new 9.2k")));
+
+  const warn = new SessionStats();
+  warn.apply({ type: "usage", contextTokens: 160_000, contextWindow: 200_000 });
+  assert.ok(
+    footerLine(theme, { host: "cursor", model: "auto", effort: undefined, stats: warn }).includes(
+      theme.fg.warning("ctx 160k/200k (80%)"),
+    ),
+  );
+
+  const over = new SessionStats();
+  over.apply({ type: "usage", contextTokens: 210_000, contextWindow: 200_000 });
+  assert.ok(
+    footerLine(theme, { host: "cursor", model: "auto", effort: undefined, stats: over }).includes(
+      theme.fg.error("ctx 210k/200k (105%)"),
+    ),
+  );
+});
+
 test("the footer shows default when no model or effort is set", () => {
   const line = footerLine(theme, { host: "claude", model: undefined, effort: undefined, stats: new SessionStats() });
   assert.equal(stripTerminalSequences(line), "claude · default · ctx 0 · $0.000");

@@ -5,8 +5,19 @@ export type HostEvent =
   | { type: "reasoning"; delta: string }
   | { type: "tool"; id: string; name: string; input: unknown }
   | { type: "tool_result"; id: string; ok: boolean; output: string }
-  /** `costUsd` is the running cost total of the whole session, not the cost of one turn. */
-  | { type: "usage"; contextTokens?: number; contextWindow?: number; costUsd?: number }
+  /**
+   * `costUsd` is the running cost total of the whole session, not the cost of one turn.
+   * `cacheReadTokens` is present when the host reported a prompt cache.
+   * A read above zero is a hit. A reported read of zero is a miss.
+   */
+  | {
+      type: "usage";
+      contextTokens?: number;
+      contextWindow?: number;
+      costUsd?: number;
+      cacheReadTokens?: number;
+      cacheWriteTokens?: number;
+    }
   | { type: "done"; sessionId: string }
   | { type: "error"; message: string };
 

@@ -54,6 +54,15 @@ function contextTokens(usage: Usage): number {
   );
 }
 
+function usageFrom(usage: Usage): HostEvent {
+  return {
+    type: "usage",
+    contextTokens: contextTokens(usage),
+    cacheReadTokens: usage.cache_read_input_tokens ?? 0,
+    cacheWriteTokens: usage.cache_creation_input_tokens ?? 0,
+  };
+}
+
 function blockText(content: string | Block[] | undefined): string {
   if (typeof content === "string") return content;
   return (content ?? []).map((b) => b.text ?? "").join("");
@@ -96,7 +105,7 @@ export function mapClaudeMessage(raw: unknown): HostEvent[] {
       const content = contentOf(m.message);
       const events: HostEvent[] = typeof content === "string" ? [] : content.filter((b) => b.type === "tool_use").map(toolEvent);
       const usage = (m.message as { usage?: Usage } | undefined)?.usage;
-      if (usage) events.push({ type: "usage", contextTokens: contextTokens(usage) });
+      if (usage) events.push(usageFrom(usage));
       return events;
     }
     case "user":
@@ -131,7 +140,7 @@ export function mapSessionMessages(messages: unknown[]): HostEvent[] {
         else if (block.type === "tool_use") events.push(toolEvent(block));
       }
       const usage = (m.message as { usage?: Usage }).usage;
-      if (usage) events.push({ type: "usage", contextTokens: contextTokens(usage) });
+      if (usage) events.push(usageFrom(usage));
     }
   }
   return events;

@@ -9,7 +9,7 @@ import {
 } from "@earendil-works/pi-tui";
 import type { HostEvent } from "./adapters/types.ts";
 import type { FileChange } from "./changes.ts";
-import type { SessionStats } from "./stats.ts";
+import { formatTokens, type SessionStats } from "./stats.ts";
 import type { Theme } from "./theme.ts";
 
 export function footerLine(
@@ -17,13 +17,21 @@ export function footerLine(
   state: { host: string; model: string | undefined; effort: string | undefined; stats: SessionStats },
 ): string {
   const { stats } = state;
-  const ratio = stats.contextRatio();
   const sep = theme.fg.muted(" · ");
+  const hit = stats.cacheHit();
+  const cache = theme.fg.success;
   const parts = [
     theme.bold(theme.fg.accent(state.host)),
     theme.fg.muted(state.model ?? "default"),
     ...(state.effort ? [theme.fg.muted(state.effort)] : []),
-    (ratio === undefined ? theme.fg.muted : theme.contextColor(ratio))(stats.contextLabel()),
+    theme.contextColor(stats.contextTokens)(stats.contextLabel()),
+    ...(hit === undefined
+      ? []
+      : [
+          hit ? cache("hit") : theme.fg.warning("miss"),
+          cache(`cached ${formatTokens(stats.cachedTokens() ?? 0)}`),
+          theme.fg.accent(`new ${formatTokens(stats.newTokens() ?? 0)}`),
+        ]),
     (stats.costComplete ? theme.fg.muted : theme.fg.warning)(stats.costLabel()),
   ];
   const turn = stats.turnLabel();

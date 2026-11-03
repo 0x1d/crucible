@@ -10,6 +10,10 @@ export function formatTokens(n: number): string {
 export class SessionStats {
   contextTokens = 0;
   contextWindow: number | undefined;
+  /** Tokens read from the prompt cache on the last turn that reported a cache. */
+  cacheReadTokens: number | undefined;
+  /** Tokens written into the prompt cache on that same turn. */
+  cacheWriteTokens: number | undefined;
   /** The session's running cost total, as last reported by the host. */
   costUsd = 0;
   /** False when part of the session cost is unknown: after a replay, until the first live total arrives. */
@@ -29,6 +33,8 @@ export class SessionStats {
     if (event.type !== "usage") return;
     if (event.contextTokens !== undefined) this.contextTokens = event.contextTokens;
     if (event.contextWindow !== undefined) this.contextWindow = event.contextWindow;
+    if (event.cacheReadTokens !== undefined) this.cacheReadTokens = event.cacheReadTokens;
+    if (event.cacheWriteTokens !== undefined) this.cacheWriteTokens = event.cacheWriteTokens;
     // Hosts report a running total for the whole session, so the latest value replaces the old one.
     // A live total also covers the turns before a replay, so the cost is then complete.
     if (event.costUsd !== undefined) {
@@ -39,6 +45,25 @@ export class SessionStats {
 
   contextRatio(): number | undefined {
     return this.contextWindow ? this.contextTokens / this.contextWindow : undefined;
+  }
+
+  /** True when this turn read from the prompt cache. Undefined until a host reports cache counters. */
+  cacheHit(): boolean | undefined {
+    if (this.cacheReadTokens === undefined) return undefined;
+    return this.cacheReadTokens > 0;
+  }
+
+  /** Cache read plus cache write. Undefined until a host reports cache counters. */
+  cachedTokens(): number | undefined {
+    if (this.cacheReadTokens === undefined) return undefined;
+    return this.cacheReadTokens + (this.cacheWriteTokens ?? 0);
+  }
+
+  /** Prompt tokens that were not served from or written to the cache. */
+  newTokens(): number | undefined {
+    const cached = this.cachedTokens();
+    if (cached === undefined) return undefined;
+    return Math.max(0, this.contextTokens - cached);
   }
 
   contextLabel(): string {

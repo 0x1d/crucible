@@ -52,6 +52,41 @@ test("a replay without cost data is partial until the first live total", () => {
   assert.equal(stats.costComplete, true);
 });
 
+test("a cache read is a hit and splits cached from new", () => {
+  const stats = new SessionStats();
+  stats.apply({
+    type: "usage",
+    contextTokens: 90_136,
+    cacheReadTokens: 80_896,
+    cacheWriteTokens: 0,
+  });
+  assert.equal(stats.cacheHit(), true);
+  assert.equal(stats.cachedTokens(), 80_896);
+  assert.equal(stats.newTokens(), 9_240);
+});
+
+test("a reported read of zero is a miss", () => {
+  const stats = new SessionStats();
+  stats.apply({
+    type: "usage",
+    contextTokens: 26_000,
+    cacheReadTokens: 0,
+    cacheWriteTokens: 4_000,
+  });
+  assert.equal(stats.cacheHit(), false);
+  assert.equal(stats.cachedTokens(), 4_000);
+  assert.equal(stats.newTokens(), 22_000);
+});
+
+test("a cost-only usage event keeps the previous cache counters", () => {
+  const stats = new SessionStats();
+  stats.apply({ type: "usage", contextTokens: 2_400, cacheReadTokens: 2_000, cacheWriteTokens: 300 });
+  stats.apply({ type: "usage", costUsd: 0.02 });
+  assert.equal(stats.cacheHit(), true);
+  assert.equal(stats.cachedTokens(), 2_300);
+  assert.equal(stats.newTokens(), 100);
+});
+
 test("the last turn time shows in seconds", () => {
   const stats = new SessionStats();
   assert.equal(stats.turnLabel(), undefined);
