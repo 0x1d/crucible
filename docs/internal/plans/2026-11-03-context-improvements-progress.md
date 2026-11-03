@@ -14,7 +14,7 @@ Host-side flags apply on the next `serve()` start (restart the TUI or `/host`).
 | --- | --- | --- | --- |
 | `resultDigest` | §1 bridge cap / digest | on | Shrinks large `call_function` results in the transcript; baseline named-read ~25.7k vs uncapped read ~119k. |
 | `defaultMaxBytes` | §6 default caps | off | Injects `max_bytes` on `fs.read` / `http.get`; lowers per-turn blobs; may hide tail unless user reads `path`. |
-| `pinnedModel` | prompt-cache design | off | Pins server default to `grok-4.7` for stable cache prefix; follow-up cache read should approach full prompt (eval gate). |
+| `pinnedModel` | prompt-cache design | off | Pins server default to `composer-2.5` at `reasoning_effort=high` (no `fast`); follow-up cache read should approach full prompt (eval gate). |
 | `handoffTool` | handoff design | off | Exposes `handoff` server tool (~schema tokens); model can write `handoff.md`. |
 | `handoffFork` | handoff design | off | TUI forks to a new session after handoff when over 200k or user compacted; drops old transcript from live prompt. |
 | `toolResultLog` | §7 observability | off | Logs largest tool results per turn to `.agent-serve/context-tool-sizes.log`. |

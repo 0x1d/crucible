@@ -146,16 +146,28 @@ test("the next stream starts after the last stored index", () => {
 
 test("a new session sends one prompt, and a follow-up does not resend it", () => {
   assert.deepEqual(createBody("hello", undefined, undefined), { message: "hello" });
-  assert.deepEqual(createBody("hello", "grok-4.7", "high"), {
+  assert.deepEqual(createBody("hello", "composer-2.5", "high"), {
     message: "hello",
     modelConfig: {
       model: {
-        id: "grok-4.7",
-        params: [
-          { id: "reasoning_effort", value: "high" },
-          { id: "fast", value: "true" },
-        ],
+        id: "composer-2.5",
+        params: [{ id: "reasoning_effort", value: "high" }],
       },
+    },
+  });
+  assert.deepEqual(modelConfig("composer-2.5", "high"), {
+    model: {
+      id: "composer-2.5",
+      params: [{ id: "reasoning_effort", value: "high" }],
+    },
+  });
+  assert.deepEqual(modelConfig("grok-4.7", "high"), {
+    model: {
+      id: "grok-4.7",
+      params: [
+        { id: "reasoning_effort", value: "high" },
+        { id: "fast", value: "true" },
+      ],
     },
   });
   assert.deepEqual(modelConfig("grok-4.7", "low"), {
