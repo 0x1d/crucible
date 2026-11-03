@@ -28,18 +28,24 @@ Already shipped without a flag (measured in the host-context plan):
 
 ## Verification log
 
+Branch `feat/tui` at `93e2162` (2026-11-03, Europe/Zurich).
+BEAM evals and `node scripts/cli.mjs` need `nix develop` (Elixir on `PATH`).
+Plain shell without nix still passes token-budget gates but fails tool-output checks with `spawn elixir ENOENT`.
+
 | Check | Status | Notes |
 | --- | --- | --- |
-| `node --test hosts/cursor/bot/lib/handoff.test.ts` | pass | |
-| `node --test tui/adapters/handoff.test.ts` | pass | via npm run test:tui |
-| `node --test hosts/cursor/bot/lib/context-improvements.test.ts` | pass | via npm run test:hosts |
-| `node --test hosts/cursor/bot/prompt-stability.test.ts` | pass | |
+| `git pull origin feat/tui` | pass | fast-forward `93232e1..93e2162` |
+| `npm run check` | pass | types + docs |
 | `npm run test:tui` | pass | 79 tests |
-| `npm run test:hosts` | partial | prompt-stability + cursor lib pass; instructions-examples need mix on PATH |
+| `node --test` (context + handoff libs) | pass | 13 tests (handoff, context-improvements, prompt-stability, `/ctx`) |
+| `npm run test:hosts` | partial | 16/17; cursor `instructions.md` has no `### Examples` (shorter prompt); claude examples pass in nix |
+| `nix develop -- node scripts/cli.mjs … echo` | pass | `ok:true`, `echoed:true` |
 | `npx @grok/agent-sdk validate --dir hosts/cursor` | pass | |
-| `npm run eval:cursor -- context-size` | pending | needs Cursor credential + elixir |
-| `npm run eval:cursor -- handoff/compact` | pending | enable ALCHEMIST_CTX_handoffTool=1 |
-| `npm run eval:cursor -- prompt-cache/pong` | pending | enable ALCHEMIST_CTX_pinnedModel=1 |
+| `npm run eval:cursor -- smoke` | pass | 9.8s; artifacts `…/evals/2026-11-03T15-00-28-442Z` |
+| `nix develop -- npm run eval:cursor -- context-size` | pass | 4/4; artifacts `…/evals/2026-11-03T15-01-42-338Z` |
+| `nix develop -- ALCHEMIST_CTX_handoffTool=1 npm run eval:cursor -- handoff/compact` | pass | 17.1s; `inputTokens=21636`; artifacts `…/evals/2026-11-03T15-02-34-273Z` |
+| `nix develop -- ALCHEMIST_CTX_pinnedModel=1 npm run eval:cursor -- prompt-cache/pong` | pass | 7.7s; `prompt1=6819`, `prompt2=6915`, `cache2=6784`; artifacts `…/evals/2026-11-03T15-02-52-392Z` |
+| `npm run eval:cursor -- context-size` (no nix) | fail | 0/4; budgets ok but reply gates fail on Elixir errors |
 
 ## Measurements
 
@@ -48,11 +54,21 @@ Baseline from [cursor host context](2026-11-03-cursor-host-context.md) (2026-11-
 | Improvement | Input tokens (named read gate) | Effect |
 | --- | --- | --- |
 | Search-before-read (reverted path) | 62,802 fail | Extra tools inflate prompt |
-| One-shot named `fs.read` | 29,426 pass | −33k vs search path |
-| Shorter instructions / skills | 25,743 pass | −3k |
-| `call_function` digest (32k cap + array/string digest) | large read 21,334; docker list 14,256 | Stops multi‑100k tool blobs in transcript |
+| One-shot named `fs.read` | 29,426 pass (earlier) | −33k vs search path |
+| Shorter instructions / skills | 25,743 pass (earlier) | −3k |
+| `call_function` digest (32k cap + array/string digest) | large read 21,548; docker list 14,447 (2026-11-03 nix run) | Stops multi‑100k tool blobs in transcript |
 | `defaultMaxBytes` (flag, 65536) | not re-run live | Caps read/http bodies per turn when on |
-| `pinnedModel` + follow-up | prompt-cache eval | Targets cache read ≥ prompt1−1k on turn 2 |
-| `handoffFork` | new session seed ≤12kB file + user | Drops prior transcript from live window |
+| `pinnedModel` + follow-up | prompt-cache eval pass | `cache2=6784` vs `prompt1=6819` (gate: cache2 ≥ prompt1−1k) |
+| `handoffTool` + compact ask | handoff/compact pass | `inputTokens=21636` (gate ≤32k named-read budget) |
+| `handoffFork` | unit tests only | TUI fork path covered by `tui/adapters/handoff.test.ts`; no live over-200k fork eval yet |
+
+Latest `context-size` gate metrics (2026-11-03, `93e2162`, nix develop):
+
+| Case | inputTokens | cacheRead | newTokens |
+| --- | --- | --- | --- |
+| named-read | 26,867 | 14,464 | 12,403 |
+| large-read | 21,548 | 16,768 | 4,780 |
+| docker-report | 14,668 | 9,728 | 4,940 |
+| structured-list | 14,447 | 9,728 | 4,719 |
 
 Toggle comparison: `/ctx list`, `/ctx on resultDigest`, `/ctx off resultDigest` (restart TUI), then repeat `context-size/named-read`.
