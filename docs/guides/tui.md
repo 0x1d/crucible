@@ -57,7 +57,7 @@ A model or effort change applies to the next turn of the Claude host.
 The session continues.
 On the Cursor host, the model is set in `hosts/cursor/bot/agent.ts` when the serve process starts.
 The TUI saves your picker choice in `hosts/cursor/.agent-serve/host-flags.json` as `sessionModel`.
-**Exit and restart the TUI** after changing model or `/ctx on pinnedModel` so the serve host reloads.
+**Exit and restart the TUI** after changing model or `/flags on pinnedModel` so the serve host reloads.
 Agent SDK 0.5.0 does not accept `modelConfig` on live `POST /v1/session` (only with `dryRun`).
 `/new` starts a new conversation on the **same** agent model; it does not apply a mid-run picker change.
 A Cursor follow-up sends the new prompt and the current continuation token.
@@ -120,6 +120,8 @@ claude · opus · high · ctx 90.1k/200k (45%) · hit · read 80.9k · write 0 �
 | Context | The prompt size of the last turn. Claude adds input, cache-read, and cache-write, which are disjoint. Cursor uses input when that count already includes the cache, and adds the cache buckets when input is smaller than them. The Claude window comes from the SDK result. The Cursor window is 200,000 tokens. |
 | Cache | `hit` when the last turn read from the prompt cache, `miss` when the host reported a read of zero. `read` and `write` are the cache-read and cache-write token counts. `new` is the rest of the prompt (`context − read − write`). A turn that does not report cache counters omits these fields. |
 | Cost | The running total of the session. Claude uses `total_cost_usd` of the latest SDK result. Cursor uses `costUsd` from `GET /v1/session/:id/cost`. |
+
+`ctx` is that turn's full prompt. `new` is only the uncached slice. A drop in `ctx` (or reading `new` as if it were `ctx`) does **not** mean the host pruned prior tool results. This Cursor host keeps the agent-store transcript until handoff opens a new session. See [context growth fixes](../internal/specs/2026-11-04-context-growth-fixes.md).
 
 The context field, including the percentage, is green below 150,000 tokens, yellow from 150,000 through 200,000 tokens, and red above 200,000 tokens.
 `hit`, `read`, and `write` use the success color.

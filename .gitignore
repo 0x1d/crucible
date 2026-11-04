@@ -11,3 +11,5 @@ runtime/.fetch
 .alchemist/
 docs/review/
 hosts/cursor/.eval-memory/
+/artifacts/
+handoff.md

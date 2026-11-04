@@ -6,6 +6,7 @@ import {
   HOST_FLAG_IDS,
   hostFlagEnvKey,
   loadHostFlags,
+  loadMaxContextTokens,
   loadSessionModel,
   saveSessionModel,
 } from "../../hosts/cursor/bot/lib/host-flags.ts";
@@ -26,7 +27,10 @@ import {
 } from "./handoff.ts";
 import type { HostAdapter, HostEvent, ModelChoice, SessionSummary } from "./types.ts";
 
-/** Model `auto` reports no window. The footer uses this fixed size. */
+/**
+ * Model `auto` reports no window. Event mapping uses this default; the adapter
+ * replaces it with `maxContextTokens` from host-flags.json.
+ */
 export const CURSOR_CONTEXT_WINDOW = 200_000;
 
 const EFFORTS = ["low", "medium", "high"];
@@ -41,6 +45,19 @@ export const CURSOR_MODELS: ModelChoice[] = [
 const hostDir = path.join(repoRoot, "hosts/cursor");
 const sessionsDir = path.join(hostDir, ".sessions");
 const stateRoot = path.join(hostDir, ".agent-serve");
+
+/** Context budget from host-flags.json: footer window and handoff fork threshold. */
+function maxContextTokens(): number {
+  return loadMaxContextTokens(stateRoot, "cursor");
+}
+
+function withContextWindow(events: HostEvent[]): HostEvent[] {
+  const window = maxContextTokens();
+  for (const event of events) {
+    if (event.type === "usage" && event.contextWindow !== undefined) event.contextWindow = window;
+  }
+  return events;
+}
 
 type Usage = {
   inputTokens?: number;
@@ -304,8 +321,9 @@ type SubmitResult = { ok: true } | { ok: false; message: string };
 export class CursorAdapter implements HostAdapter {
   readonly name = "cursor";
   sessionId: string | undefined;
-  model: string | undefined;
-  effort: string | undefined;
+  /** Restored from host-flags.json `sessionModel`; `setModel` writes it back. */
+  model: string | undefined = loadSessionModel(stateRoot, "cursor")?.id;
+  effort: string | undefined = loadSessionModel(stateRoot, "cursor")?.effort;
   private continuationToken: string | undefined;
   private nextIndex = 0;
   private starting: Promise<AgentServeHandle> | undefined;
@@ -316,11 +334,12 @@ export class CursorAdapter implements HostAdapter {
   /** Starts the in-process server, or returns the running one. */
   private server(): Promise<AgentServeHandle> {
     if (!this.starting) {
-      const config = loadHostFlags(stateRoot);
+      const config = loadHostFlags(stateRoot, "cursor");
+      process.env[hostFlagEnvKey("historyReclaim")] = config.historyReclaim;
       for (const id of HOST_FLAG_IDS) {
         process.env[hostFlagEnvKey(id)] = config[id] ? "1" : "0";
       }
-      applySessionModelEnv(loadSessionModel(stateRoot));
+      applySessionModelEnv(loadSessionModel(stateRoot, "cursor"));
       this.starting = serve(hostDir, {
         mode: "single",
         port: 0,
@@ -415,7 +434,7 @@ export class CursorAdapter implements HostAdapter {
         break;
       }
     }
-    return mapCursorEvents(events);
+    return withContextWindow(mapCursorEvents(events));
   }
 
   async listModels(): Promise<ModelChoice[]> {
@@ -426,9 +445,9 @@ export class CursorAdapter implements HostAdapter {
     this.model = model;
     this.effort = effort;
     if (model && model !== "auto") {
-      saveSessionModel({ id: model, effort }, stateRoot);
+      saveSessionModel({ id: model, effort }, stateRoot, "cursor");
     } else {
-      saveSessionModel(undefined, stateRoot);
+      saveSessionModel(undefined, stateRoot, "cursor");
     }
     applySessionModelEnv(
       model && model !== "auto" ? { id: model, effort } : undefined,
@@ -528,7 +547,7 @@ export class CursorAdapter implements HostAdapter {
 
   async *send(prompt: string, signal: AbortSignal): AsyncIterable<HostEvent> {
     if (signal.aborted) return;
-    const flags = loadHostFlags(stateRoot);
+    const flags = loadHostFlags(stateRoot, "cursor");
     if (flags.handoffFork) {
       yield* this.sendWithHandoff(prompt, signal);
       return;
@@ -548,6 +567,7 @@ export class CursorAdapter implements HostAdapter {
       pendingHandoff: this.pendingHandoff,
       handoffFilePresent: oldId ? handoffFileExists(sessionsDir, oldId) : false,
       userText: prompt,
+      forkAboveTokens: maxContextTokens(),
     });
     if (route.kind === "error") {
       yield { type: "error", message: route.message };
@@ -675,13 +695,13 @@ export class CursorAdapter implements HostAdapter {
         const event = next.value;
         this.noteIndex(event);
         if (options.watchHandoff && isHandoffSuccess(event)) this.lastHandoffOk = true;
-        const mapped = mapCursorEvent(event);
+        const mapped = withContextWindow(mapCursorEvent(event));
         if (event.type === "turn.completed" || event.type === "turn.failed") {
           const cost = await this.readCost(handle.url, id);
           const usage = mapped.find((item) => item.type === "usage");
           if (cost !== undefined && usage?.type === "usage") usage.costUsd = cost;
           else if (cost !== undefined) {
-            mapped.unshift({ type: "usage", costUsd: cost, contextWindow: CURSOR_CONTEXT_WINDOW });
+            mapped.unshift({ type: "usage", costUsd: cost, contextWindow: maxContextTokens() });
           }
           if (usage?.type === "usage" && usage.contextTokens !== undefined) {
             this.lastContextTokens = usage.contextTokens;
