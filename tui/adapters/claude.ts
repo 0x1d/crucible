@@ -10,7 +10,14 @@ import {
 import fs from "node:fs";
 import path from "node:path";
 import { repoRoot } from "../../core/elixir-bridge.ts";
-import { alchemistOptions } from "../../hosts/claude/codex.ts";
+import { alchemistOptions, claudeFlags } from "../../hosts/claude/codex.ts";
+import { defaultStateRoot } from "../../hosts/cursor/bot/lib/host-flags.ts";
+import {
+  HANDOFF_REQUEST,
+  recordFork,
+  routeTurn,
+  seedMessage,
+} from "./handoff.ts";
 import type { HostAdapter, HostEvent, ModelChoice, SessionSummary } from "./types.ts";
 
 const TOOL_PREFIX = "mcp__alchemist__";
@@ -248,6 +255,21 @@ type LiveQuery = { query: Query; input: MessageQueue<SDKUserMessage> };
  * A new process starts only for a different session, after a failure, or when a
  * stopped turn does not finish in time. It resumes the session from its transcript.
  */
+function handoffMdPath(): string {
+  return path.join(repoRoot, "handoff.md");
+}
+
+function readRepoHandoff(): string | undefined {
+  const file = handoffMdPath();
+  if (!fs.existsSync(file)) return undefined;
+  return fs.readFileSync(file, "utf8");
+}
+
+function isClaudeHandoffSuccess(event: HostEvent): boolean {
+  if (event.type !== "tool_result" || !event.ok) return false;
+  return event.output.includes("Wrote handoff.md");
+}
+
 export class ClaudeAdapter implements HostAdapter {
   readonly name = "claude";
   sessionId: string | undefined;
@@ -257,9 +279,12 @@ export class ClaudeAdapter implements HostAdapter {
   private live: LiveQuery | undefined;
   /** Model and effort changes that are still being applied to the live query. */
   private settings: Promise<void> = Promise.resolve();
+  private lastContextTokens = 0;
+  private pendingHandoff = false;
   private readonly index = new SessionIndex(
     path.join(repoRoot, ".alchemist/tui/claude-sessions.json"),
   );
+  private readonly stateRoot = defaultStateRoot("claude");
 
   /** Starts the session process, or returns the running one. */
   private start(): LiveQuery {
@@ -306,6 +331,8 @@ export class ClaudeAdapter implements HostAdapter {
     // A different session, or a new one, needs its own process. Reopening the live session keeps it.
     if (!(id && id === this.sessionId && this.live)) this.stop();
     this.sessionId = id;
+    this.pendingHandoff = false;
+    this.lastContextTokens = 0;
     // Start the process now, so it boots while the transcript loads and the user types.
     this.start();
     if (!id) return [];
@@ -346,6 +373,61 @@ export class ClaudeAdapter implements HostAdapter {
   }
 
   async *send(prompt: string, signal: AbortSignal): AsyncIterable<HostEvent> {
+    if (claudeFlags().handoffFork) {
+      yield* this.sendWithHandoff(prompt, signal);
+      return;
+    }
+    yield* this.runTurn(prompt, signal);
+  }
+
+  private async *sendWithHandoff(prompt: string, signal: AbortSignal): AsyncIterable<HostEvent> {
+    const oldId = this.sessionId;
+    const route = routeTurn({
+      hasSession: Boolean(this.sessionId),
+      lastContextTokens: this.lastContextTokens,
+      pendingHandoff: this.pendingHandoff,
+      handoffFilePresent: fs.existsSync(handoffMdPath()),
+      userText: prompt,
+    });
+    if (route.kind === "error") {
+      yield { type: "error", message: route.message };
+      return;
+    }
+    if (route.kind === "compact-then-fork") {
+      yield* this.runTurn(HANDOFF_REQUEST, signal);
+      if (!this.pendingHandoff && !fs.existsSync(handoffMdPath())) {
+        yield { type: "error", message: "Handoff did not complete. Try again or write handoff.md." };
+        return;
+      }
+      yield* this.forkFromHandoff(oldId, route.userText, signal);
+      return;
+    }
+    if (route.kind === "fork") {
+      yield* this.forkFromHandoff(oldId, route.userText, signal);
+      return;
+    }
+    yield* this.runTurn(route.message, signal);
+  }
+
+  private async *forkFromHandoff(
+    oldId: string | undefined,
+    userText: string,
+    signal: AbortSignal,
+  ): AsyncIterable<HostEvent> {
+    const file = readRepoHandoff();
+    if (!file) {
+      yield { type: "error", message: "Handoff file is missing. Write handoff.md before continuing." };
+      return;
+    }
+    this.stop();
+    this.sessionId = undefined;
+    this.pendingHandoff = false;
+    this.lastContextTokens = 0;
+    yield* this.runTurn(seedMessage(file, userText), signal);
+    if (oldId && this.sessionId) recordFork(this.stateRoot, oldId, this.sessionId);
+  }
+
+  private async *runTurn(prompt: string, signal: AbortSignal): AsyncIterable<HostEvent> {
     await this.settings;
     const live = this.start();
     let finished = false;
@@ -379,6 +461,10 @@ export class ClaudeAdapter implements HostAdapter {
         for (const event of mapClaudeMessage(message)) {
           // A stopped turn ends with an error result. The TUI already reports the stop.
           if (signal.aborted && event.type === "error") continue;
+          if (event.type === "usage" && event.contextTokens !== undefined) {
+            this.lastContextTokens = event.contextTokens;
+          }
+          if (isClaudeHandoffSuccess(event)) this.pendingHandoff = true;
           yield event;
         }
         if (message.type === "result") {
@@ -400,3 +486,4 @@ export class ClaudeAdapter implements HostAdapter {
     this.stop();
   }
 }
+

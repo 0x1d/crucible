@@ -26,8 +26,16 @@ Policy: **SDK first, alchemist fallback** — two layers (emit-time tool shrink 
 ## Next (SDK wiring)
 
 1. Cursor serve: request/wire `@grok/agent-sdk` exposure of `agent.summarize()`; compact ask prefers summarize, then handoff+fork
-2. Claude host: `PostToolUse` → `updatedToolOutput` using the same digest presentation as Cursor `resultDigest`
-3. After summarize is reachable: do not auto-handoff as primary; keep handoffTool/handoffFork as fallback
+2. Claude host: prefer `PostToolUse` → `updatedToolOutput` over emit-time digest (digest wired as interim fallback)
+3. After summarize is reachable: do not auto-handoff as primary; keep handoffFork reclaim as fallback
+
+## Done (2026-11-04 follow-up)
+
+- Exclusive `historyReclaim` with host-specific SDK modes: Cursor `summarize` | `handoffFork` | `off`; Claude `autocompact` | `handoffFork` | `off` (Claude defaults autocompact; Cursor handoffFork)
+- Derived `autoSummarize` (Cursor) / `autoCompact` (Claude); cross-host toggles rejected
+- Claude host reads shared host flags (`resultDigest`, `defaultMaxBytes`, reclaim, …) from `hosts/claude/.agent-serve/`
+- `/flags reclaim <mode>` in TUI; reclaim boolean toggles stay exclusive aliases
+- Dropped legacy `/ctx` alias, `ALCHEMIST_CTX_*` env, and `context-improvements.json` fallback
 
 ## Deferred
 

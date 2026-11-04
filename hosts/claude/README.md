@@ -21,16 +21,35 @@ The Elixir bridge in `core/elixir-bridge.ts` owns the long-lived BEAM, as for ev
 | `evals/run.ts` | Eval runner. Sends one prompt and records tool calls and the final text. |
 | `evals/*.eval.ts` | Eval cases under `node:test`. |
 
+## Host flags
+
+Claude shares the Cursor host-flag schema (`hosts/cursor/bot/lib/host-flags.ts`).
+State lives under `hosts/claude/.agent-serve/host-flags.json`.
+Toggle with `/flags` in the TUI while the Claude host is active.
+
+**History reclaim is exclusive** (`historyReclaim`). Claude allows `autocompact` only as its SDK mode (Cursor uses `summarize` instead):
+
+| Mode | Effect |
+| --- | --- |
+| `autocompact` (default) | Claude SDK `autoCompactEnabled`; handoff tool hidden |
+| `handoffFork` | Handoff MCP tool + TUI fork; SDK autocompact off |
+| `off` | Neither |
+
+Other flags (`resultDigest`, `defaultMaxBytes`, `pinnedModel`, `toolResultLog`) apply the same way as on Cursor.
+`/flags reclaim <autocompact|handoffFork|off>` switches reclaim; `/flags on autoCompact` / `handoffFork` are aliases that keep exclusivity. `autoSummarize` is Cursor-only.
+
 ## Query options
 
 `alchemistOptions()` sets a minimal configuration:
 
 - `systemPrompt` is the content of `instructions.md`. The Claude Code preset is not loaded.
-- `tools: []` removes every built-in tool. Claude sees only the four codex tools.
-- `allowedTools` lists `mcp__alchemist__<tool>` for each codex tool, so no permission prompt appears.
+- `tools: []` removes every built-in tool. Claude sees only the codex MCP tools (plus `handoff` when reclaim is `handoffFork`).
+- `allowedTools` lists `mcp__alchemist__<tool>` for each exposed tool, so no permission prompt appears.
+- `settings.autoCompactEnabled` follows `historyReclaim === "autocompact"`.
 - `settingSources: []` ignores user and project settings files.
 - `cwd` is the repository root.
 - `hooks.PreToolUse` runs `session-hook.ts`, so remembered facts can be traced back with `memory.by_session`.
+- `call_function` applies `resultDigest` / `defaultMaxBytes` from host flags.
 
 Tool names follow `core/protocol.ts`: `find_function`, `define_function`, `load_function`, and `call_function`.
 Each tool returns the codex JSON response as text.

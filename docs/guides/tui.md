@@ -57,7 +57,7 @@ A model or effort change applies to the next turn of the Claude host.
 The session continues.
 On the Cursor host, the model is set in `hosts/cursor/bot/agent.ts` when the serve process starts.
 The TUI saves your picker choice in `hosts/cursor/.agent-serve/host-flags.json` as `sessionModel`.
-**Exit and restart the TUI** after changing model or `/ctx on pinnedModel` so the serve host reloads.
+**Exit and restart the TUI** after changing model or `/flags on pinnedModel` so the serve host reloads.
 Agent SDK 0.5.0 does not accept `modelConfig` on live `POST /v1/session` (only with `dryRun`).
 `/new` starts a new conversation on the **same** agent model; it does not apply a mid-run picker change.
 A Cursor follow-up sends the new prompt and the current continuation token.

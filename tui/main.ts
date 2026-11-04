@@ -312,9 +312,8 @@ async function handleCommand(name: string, arg: string): Promise<void> {
         `/remember${arg ? ` ${arg}` : ""}`,
       );
       break;
-    case "flags":
-    case "ctx": {
-      const { message } = applyHostFlagsCommand(arg);
+    case "flags": {
+      const { message } = applyHostFlagsCommand(arg, undefined, adapter?.name);
       transcript.info(message);
       render();
       break;

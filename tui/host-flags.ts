@@ -1,25 +1,59 @@
 import {
   type HostFlagId,
   type HostFlags,
+  type HostId,
+  type HistoryReclaimMode,
   HOST_FLAG_IDS,
   DEFAULT_HOST_FLAGS,
+  defaultHostFlags,
+  defaultStateRoot,
   loadHostFlags,
   saveHostFlags,
-  defaultStateRoot,
+  setHistoryReclaim,
+  isReclaimFlagId,
+  reclaimModesForHost,
+  parseReclaimModeToken,
 } from "../hosts/cursor/bot/lib/host-flags.ts";
 
 export {
   type HostFlagId,
   type HostFlags,
+  type HostId,
+  type HistoryReclaimMode,
   HOST_FLAG_IDS,
   DEFAULT_HOST_FLAGS,
+  defaultHostFlags,
+  defaultStateRoot,
   loadHostFlags,
   saveHostFlags,
-  defaultStateRoot,
 };
 
-export function formatHostFlags(config: HostFlags): string {
-  return HOST_FLAG_IDS.map((id) => `${id}: ${config[id] ? "on" : "off"}`).join("\n");
+function asHostId(host: string | undefined): HostId {
+  return host === "claude" ? "claude" : "cursor";
+}
+
+function reclaimFlagLabel(id: HostFlagId, host: HostId): boolean {
+  if (id === "autoSummarize") return host === "cursor";
+  if (id === "autoCompact") return host === "claude";
+  return true;
+}
+
+export function formatHostFlags(config: HostFlags, host: HostId = "cursor"): string {
+  const modes = reclaimModesForHost(host).join(" | ");
+  const lines = [
+    `historyReclaim: ${config.historyReclaim} (allowed: ${modes})`,
+    ...HOST_FLAG_IDS.filter((id) => !isReclaimFlagId(id)).map(
+      (id) => `${id}: ${config[id] ? "on" : "off"}`,
+    ),
+    `handoffTool: ${config.handoffTool ? "on" : "off"} (from historyReclaim)`,
+    `handoffFork: ${config.handoffFork ? "on" : "off"} (from historyReclaim)`,
+  ];
+  if (host === "cursor") {
+    lines.push(`autoSummarize: ${config.autoSummarize ? "on" : "off"} (from historyReclaim)`);
+  } else {
+    lines.push(`autoCompact: ${config.autoCompact ? "on" : "off"} (from historyReclaim)`);
+  }
+  return lines.join("\n");
 }
 
 export function parseHostFlagsCommand(arg: string): { action: string; rest: string } {
@@ -29,36 +63,87 @@ export function parseHostFlagsCommand(arg: string): { action: string; rest: stri
   return { action: trimmed.slice(0, space), rest: trimmed.slice(space + 1).trim() };
 }
 
+function reclaimModeFromFlag(id: HostFlagId, enable: boolean, host: HostId): HistoryReclaimMode | undefined {
+  if (!enable) return "off";
+  if (id === "autoSummarize") return host === "cursor" ? "summarize" : undefined;
+  if (id === "autoCompact") return host === "claude" ? "autocompact" : undefined;
+  if (id === "handoffTool" || id === "handoffFork") return "handoffFork";
+  return undefined;
+}
+
 export function applyHostFlagsCommand(
   arg: string,
-  stateRoot = defaultStateRoot(),
+  stateRoot?: string,
+  host: string | undefined = "cursor",
 ): { message: string; config: HostFlags } {
-  const config = loadHostFlags(stateRoot);
+  const hostId = asHostId(host);
+  const root = stateRoot ?? defaultStateRoot(hostId);
+  const config = loadHostFlags(root, hostId);
   const { action, rest } = parseHostFlagsCommand(arg);
+  const allowed = reclaimModesForHost(hostId).join(" | ");
+
   if (!action || action === "list" || action === "show") {
-    return { message: formatHostFlags(config), config };
+    return { message: formatHostFlags(config, hostId), config };
   }
+
   if (action === "reset") {
-    saveHostFlags(DEFAULT_HOST_FLAGS, stateRoot);
+    const defaults = defaultHostFlags(hostId);
+    saveHostFlags(defaults, root);
     return {
-      message: "Reset host flags to defaults. Restart the TUI for serve-side flags.",
-      config: { ...DEFAULT_HOST_FLAGS },
+      message: `Reset ${hostId} host flags to defaults (historyReclaim=${defaults.historyReclaim}). Restart for serve-side flags.`,
+      config: { ...defaults },
     };
   }
+
+  if (action === "reclaim") {
+    const mode = parseReclaimModeToken(rest, hostId);
+    if (!mode) {
+      return {
+        message: `Unknown or host-invalid reclaim mode "${rest}". Use: ${allowed}`,
+        config,
+      };
+    }
+    const next = setHistoryReclaim(mode, root, hostId);
+    return {
+      message: `historyReclaim is now ${mode}. Only one reclaim mechanism is active. Restart for serve-side flags.`,
+      config: next,
+    };
+  }
+
   if (action === "on" || action === "off") {
     const id = rest as HostFlagId;
     if (!HOST_FLAG_IDS.includes(id)) {
       return { message: `Unknown flag "${rest}".`, config };
     }
-    config[id] = action === "on";
-    saveHostFlags(config, stateRoot);
+    if (isReclaimFlagId(id)) {
+      if (!reclaimFlagLabel(id, hostId)) {
+        const hint =
+          id === "autoCompact"
+            ? "autoCompact is Claude-only; on Cursor use autoSummarize / reclaim summarize"
+            : "autoSummarize is Cursor-only; on Claude use autoCompact / reclaim autocompact";
+        return { message: hint, config };
+      }
+      const mode = reclaimModeFromFlag(id, action === "on", hostId);
+      if (!mode) {
+        return { message: `Cannot map ${id} for ${hostId}.`, config };
+      }
+      const next = setHistoryReclaim(mode, root, hostId);
+      return {
+        message: `${id} ${action} → historyReclaim=${mode} (exclusive). Restart for serve-side flags.`,
+        config: next,
+      };
+    }
+    const emitId = id as "resultDigest" | "defaultMaxBytes" | "pinnedModel" | "toolResultLog";
+    config[emitId] = action === "on";
+    saveHostFlags(config, root);
     return {
       message: `${id} is now ${action}. Serve-side flags apply after restart.`,
       config,
     };
   }
+
   return {
-    message: "Usage: /flags list | /flags on <id> | /flags off <id> | /flags reset",
+    message: `Usage: /flags list | /flags reclaim <${allowed}> | /flags on <id> | /flags off <id> | /flags reset`,
     config,
   };
 }

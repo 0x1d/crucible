@@ -316,7 +316,8 @@ export class CursorAdapter implements HostAdapter {
   /** Starts the in-process server, or returns the running one. */
   private server(): Promise<AgentServeHandle> {
     if (!this.starting) {
-      const config = loadHostFlags(stateRoot);
+      const config = loadHostFlags(stateRoot, "cursor");
+      process.env[hostFlagEnvKey("historyReclaim")] = config.historyReclaim;
       for (const id of HOST_FLAG_IDS) {
         process.env[hostFlagEnvKey(id)] = config[id] ? "1" : "0";
       }
@@ -528,7 +529,7 @@ export class CursorAdapter implements HostAdapter {
 
   async *send(prompt: string, signal: AbortSignal): AsyncIterable<HostEvent> {
     if (signal.aborted) return;
-    const flags = loadHostFlags(stateRoot);
+    const flags = loadHostFlags(stateRoot, "cursor");
     if (flags.handoffFork) {
       yield* this.sendWithHandoff(prompt, signal);
       return;

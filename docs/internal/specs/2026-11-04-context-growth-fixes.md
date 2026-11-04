@@ -102,6 +102,7 @@ per-tool caps. Use both.
 | D6 Footer docs | State explicitly: `ctx` = full prompt; `new` = uncached slice; shrink without handoff/summarize is a display/accounting effect | Prevents false prune stories |
 | D7 History reclaim | SDK summarize / autocompact first; handoff+fork fallback | Avoid duplicating SDK compact; keep portable escape hatch |
 | D8 Tool rewrite | Claude `updatedToolOutput` first; `resultDigest` fallback | Same presentation goal; pick the API the host can actually call |
+| D9 Exclusive reclaim | `historyReclaim`: host SDK mode (`summarize` on Cursor, `autocompact` on Claude) \| `handoffFork` \| `off` (one active) | Do not run SDK reclaim and handoff-fork together; SDK mode names stay host-specific |
 
 ## Always-on policy (D1)
 

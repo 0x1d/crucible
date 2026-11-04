@@ -7,12 +7,18 @@ Tracks work from [cursor host context](2026-11-03-cursor-host-context.md),
 summarize/autocompact/`updatedToolOutput`; alchemist handoff/fork + `resultDigest`
 as fallback).
 
-Toggle host flags with `/flags` (or `/ctx`) in the TUI or edit
-`hosts/cursor/.agent-serve/host-flags.json` (legacy `context-improvements.json` is still read).
+Toggle host flags with `/flags` in the TUI (uses the **active host** state root) or edit
+`hosts/<host>/.agent-serve/host-flags.json`.
 Serve-side flags apply on the next `serve()` start (restart the TUI or `/host`).
 
+**History reclaim is exclusive** via `historyReclaim`. Modes are host-specific:
+Cursor `summarize` | `handoffFork` | `off`; Claude `autocompact` | `handoffFork` | `off`.
+Only one mechanism is active. `/flags reclaim <mode>` (or `/flags on autoSummarize` /
+`autoCompact` / `handoffFork`) switches it. Cursor defaults to `handoffFork`; Claude defaults to `autocompact`.
+Derived booleans `handoffTool` / `handoffFork` / `autoSummarize` / `autoCompact` stay in sync.
+
 Eval overrides use `ALCHEMIST_HOST_FLAG_<SNAKE_CASE>` (`hostFlagEnvKey()` in `hosts/cursor/bot/lib/host-flags.ts`).
-Legacy `ALCHEMIST_CTX_*` env names are still accepted.
+`ALCHEMIST_HOST_FLAG_HISTORY_RECLAIM=<mode>` sets the exclusive reclaim mode.
 
 ## Improvement matrix
 
@@ -21,8 +27,10 @@ Legacy `ALCHEMIST_CTX_*` env names are still accepted.
 | `resultDigest` | §1 bridge cap / digest | on | Shrinks large `call_function` results in the transcript; baseline named-read ~25.7k vs uncapped read ~119k. |
 | `defaultMaxBytes` | §6 default caps | off | Injects `max_bytes` on `fs.read` / `http.get`; lowers per-turn blobs; may hide tail unless user reads `path`. |
 | `pinnedModel` | prompt-cache design | off | Pins server default to `composer-2.5` at `reasoning_effort=high` (no `fast`); follow-up cache read should approach full prompt (eval gate). TUI `/model` overrides are ignored while this is on. |
-| `handoffTool` | handoff design; [growth fixes](../specs/2026-11-04-context-growth-fixes.md) | **on** (2026-11-04) | Exposes `handoff` server tool (~schema tokens); model can write `handoff.md`. |
-| `handoffFork` | handoff design; growth fixes | **on** (2026-11-04) | TUI opens a **new** session after handoff when over 200k or user compacted; the old agent store and transcript stay on disk—only the **live** prompt stops including that history. |
+| `historyReclaim` | growth fixes + host exclusivity | Cursor: `handoffFork`; Claude: `autocompact` | Exclusive reclaim: host SDK mode **or** handoff+fork **or** off. |
+| `handoffTool` / `handoffFork` | handoff design; growth fixes | derived from `historyReclaim` | Expose `handoff` + TUI fork only when mode is `handoffFork`. |
+| `autoSummarize` | Cursor SDK summarize | derived from `historyReclaim` | Cursor reclaim mode `summarize` (wire `agent.summarize()` when grok exposes it). |
+| `autoCompact` | Claude Agent SDK | derived from `historyReclaim` | Claude `settings.autoCompactEnabled` when mode is `autocompact`. |
 | `toolResultLog` | §7 observability | off | Logs largest tool results per turn to `.agent-serve/context-tool-sizes.log`. |
 
 Already shipped without a flag (measured in the host-context plan):
@@ -85,7 +93,7 @@ Baseline from [cursor host context](2026-11-03-cursor-host-context.md) (2026-11-
 | **`toolResultLog`** | Not re-run (needs `ALCHEMIST_CTX_TOOL_RESULT_LOG=1` on serve) | Observability only |
 | **`handoffFork`** | Not live-tested | Design: fork to a new session (old transcript retained); `tui/adapters/handoff.test.ts` only—see below |
 
-Env override naming: camelCase ids map to `ALCHEMIST_CTX_SNAKE_CASE` (see header). Wrong names silently leave defaults.
+Env override naming: camelCase ids map to `ALCHEMIST_HOST_FLAG_SNAKE_CASE` (see header). Wrong names silently leave defaults.
 
 Latest `context-size` gate metrics (2026-11-03, `93e2162`, nix develop):
 
@@ -96,7 +104,7 @@ Latest `context-size` gate metrics (2026-11-03, `93e2162`, nix develop):
 | docker-report | 14,668 | 9,728 | 4,940 |
 | structured-list | 14,447 | 9,728 | 4,719 |
 
-Toggle comparison: `/ctx list`, `/ctx off resultDigest` (restart TUI), then
-`ALCHEMIST_CTX_RESULT_DIGEST=0 npm run eval:cursor -- context-size/large-read`
+Toggle comparison: `/flags list`, `/flags off resultDigest` (restart TUI), then
+`ALCHEMIST_HOST_FLAG_RESULT_DIGEST=0 npm run eval:cursor -- context-size/large-read`
 vs default (digest on). Deterministic tool sizing:
 `nix develop -- node scripts/measure-call-function.mjs`.
