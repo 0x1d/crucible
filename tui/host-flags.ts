@@ -8,7 +8,11 @@ import {
   defaultHostFlags,
   defaultStateRoot,
   loadHostFlags,
+  loadMaxContextTokens,
   saveHostFlags,
+  saveMaxContextTokens,
+  parseTokenCount,
+  DEFAULT_MAX_CONTEXT_TOKENS,
   setHistoryReclaim,
   isReclaimFlagId,
   reclaimModesForHost,
@@ -38,9 +42,14 @@ function reclaimFlagLabel(id: HostFlagId, host: HostId): boolean {
   return true;
 }
 
-export function formatHostFlags(config: HostFlags, host: HostId = "cursor"): string {
+export function formatHostFlags(
+  config: HostFlags,
+  host: HostId = "cursor",
+  root: string = defaultStateRoot(host),
+): string {
   const modes = reclaimModesForHost(host).join(" | ");
   const lines = [
+    `maxContextTokens: ${loadMaxContextTokens(root, host)}`,
     `historyReclaim: ${config.historyReclaim} (allowed: ${modes})`,
     ...HOST_FLAG_IDS.filter((id) => !isReclaimFlagId(id)).map(
       (id) => `${id}: ${config[id] ? "on" : "off"}`,
@@ -83,7 +92,7 @@ export function applyHostFlagsCommand(
   const allowed = reclaimModesForHost(hostId).join(" | ");
 
   if (!action || action === "list" || action === "show") {
-    return { message: formatHostFlags(config, hostId), config };
+    return { message: formatHostFlags(config, hostId, root), config };
   }
 
   if (action === "reset") {
@@ -92,6 +101,28 @@ export function applyHostFlagsCommand(
     return {
       message: `Reset ${hostId} host flags to defaults (historyReclaim=${defaults.historyReclaim}). Restart for serve-side flags.`,
       config: { ...defaults },
+    };
+  }
+
+  if (action === "context") {
+    if (!rest) {
+      return {
+        message: `maxContextTokens: ${loadMaxContextTokens(root, hostId)} (default ${DEFAULT_MAX_CONTEXT_TOKENS})`,
+        config,
+      };
+    }
+    if (rest === "reset" || rest === "default") {
+      saveMaxContextTokens(undefined, root, hostId);
+      return { message: `maxContextTokens reset to ${DEFAULT_MAX_CONTEXT_TOKENS}.`, config };
+    }
+    const tokens = parseTokenCount(rest);
+    if (!tokens) {
+      return { message: `Invalid token count "${rest}". Use e.g. 256k or 256000.`, config };
+    }
+    saveMaxContextTokens(tokens, root, hostId);
+    return {
+      message: `maxContextTokens is now ${tokens} for ${hostId}. Restart for serve-side flags.`,
+      config,
     };
   }
 
@@ -143,7 +174,7 @@ export function applyHostFlagsCommand(
   }
 
   return {
-    message: `Usage: /flags list | /flags reclaim <${allowed}> | /flags on <id> | /flags off <id> | /flags reset`,
+    message: `Usage: /flags list | /flags context [tokens|reset] | /flags reclaim <${allowed}> | /flags on <id> | /flags off <id> | /flags reset`,
     config,
   };
 }

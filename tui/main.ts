@@ -28,7 +28,6 @@ import type { HostAdapter } from "./adapters/types.ts";
 import { ChangeTracker } from "./changes.ts";
 import { COMMANDS, parseCommand } from "./commands.ts";
 import { applyHostFlagsCommand } from "./host-flags.ts";
-import { loadSessionModel, defaultStateRoot } from "../hosts/cursor/bot/lib/host-flags.ts";
 import { rememberPrompt } from "./remember.ts";
 import { SessionStats } from "./stats.ts";
 import { type Theme, resolveTheme } from "./theme.ts";
@@ -174,10 +173,7 @@ async function selectHost(): Promise<boolean> {
     adapter = HOSTS[name].create();
     stats = new SessionStats();
     transcript.reset();
-    if (name === "cursor") {
-      const saved = loadSessionModel(defaultStateRoot());
-      if (saved) adapter.setModel(saved.id, saved.effort);
-    }
+    // Each adapter restores its saved model from its own host-flags.json.
   }
   await selectSession();
   return true;

@@ -23,12 +23,14 @@ export type RouteInput = {
   pendingHandoff: boolean;
   handoffFilePresent: boolean;
   userText: string;
+  /** Fork threshold; defaults to FORK_ABOVE_TOKENS. Adapters pass the host's maxContextTokens. */
+  forkAboveTokens?: number;
 };
 
 export function routeTurn(input: RouteInput): TurnRoute {
   const { hasSession, lastContextTokens, pendingHandoff, handoffFilePresent, userText } = input;
   if (!hasSession) return { kind: "create", message: userText };
-  const over = lastContextTokens > FORK_ABOVE_TOKENS;
+  const over = lastContextTokens > (input.forkAboveTokens ?? FORK_ABOVE_TOKENS);
   if (!over && !pendingHandoff) return { kind: "follow-up", message: userText };
   if (!over && pendingHandoff) {
     if (handoffFilePresent) return { kind: "fork", userText, file: "" };

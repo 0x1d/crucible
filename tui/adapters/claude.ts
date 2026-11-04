@@ -11,7 +11,12 @@ import fs from "node:fs";
 import path from "node:path";
 import { repoRoot } from "../../core/elixir-bridge.ts";
 import { alchemistOptions, claudeFlags } from "../../hosts/claude/codex.ts";
-import { defaultStateRoot } from "../../hosts/cursor/bot/lib/host-flags.ts";
+import {
+  defaultStateRoot,
+  loadMaxContextTokens,
+  loadSessionModel,
+  saveSessionModel,
+} from "../../hosts/cursor/bot/lib/host-flags.ts";
 import {
   HANDOFF_REQUEST,
   recordFork,
@@ -273,8 +278,9 @@ function isClaudeHandoffSuccess(event: HostEvent): boolean {
 export class ClaudeAdapter implements HostAdapter {
   readonly name = "claude";
   sessionId: string | undefined;
-  model: string | undefined;
-  effort: string | undefined;
+  /** Restored from host-flags.json `sessionModel`; `setModel` writes it back. */
+  model: string | undefined = loadSessionModel(defaultStateRoot("claude"), "claude")?.id;
+  effort: string | undefined = loadSessionModel(defaultStateRoot("claude"), "claude")?.effort;
   private models: ModelChoice[] | undefined;
   private live: LiveQuery | undefined;
   /** Model and effort changes that are still being applied to the live query. */
@@ -356,6 +362,7 @@ export class ClaudeAdapter implements HostAdapter {
     const effortChanged = effort !== this.effort;
     this.model = model;
     this.effort = effort;
+    saveSessionModel(model ? { id: model, effort } : undefined, this.stateRoot, "claude");
     const live = this.live;
     if (!live || (!modelChanged && !effortChanged)) return;
     // The live process switches in place. If that fails, the next turn starts a new
@@ -388,6 +395,7 @@ export class ClaudeAdapter implements HostAdapter {
       pendingHandoff: this.pendingHandoff,
       handoffFilePresent: fs.existsSync(handoffMdPath()),
       userText: prompt,
+      forkAboveTokens: loadMaxContextTokens(this.stateRoot, "claude"),
     });
     if (route.kind === "error") {
       yield { type: "error", message: route.message };
@@ -463,6 +471,13 @@ export class ClaudeAdapter implements HostAdapter {
           if (signal.aborted && event.type === "error") continue;
           if (event.type === "usage" && event.contextTokens !== undefined) {
             this.lastContextTokens = event.contextTokens;
+          }
+          // The footer shows the configured budget when it is below the model window.
+          if (event.type === "usage" && event.contextWindow !== undefined) {
+            event.contextWindow = Math.min(
+              event.contextWindow,
+              loadMaxContextTokens(this.stateRoot, "claude"),
+            );
           }
           if (isClaudeHandoffSuccess(event)) this.pendingHandoff = true;
           yield event;

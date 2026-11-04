@@ -18,6 +18,7 @@ import { HOST_TOOL_NAMES, type CodexRequest } from "../../core/protocol.ts";
 import {
   DEFAULT_READ_HTTP_MAX_BYTES,
   defaultStateRoot,
+  loadMaxContextTokens,
   resolveHostFlags,
   type HostFlags,
 } from "../cursor/bot/lib/host-flags.ts";
@@ -30,6 +31,11 @@ const claudeStateRoot = defaultStateRoot("claude");
 
 export function claudeFlags(): HostFlags {
   return resolveHostFlags(claudeStateRoot, "claude");
+}
+
+/** `maxContextTokens` from host-flags.json, clamped to the SDK autoCompactWindow range. */
+export function claudeAutoCompactWindow(): number {
+  return Math.min(1_000_000, Math.max(100_000, loadMaxContextTokens(claudeStateRoot, "claude")));
 }
 
 async function codex(request: CodexRequest) {
@@ -192,7 +198,7 @@ export const instructions = fs.readFileSync(
  * and no MCP servers besides the codex server.
  *
  * History reclaim is exclusive via host flags (Claude SDK mode is autocompact only):
- * - autocompact → settings.autoCompactEnabled
+ * - autocompact → settings.autoCompactEnabled, compacting at maxContextTokens (autoCompactWindow)
  * - handoffFork → handoff tool + TUI fork (autoCompact off)
  * - off → neither
  */
@@ -208,6 +214,7 @@ export function alchemistOptions(): Options {
       disableClaudeAiConnectors: true,
       autoCompactEnabled: flags.autoCompact,
       idleCompaction: flags.autoCompact,
+      ...(flags.autoCompact ? { autoCompactWindow: claudeAutoCompactWindow() } : {}),
     },
     allowedTools: flags.handoffTool
       ? ALCHEMIST_TOOLS

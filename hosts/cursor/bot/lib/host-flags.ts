@@ -133,7 +133,26 @@ export type SessionModelPicker = {
 
 type HostConfigFile = HostFlags & {
   sessionModel?: SessionModelPicker;
+  /** Context budget in tokens: footer window, handoff fork threshold, Claude autoCompactWindow. */
+  maxContextTokens?: number;
 };
+
+/** Used when host-flags.json has no `maxContextTokens`. */
+export const DEFAULT_MAX_CONTEXT_TOKENS = 200_000;
+
+function isTokenCount(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value > 0;
+}
+
+/** Parse `256000`, `256k`, or `1m` into a token count. */
+export function parseTokenCount(raw: string): number | undefined {
+  const match = /^(\d+(?:\.\d+)?)\s*([km]?)$/i.exec(raw.trim().replace(/_/g, ""));
+  if (!match) return undefined;
+  const unit = match[2].toLowerCase();
+  const scale = unit === "k" ? 1_000 : unit === "m" ? 1_000_000 : 1;
+  const value = Math.round(Number(match[1]) * scale);
+  return isTokenCount(value) ? value : undefined;
+}
 
 export function defaultStateRoot(host: HostId = "cursor"): string {
   return path.join(hostsRoot, host, ".agent-serve");
@@ -189,6 +208,7 @@ function mergeConfigFile(raw: unknown, host: HostId = "cursor"): HostConfigFile 
       base.sessionModel = typeof effort === "string" ? { id, effort } : { id };
     }
   }
+  if (isTokenCount(record.maxContextTokens)) base.maxContextTokens = record.maxContextTokens;
   return base;
 }
 
@@ -208,21 +228,50 @@ function writeConfigFile(stateRoot: string, config: HostConfigFile): void {
 }
 
 export function loadHostFlags(stateRoot = defaultStateRoot(), host: HostId = "cursor"): HostFlags {
-  const { sessionModel: _ignored, ...flags } = readConfigFile(stateRoot, host);
+  const { sessionModel: _model, maxContextTokens: _max, ...flags } = readConfigFile(stateRoot, host);
   return flags;
 }
 
-export function loadSessionModel(stateRoot = defaultStateRoot()): SessionModelPicker | undefined {
-  return readConfigFile(stateRoot).sessionModel;
+export function loadSessionModel(
+  stateRoot = defaultStateRoot(),
+  host: HostId = "cursor",
+): SessionModelPicker | undefined {
+  return readConfigFile(stateRoot, host).sessionModel;
 }
 
 export function saveSessionModel(
   picker: SessionModelPicker | undefined,
   stateRoot = defaultStateRoot(),
+  host: HostId = "cursor",
 ): void {
-  const file = readConfigFile(stateRoot);
+  const file = readConfigFile(stateRoot, host);
   if (picker?.id && picker.id !== "auto") file.sessionModel = picker;
   else delete file.sessionModel;
+  writeConfigFile(stateRoot, file);
+}
+
+const MAX_CONTEXT_ENV = "ALCHEMIST_HOST_FLAG_MAX_CONTEXT_TOKENS";
+
+/** Stored context budget, overridden by ALCHEMIST_HOST_FLAG_MAX_CONTEXT_TOKENS. */
+export function loadMaxContextTokens(
+  stateRoot = defaultStateRoot(),
+  host: HostId = "cursor",
+): number {
+  const env = process.env[MAX_CONTEXT_ENV];
+  const fromEnv = env ? parseTokenCount(env) : undefined;
+  if (fromEnv) return fromEnv;
+  return readConfigFile(stateRoot, host).maxContextTokens ?? DEFAULT_MAX_CONTEXT_TOKENS;
+}
+
+/** Store the context budget; `undefined` removes it (back to the default). */
+export function saveMaxContextTokens(
+  tokens: number | undefined,
+  stateRoot = defaultStateRoot(),
+  host: HostId = "cursor",
+): void {
+  const file = readConfigFile(stateRoot, host);
+  if (isTokenCount(tokens)) file.maxContextTokens = tokens;
+  else delete file.maxContextTokens;
   writeConfigFile(stateRoot, file);
 }
 
