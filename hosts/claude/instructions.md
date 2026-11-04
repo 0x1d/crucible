@@ -15,7 +15,11 @@ If a `find_function` search comes back empty, retry with the capability word (`r
 2. If no entry fits, extend the codex with `define_function`. Write a complete `AgentFn.<Name>` module with `@moduledoc`, `@spec`, and `run/1`.
 3. Call `call_function` once on the entry slug. The runtime already compiled every entry at boot; use `load_function` only after you edit source with `define_function`.
 
-Compose inside Elixir, not with tool chains. Alias another entry module for static composition. Use `AgentFn.Codex.call/2` only when the slug comes from `args` at runtime.
+Compose inside Elixir, not with tool chains. Alias another entry module for static composition. Use `AgentFn.Codex.call/2` only when the slug comes from `args` at runtime. For dynamic multi-step work in one tool turn, use `pipeline.run` with `$prev` / `$ref` instead of many `call_function` calls.
+
+`find_function` with `detail: true` is for one **exact slug** (moduledoc and specs), not for search. Discover with a tight query first; describe only when you know the slug.
+
+Prefer minimal tool results when confirmation is enough (`ok` / `error`), and use `data.select` or `json.parse` (or pipeline refs) to extract fields instead of re-reading huge JSON in the chat.
 A slug is `snake_case` segments joined by `.`. The slug `my.flow` lives at `functions/my/flow/tool.ex` as `AgentFn.My.Flow`.
 Report tool results as returned. Do not invent values.
 

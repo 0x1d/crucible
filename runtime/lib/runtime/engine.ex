@@ -86,46 +86,80 @@ defmodule Runtime.Engine do
   defp resolved_forward_reference?(_), do: false
 
   def find(query, opts \\ %{}) when is_binary(query) and is_map(opts) do
-    q = String.downcase(String.trim(query))
+    trimmed = String.trim(query)
 
-    if q == "" do
-      %{
-        ok: false,
-        error: "query is required; pass a substring or call_function on codex.docs"
-      }
-    else
-      limit = find_limit(opts)
-      detail? = find_detail?(opts)
+    cond do
+      trimmed == "" ->
+        %{
+          ok: false,
+          error: "query is required; pass a substring or call_function on codex.docs"
+        }
 
-      matched =
-        Codex.list_all()
-        |> Enum.filter(fn meta ->
-          String.contains?(String.downcase(meta["name"] || ""), q) or
-            String.contains?(String.downcase(meta["description"] || ""), q) or
-            String.contains?(String.downcase(meta["moduledoc"] || ""), q) or
-            String.contains?(specs_blob(meta), q) or
-            String.contains?(String.downcase(meta["module"] || ""), q)
-        end)
+      find_detail?(opts) ->
+        find_describe(trimmed)
 
-      truncated = length(matched) > limit
-      kept = Enum.take(matched, limit)
-
-      functions =
-        if detail? do
-          kept
-        else
-          Enum.map(kept, &summarize_find/1)
-        end
-
-      %{
-        ok: true,
-        functions: functions,
-        count: length(functions),
-        truncated: truncated,
-        detail: detail?,
-        limit: limit
-      }
+      true ->
+        find_search(String.downcase(trimmed), opts)
     end
+  end
+
+  defp find_describe(query) do
+    slug =
+      try do
+        Codex.sanitize(query)
+      rescue
+        ArgumentError -> nil
+      end
+
+    cond do
+      is_nil(slug) ->
+        %{ok: false, error: "detail requires an exact codex slug (e.g. fs.read), not a search string"}
+
+      true ->
+        case Enum.find(Codex.list_all(), &(&1["name"] == slug)) do
+          nil ->
+            %{ok: false, error: "no entry named #{slug}"}
+
+          meta ->
+            %{
+              ok: true,
+              detail: true,
+              name: slug,
+              function: meta,
+              functions: [meta],
+              count: 1,
+              truncated: false,
+              limit: 1
+            }
+        end
+    end
+  end
+
+  defp find_search(q, opts) do
+    limit = find_limit(opts)
+
+    matched =
+      Codex.list_all()
+      |> Enum.filter(fn meta ->
+        String.contains?(String.downcase(meta["name"] || ""), q) or
+          String.contains?(String.downcase(meta["description"] || ""), q) or
+          String.contains?(String.downcase(meta["moduledoc"] || ""), q) or
+          String.contains?(specs_blob(meta), q) or
+          String.contains?(String.downcase(meta["module"] || ""), q)
+      end)
+
+    truncated = length(matched) > limit
+    kept = Enum.take(matched, limit)
+    functions = Enum.map(kept, &summarize_find/1)
+
+    %{
+      ok: true,
+      functions: functions,
+      count: length(functions),
+      truncated: truncated,
+      detail: false,
+      limit: limit
+    }
   end
 
   def call(name, args) when is_map(args) do

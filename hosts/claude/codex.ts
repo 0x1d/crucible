@@ -125,11 +125,14 @@ export const alchemistServer = createSdkMcpServer({
   tools: [
     tool(
       HOST_TOOL_NAMES.find,
-      "Search codex slugs by substring. Default: name and one-line summary per hit.",
+      "Search codex slugs by substring. Default: name and one-line summary per hit. detail: true only with an exact slug (not search).",
       {
         query: z.string().min(1).describe("Non-empty substring filter"),
         limit: z.number().int().min(1).max(40).optional(),
-        detail: z.boolean().optional(),
+        detail: z
+          .boolean()
+          .optional()
+          .describe("Exact slug only: full moduledoc and specs for that entry"),
       },
       ({ query, limit, detail }) =>
         codex({

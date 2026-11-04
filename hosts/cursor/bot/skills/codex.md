@@ -36,6 +36,10 @@ Dynamic dispatch: `AgentFn.Codex.call/2` only when the slug comes from `args` at
 
 Do not simulate a pipeline with many `call_function` invocations when one entry module can express it.
 
+For exploratory multi-step work without a fixed entry, use `pipeline.run` once (see its moduledoc via `find_function` with `query: "pipeline.run"` and `detail: true`). Use `$prev`, `$ctx`, or `%{"$ref" => "prev.field"}` in step args to pass data between steps.
+
+When authoring entries, return minimal maps when the agent only needs success/failure or one value — avoid dumping full command stdout unless the user asked for it.
+
 ## Naming
 
 | Kind | Convention | Example |

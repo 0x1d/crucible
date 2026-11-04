@@ -5,7 +5,8 @@ Reach the codex through `find_function`, `define_function`, `load_function`, and
 They are the whole tool surface: discover, write, compile, and run entries
 through those tools.
 **Orchestration belongs in codex entry code**, not in repeated `call_function`
-chains.
+chains. Before chaining several calls, ask whether one composed entry or
+`pipeline.run` can do the same with one tool result.
 
 ## No native Cursor tools
 
@@ -33,7 +34,7 @@ An absolute path is passed through unchanged.
 A relative path is from the repository root, so prefix `../`
 (`docs/a.md` → `../docs/a.md`).
 Do not call `find_function`, `fs.list`, `fs.glob`, or `fs.rg` before that read.
-Do not pass `detail: true` unless the read failed and you are editing that entry.
+Do not pass `detail: true` on `find_function` unless you already know the exact slug and need moduledoc or specs to edit or call it.
 When `call_function` returns `truncated: true`, answer from `head` and `tail`.
 Do not read `path` unless the user asked for a span that is not in those slices.
 
@@ -47,7 +48,7 @@ args for a slug you already have.
 before falling back to primitives (`sys.cmd`, `http.get`).
 Do **not** skip straight to `sys.cmd` for git, or to `http.*` for weather, when
 dedicated slugs exist.
-Use `detail: true` only when editing that entry or the slim hit lacks required args.
+Use `find_function` with `detail: true` and **exact slug** only when editing that entry or the slim summary lacks required args. Never use `detail` while discovering slugs.
 When you are unsure which entry fits, call `codex.docs` before answering.
 If a `find_function` search comes back empty, retry with a related capability
 word (`fs`, `cmd`, `http`) or use `codex.docs`.
@@ -68,10 +69,19 @@ the filesystem (`find /nix/store`, path guessing, endless `which` retries).
 Every `call_function` input is `{ "name": "<slug>", "args": { ... } }`.
 The codex slug goes in **`name`**. Do not use a top-level `slug` key.
 
-`find_function` needs a non-empty query and returns at most 12 slim hits unless `detail: true`.
+`find_function` needs a non-empty query and returns at most 12 slim hits. `detail: true` describes **one** exact slug only (full metadata), not search results.
 Do not call `find_function` or `load_function` for normal memory or codex use.
 Use `load_function` only after `define_function`.
 `codex.docs` lists every entry.
+## Efficient tool use
+
+Plan before stacking `call_function` calls:
+
+- **Fixed steps** — one entry module, static `alias` + `Other.run/1`, or `demo.report`-style composition.
+- **Dynamic steps** — `call_function` on `pipeline.run` with `steps` and `$prev` / `$ref` paths so prior results feed the next step without re-pasting JSON in the chat.
+- **Confirmation only** — prefer entries that return `{ "ok": true }` / `{ "ok": false, "error": "…" }` or a single field you need; do not pull huge blobs when a boolean or id is enough.
+- **Pinpoint fields** — `data.select`, `json.parse`, or a pipeline step with `as` / `$prev.path` instead of parsing tool output in prose.
+
 Pull requests, composition, naming, and the improvement loop are in the `codex` skill.
 
 ## Memory

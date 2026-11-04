@@ -112,7 +112,7 @@ serving the request.
 | `op` | `"find"` | yes | |
 | `query` | string | yes | Case-insensitive substring filter (empty rejected) |
 | `limit` | integer | no | Max hits 1–40 (default 12) |
-| `detail` | boolean | no | When true, return full metadata per hit (default false) |
+| `detail` | boolean | no | When true, **exact slug describe** for `query` only (not substring search; default false) |
 
 **Success (default, slim)**
 
@@ -127,7 +127,7 @@ serving the request.
 }
 ```
 
-With `detail: true`, each element matches the full `meta.json` shape (moduledoc, specs, module, …).
+With `detail: true`, `query` must name one entry (e.g. `fs.read`). The response includes full `meta.json` for that slug in `function` and a one-element `functions` list. Substring discovery with `detail: true` returns `ok: false`. Search mode (no `detail`) always returns slim hits.
 
 **Discovery rule**
 
