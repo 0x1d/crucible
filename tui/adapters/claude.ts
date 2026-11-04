@@ -287,6 +287,7 @@ export class ClaudeAdapter implements HostAdapter {
   private settings: Promise<void> = Promise.resolve();
   private lastContextTokens = 0;
   private pendingHandoff = false;
+  private injectTurn: ((prompt: string) => void) | undefined;
   private readonly index = new SessionIndex(
     path.join(repoRoot, ".alchemist/tui/claude-sessions.json"),
   );
@@ -355,6 +356,13 @@ export class ClaudeAdapter implements HostAdapter {
       }));
     }
     return this.models;
+  }
+
+  async inject(prompt: string): Promise<{ ok: boolean; message?: string }> {
+    const injectTurn = this.injectTurn;
+    if (!injectTurn) return { ok: false, message: "No turn is in progress." };
+    injectTurn(prompt);
+    return { ok: true };
   }
 
   setModel(model: string | undefined, effort: string | undefined): void {
@@ -438,6 +446,9 @@ export class ClaudeAdapter implements HostAdapter {
   private async *runTurn(prompt: string, signal: AbortSignal): AsyncIterable<HostEvent> {
     await this.settings;
     const live = this.start();
+    this.injectTurn = (text) => {
+      live.input.push(userMessage(text));
+    };
     let finished = false;
     const aborted = new Promise<void>((resolve) => {
       if (signal.aborted) resolve();
@@ -491,6 +502,7 @@ export class ClaudeAdapter implements HostAdapter {
       this.stop();
       if (!signal.aborted) yield { type: "error", message: String(error) };
     } finally {
+      this.injectTurn = undefined;
       // A turn that ends without its `result` would leave messages for the next turn.
       if (!finished) this.stop();
       finished = true;

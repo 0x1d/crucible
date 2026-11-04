@@ -31,6 +31,28 @@ export function tokenStatsLine(theme: Theme, stats: SessionStats): string {
   return parts.join(sep);
 }
 
+/** One line per queued message, shown above the editor while the queue is non-empty. */
+export function followUpQueueLines(
+  theme: Theme,
+  items: readonly { shown: string }[],
+  options?: { injectHint?: boolean },
+): string {
+  if (items.length === 0) return "";
+  const head = [
+    theme.bold(theme.fg.warning(`queued (${items.length})`)),
+    ...(options?.injectHint
+      ? [theme.fg.muted("empty Enter injects #1 into this turn")]
+      : []),
+  ].join(theme.fg.muted(" · "));
+  const body = items
+    .map((item, index) => {
+      const text = item.shown.replace(/\s+/g, " ");
+      return `${theme.fg.muted(`${index + 1}.`)} ${theme.fg.muted(text)}`;
+    })
+    .join("\n");
+  return `${head}\n${body}`;
+}
+
 export function footerLine(
   theme: Theme,
   state: { host: string; model: string | undefined; effort: string | undefined; stats: SessionStats },
