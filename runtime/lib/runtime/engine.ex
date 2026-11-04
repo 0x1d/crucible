@@ -306,11 +306,21 @@ defmodule Runtime.Engine do
   end
 
   defp summarize_find(meta) do
-    %{
+    base = %{
       "name" => meta["name"],
       "summary" => summary_line(meta),
       "loaded" => Map.get(meta, "loaded")
     }
+
+    case run_specs(meta) do
+      [] -> base
+      specs -> Map.put(base, "specs", specs)
+    end
+  end
+
+  defp run_specs(meta) do
+    (meta["specs"] || [])
+    |> Enum.filter(&String.match?(&1, ~r/^@spec\s+run\s*\(/))
   end
 
   defp summary_line(meta) do

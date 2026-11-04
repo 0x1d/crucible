@@ -48,7 +48,7 @@ args for a slug you already have.
 before falling back to primitives (`sys.cmd`, `http.get`).
 Do **not** skip straight to `sys.cmd` for git, or to `http.*` for weather, when
 dedicated slugs exist.
-Use `find_function` with `detail: true` and **exact slug** only when editing that entry or the slim summary lacks required args. Never use `detail` while discovering slugs.
+Use `find_function` with `detail: true` and **exact slug** only when editing that entry or the slim hit (summary + `@spec`) lacks required args. Never use `detail` while discovering slugs.
 When you are unsure which entry fits, call `codex.docs` before answering.
 If a `find_function` search comes back empty, retry with a related capability
 word (`fs`, `cmd`, `http`) or use `codex.docs`.
@@ -61,7 +61,7 @@ the filesystem (`find /nix/store`, path guessing, endless `which` retries).
 
 | Codex tool | Operation | When to use |
 | --- | --- | --- |
-| `find_function` | `find` | Discover slugs with a **tight** non-empty `query` (default: name + one-line summary, max 12 hits) |
+| `find_function` | `find` | Discover slugs with a **tight** non-empty `query` (default: name, summary, and `run/1` `@spec`, max 12 hits) |
 | `define_function` | `define` | Write or update modules under `functions/` |
 | `load_function` | `load` | Recompile after **`define_function`** edits only (all entries compile at runtime boot) |
 | `call_function` | `call` | Invoke one slug's `run/1` with JSON **`name`** (the slug string) and **`args`** — not `slug` |

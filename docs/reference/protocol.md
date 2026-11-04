@@ -119,7 +119,14 @@ serving the request.
 ```json
 {
   "ok": true,
-  "functions": [ { "name": "echo", "summary": "Example codex entry...", "loaded": true } ],
+  "functions": [
+    {
+      "name": "echo",
+      "summary": "Example codex entry...",
+      "specs": ["@spec run(map()) :: {:ok, map()}"],
+      "loaded": true
+    }
+  ],
   "count": 1,
   "truncated": false,
   "detail": false,
@@ -133,7 +140,7 @@ With `detail: true`, `query` must name one entry (e.g. `fs.read`). The response 
 
 `find` walks `functions/` and filters metadata in memory.
 Matching searches slug, description, moduledoc, specs text, and module name.
-Slim mode keeps tool results small for the model context.
+Slim mode keeps tool results small: one-line summary plus the entry `run/1` `@spec` when present (not full moduledoc).
 
 **Failure**
 

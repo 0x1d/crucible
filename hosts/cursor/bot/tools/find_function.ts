@@ -4,7 +4,7 @@ import { runCodexTool } from "../lib/codex-tool";
 
 export default defineTool({
   description:
-    "Search codex slugs by substring. Returns name and one-line summary per hit (not full docs). Use a tight query (e.g. memory.overview). Skip when the slug is already known. With detail: true, query must be one exact slug (e.g. fs.read) — never combine detail with discovery search.",
+    "Search codex slugs by substring. Returns name, one-line summary, and run/1 @spec per hit (not full moduledoc). Use a tight query (e.g. memory.overview). Skip when the slug is already known. With detail: true, query must be one exact slug (e.g. fs.read) — never combine detail with discovery search.",
   effect: "read",
   inputSchema: z.object({
     query: z
