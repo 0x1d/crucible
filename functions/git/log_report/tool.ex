@@ -24,8 +24,15 @@ defmodule AgentFn.Git.LogReport do
   alias AgentFn.Git.Status
 
   @log_keys ~w(cwd repo ref since until author paths no_merges first_parent)
+  @type args :: %{
+    optional(:cwd) => String.t(),
+    optional(:limit) => non_neg_integer(),
+    optional(:repo) => String.t(),
+    optional(:since) => String.t(),
+    optional(:top_files) => non_neg_integer()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     cwd = args["cwd"] || args["repo"] || File.cwd!()
     limit = args["limit"] || 10

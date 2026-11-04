@@ -11,8 +11,15 @@ defmodule AgentFn.Text.Grep do
   Returns `matches` as `%{line, column, text, match}` maps.
   """
   @behaviour AgentFn.Tool
+  @type args :: %{
+    optional(:ignore_case) => boolean(),
+    optional(:max_matches) => non_neg_integer(),
+    optional(:path) => String.t(),
+    required(:pattern) => String.t(),
+    optional(:text) => String.t()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     pattern = Map.get(args, "pattern") || Map.get(args, :pattern)
     text = Map.get(args, "text") || Map.get(args, :text)

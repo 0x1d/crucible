@@ -4,9 +4,10 @@
   "module": "Elixir.AgentFn.Env.Get",
   "moduledoc": "Read named environment variables (no dump-all).\n\n  Args:\n  - `names` (required) — list of variable names\n  - or `name` — single variable name\n\n  Missing variables appear as `null` in `values`.",
   "name": "env.get",
-  "source_sha256": "dfe31363b800432d8e10dd3dd0cbf66c2665a8843eecc7549cf888c983be0bb7",
+  "source_sha256": "06ff3e36cad4a817edca1ff26b4e38465b20319dc7e95f18a3852dc1cda0991c",
   "specs": [
-    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+    "@type args :: %{\n    optional(:name) => String.t(),\n    optional(:names) => [String.t()]\n  }",
+    "@spec run(args()) :: {:ok, map()} | {:error, String.t()}"
   ],
-  "updated_at": "2026-11-01T14:40:57.420312Z"
+  "updated_at": "2026-11-04T21:59:57.236135Z"
 }

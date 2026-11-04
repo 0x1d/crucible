@@ -4,9 +4,10 @@
   "module": "Elixir.AgentFn.Pipeline.Run",
   "moduledoc": "Dynamic multi-step codex pipeline via `AgentFn.Codex.call/2`.\n\n  Use this for explorative or transitive chains where static Elixir\n  composition does not fit. Prefer a dedicated entry when the graph is fixed.\n\n  Args:\n  - `steps` (required) — list of step maps:\n      - `name` / `call` — slug (required)\n      - `args` — map; string/`$ref` values may reference prior data (below)\n      - `merge_prev` — merge previous result into args (args win)\n      - `as` — place previous result at this key in args\n      - `label` — optional trace label\n  - `seed` / `ctx` — optional initial context map\n  - `stop_on_error` — default true\n  - `max_steps` — safety cap (default 20)\n\n  Refs in arg values:\n  - `\"$prev\"` — whole previous step result\n  - `\"$prev.hits.0.session_id\"` — dotted path (map keys / list indices)\n  - `\"$ctx.…\"` / `\"$seed.…\"` — context / seed paths\n  - `%{\"$ref\" => \"prev.hits.0.session_id\"}` — same, without the `$` prefix style\n\n  After each success, `prev` becomes that result and `ctx` is shallow-merged\n  with it (result keys overwrite).\n\n  Returns `result` (last ok result), `steps` (trace), `ctx`, `count`, `ok`.",
   "name": "pipeline.run",
-  "source_sha256": "ef8bdea82727ff6846b84670515cc01dcc3c4219d2f237da34cf64c1db281102",
+  "source_sha256": "5b2dd9c4798e23dfe9b60772c16ab999dcab6827e3a2339a7ef0b97c63f0ce99",
   "specs": [
-    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+    "@type args :: %{\n    optional(:ctx) => map(),\n    optional(:max_steps) => non_neg_integer(),\n    optional(:seed) => map(),\n    required(:steps) => [map()],\n    optional(:stop_on_error) => boolean()\n  }",
+    "@spec run(args()) :: {:ok, map()} | {:error, String.t()}"
   ],
-  "updated_at": "2026-11-02T10:26:31.035631Z"
+  "updated_at": "2026-11-04T22:00:03.844606Z"
 }

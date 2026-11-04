@@ -4,9 +4,10 @@
   "module": "Elixir.AgentFn.Fs.ListMd",
   "moduledoc": "List a directory and render its entries as a markdown table.\n\n  Args:\n  - `path` (required) — directory to list\n  - `columns` — optional ordered column names for `md.table`\n  - `key` — optional list key for `md.table` (defaults to entries)",
   "name": "fs.list_md",
-  "source_sha256": "a5777796d5971d4c353bb7be227431519d5949c56864648004cd966588246353",
+  "source_sha256": "6367ae27489861c857806f4bcabb50b4e6d620c9abb292a492778b396cc95350",
   "specs": [
-    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+    "@type args :: %{\n    optional(:columns) => [String.t()],\n    optional(:key) => String.t(),\n    required(:path) => String.t()\n  }",
+    "@spec run(args()) :: {:ok, map()} | {:error, String.t()}"
   ],
-  "updated_at": "2026-11-01T14:40:57.489561Z"
+  "updated_at": "2026-11-04T21:59:57.732938Z"
 }

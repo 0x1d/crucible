@@ -33,7 +33,12 @@ defmodule AgentFn.Memory.Transact do
   """
 
   @behaviour AgentFn.Tool
+  @type args :: %{
+    optional(:facts) => [map()],
+    required(:reason) => String.t(),
+    optional(:rules) => [String.t()]
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args), do: Runtime.Memory.transact(args)
 end

@@ -21,8 +21,12 @@ defmodule AgentFn.Util.Uuid5Match do
     "x500" => "6ba7b814-9dad-11d1-80b4-00c04fd430c8",
     "nil" => "00000000-0000-0000-0000-000000000000"
   }
+  @type args :: %{
+    required(:namespaces) => [String.t()],
+    required(:targets) => [String.t()]
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     emit = Map.get(args, "emit", false) == true
 

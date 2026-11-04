@@ -31,8 +31,16 @@ defmodule AgentFn.Git.Commit do
 
   @unmerged ~w(DD AU UD UA DU AA UU)
   @marker ~r/^(<<<<<<<|>>>>>>>)( |$)/m
+  @type args :: %{
+    optional(:allow_conflict_markers) => boolean(),
+    optional(:cwd) => String.t(),
+    optional(:dry_run) => boolean(),
+    optional(:push) => boolean(),
+    optional(:remote) => String.t(),
+    optional(:repo) => String.t()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     with {:ok, message} <- fetch_message(args),
          {:ok, files} <- fetch_files(args),

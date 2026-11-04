@@ -4,10 +4,10 @@
   "module": "Elixir.AgentFn.Docker.PsReport",
   "moduledoc": "Summarize Docker containers from `docker.ps`.\n\n  Args:\n  - `all` — if true, include stopped containers (default false)\n\n  Returns `count`, `by_state`, `by_project`, `by_image`, and `published_ports`.\n  The container list stays out of the result.",
   "name": "docker.ps_report",
-  "source_sha256": "c8bf9201d5a731ff286c5582f96bd34b0d9981c500dbb7d5c90a27fc03f6c7c1",
+  "source_sha256": "36f6f630d9fcf9ad8f701b2173ca0304e06587a3038693eddffb094900d3fceb",
   "specs": [
-    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}",
-    "@spec summarize([map()]) :: map()"
+    "@type args :: %{\n    optional(:all) => boolean()\n  }",
+    "@spec run(args()) :: {:ok, map()} | {:error, String.t()}"
   ],
-  "updated_at": "2026-11-03T10:32:42.723729Z"
+  "updated_at": "2026-11-04T21:59:57.092728Z"
 }

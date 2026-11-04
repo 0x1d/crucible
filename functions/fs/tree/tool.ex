@@ -10,8 +10,13 @@ defmodule AgentFn.Fs.Tree do
   Returns a nested `tree` map with `name`, `type`, `children`.
   """
   @behaviour AgentFn.Tool
+  @type args :: %{
+    optional(:ignore) => [String.t()],
+    optional(:max_depth) => non_neg_integer(),
+    required(:path) => String.t()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     path = Map.get(args, "path") || Map.get(args, :path)
     max_depth = Map.get(args, "max_depth") || Map.get(args, :max_depth) || 3

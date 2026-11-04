@@ -9,8 +9,11 @@ defmodule AgentFn.Docker.PsReport do
   The container list stays out of the result.
   """
   @behaviour AgentFn.Tool
+  @type args :: %{
+    optional(:all) => boolean()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     with {:ok, listing} <- AgentFn.Docker.Ps.run(args) do
       {:ok, summarize(Map.get(listing, :containers, []))}

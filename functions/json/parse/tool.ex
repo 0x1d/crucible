@@ -7,8 +7,14 @@ defmodule AgentFn.Json.Parse do
   - or `path` — file containing JSON
   """
   @behaviour AgentFn.Tool
+  @type args :: %{
+    optional(:content) => String.t(),
+    optional(:json) => String.t(),
+    optional(:path) => String.t(),
+    optional(:text) => String.t()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     text =
       Map.get(args, "text") || Map.get(args, :text) || Map.get(args, "json") || Map.get(args, :json) ||

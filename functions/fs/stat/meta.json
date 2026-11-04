@@ -4,9 +4,10 @@
   "module": "Elixir.AgentFn.Fs.Stat",
   "moduledoc": "Stat a single filesystem path.\n\n  Args: `path` (required string).\n\n  Returns `name`, `path`, `type` (`file`/`dir`/`symlink`/`other`), `size`,\n  `extension`, `mode` (octal string), `create_time`, `modify_time`, and\n  `symlink_target` when the path is a symlink.",
   "name": "fs.stat",
-  "source_sha256": "0279e9b75a4ed5251496fd00b8ca9533e57b586c102d2cfbe9a210f4c3bd5287",
+  "source_sha256": "336a6b99710464e67e4f9a407b9dffe2d67df4d714a018de8dcb0e6a89334823",
   "specs": [
-    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+    "@type args :: %{\n    required(:path) => String.t()\n  }",
+    "@spec run(args()) :: {:ok, map()} | {:error, String.t()}"
   ],
-  "updated_at": "2026-11-01T14:40:57.563478Z"
+  "updated_at": "2026-11-04T21:59:58.479199Z"
 }

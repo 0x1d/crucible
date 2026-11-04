@@ -10,7 +10,7 @@ defmodule Runtime.FindTest do
     echo = Enum.find(found[:functions], &(&1["name"] == "echo"))
     assert echo
     assert is_binary(echo["summary"])
-    assert echo["specs"] == ["@spec run(map()) :: {:ok, map()}"]
+    assert echo["specs"] == ["@spec run(args()) :: {:ok, map()}"]
     refute Map.has_key?(echo, "moduledoc")
   end
 

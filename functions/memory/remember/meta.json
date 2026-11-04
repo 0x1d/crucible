@@ -4,9 +4,10 @@
   "module": "Elixir.AgentFn.Memory.Remember",
   "moduledoc": "Asserts many facts in one call.\n\n  Same contract as `memory.transact`, plus session provenance:\n\n  - `source_session` / `session_id` — optional `ses_…` id. When set, every\n    distinct entity `e` in `facts` also gets\n    `%{\"e\" => e, \"a\" => \"source-session\", \"v\" => sid}`. The stamp is skipped\n    when that triple is already in `facts` or already current in memory, so\n    remembering more facts about an entity in the same session works.\n  - Prefer passing the live session from agentkit context so memory →\n    journal reverse search works via `memory.by_session`.\n\n  Prefer this slug when persisting a bundle of related facts from chat.",
   "name": "memory.remember",
-  "source_sha256": "5751c797c57fa6ae10882a8920c869739100bd4f99dfcc63430befa79c219209",
+  "source_sha256": "a43436d236685041e4b304b61a47e945b60e37e2171bbe9c3ac9bfb1eb998af7",
   "specs": [
-    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+    "@type args :: %{\n    required(:facts) => [map()],\n    required(:reason) => String.t(),\n    optional(:rules) => [String.t()],\n    optional(:session_id) => String.t(),\n    optional(:source_session) => String.t()\n  }",
+    "@spec run(args()) :: {:ok, map()} | {:error, String.t()}"
   ],
-  "updated_at": "2026-11-02T14:50:39.651698Z"
+  "updated_at": "2026-11-04T22:00:03.138673Z"
 }

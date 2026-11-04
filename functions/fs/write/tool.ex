@@ -11,8 +11,14 @@ defmodule AgentFn.Fs.Write do
   Creates parent directories as needed.
   """
   @behaviour AgentFn.Tool
+  @type args :: %{
+    optional(:append) => boolean(),
+    required(:content) => String.t(),
+    optional(:overwrite) => boolean(),
+    required(:path) => String.t()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     path = Map.get(args, "path") || Map.get(args, :path)
     content = Map.get(args, "content") || Map.get(args, :content)

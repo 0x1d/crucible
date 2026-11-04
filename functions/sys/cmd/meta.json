@@ -4,9 +4,10 @@
   "module": "Elixir.AgentFn.Sys.Cmd",
   "moduledoc": "Run an executable with an argv list (no shell interpolation).\n\n  Args:\n  - `argv` (required) — `[executable | args...]` non-empty list of strings\n  - `cwd` — optional working directory\n  - `timeout_ms` — optional timeout (default 30_000)\n  - `env` — optional map of string env overrides\n  - `merge_stderr` — optional boolean; when true stderr is interleaved into\n    `stdout` and `stderr` is `\"\"` (default false)\n\n  Returns `argv`, `stdout`, `stderr`, `status`, `timeout_ms`.\n  stderr is captured separately: the executable is exec'd by `/bin/sh` with\n  fd 2 redirected to a temp file. argv entries are passed as positional\n  parameters (`\"$@\"`), never interpolated into the script.",
   "name": "sys.cmd",
-  "source_sha256": "dba9d3dc6f9f8ed42332f725dc8df2551b130391324ae28badfa668bfa2e66ab",
+  "source_sha256": "fa2b1285d5384b796b0ff8de16b7c46ddeecac2b42ec633f1d5ffff6c33adaee",
   "specs": [
-    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+    "@type args :: %{\n    required(:argv) => [String.t()],\n    optional(:cwd) => String.t(),\n    optional(:env) => map(),\n    optional(:merge_stderr) => boolean(),\n    optional(:timeout_ms) => non_neg_integer()\n  }",
+    "@spec run(args()) :: {:ok, map()} | {:error, String.t()}"
   ],
-  "updated_at": "2026-11-02T10:23:24.063335Z"
+  "updated_at": "2026-11-04T22:00:04.677909Z"
 }

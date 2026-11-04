@@ -4,9 +4,10 @@
   "module": "Elixir.AgentFn.Util.Uuid5Match",
   "moduledoc": "Reverse-identify UUIDv5 values by brute-forcing candidate names.\n\n  Args:\n  - `candidates` (required) — list of name strings to hash\n  - `targets` — list of UUID strings to identify (optional when `emit` is true)\n  - `namespaces` — optional list of namespace UUID strings; defaults to the\n    RFC 4122 namespaces (dns, url, oid, x500) plus the nil UUID\n  - `variants` — when true (default), also tries each candidate with a\n    leading `:` and stripped of a leading `:`\n  - `emit` — when true, also return `computed`: every name/namespace/uuid\n\n  Returns `matches`, `unmatched` targets, `tried`, and optionally `computed`.",
   "name": "util.uuid5_match",
-  "source_sha256": "2d9b27352c8a7579f2a3cfb5c370b65c9181db26a862d0001a2356e02739434f",
+  "source_sha256": "733ac3c257dc9ed3b575bec533a81bc5f963f37b1f6c57f8d3d8dcfcb5450552",
   "specs": [
-    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+    "@type args :: %{\n    required(:namespaces) => [String.t()],\n    required(:targets) => [String.t()]\n  }",
+    "@spec run(args()) :: {:ok, map()} | {:error, String.t()}"
   ],
-  "updated_at": "2026-11-02T15:04:45.180347Z"
+  "updated_at": "2026-11-04T22:00:05.312075Z"
 }

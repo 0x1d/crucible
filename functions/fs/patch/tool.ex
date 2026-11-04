@@ -13,8 +13,13 @@ defmodule AgentFn.Fs.Patch do
   Returns `path`, `applied` (per-edit match counts), `written`.
   """
   @behaviour AgentFn.Tool
+  @type args :: %{
+    optional(:dry_run) => boolean(),
+    required(:edits) => [map()],
+    required(:path) => String.t()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     path = args["path"]
     edits = args["edits"]

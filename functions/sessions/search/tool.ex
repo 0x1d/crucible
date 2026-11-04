@@ -21,8 +21,21 @@ defmodule AgentFn.Sessions.Search do
   @behaviour AgentFn.Tool
 
   @default_journal "/home/master/src/alchemist/hosts/cursor/.agent-serve/cursor/memory/journal.jsonl"
+  @type args :: %{
+    optional(:fixed_strings) => boolean(),
+    optional(:follow_symlinks) => boolean(),
+    optional(:glob) => String.t(),
+    optional(:ignore_case) => boolean(),
+    optional(:max_matches) => non_neg_integer(),
+    optional(:path) => String.t(),
+    required(:pattern) => String.t(),
+    optional(:root) => String.t(),
+    optional(:session_id) => String.t(),
+    optional(:snippet) => non_neg_integer(),
+    optional(:timeout_ms) => non_neg_integer()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     pattern = get(args, "pattern")
     path = get(args, "path") || get(args, "root") || @default_journal

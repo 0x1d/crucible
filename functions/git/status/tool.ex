@@ -21,8 +21,15 @@ defmodule AgentFn.Git.Status do
   alias AgentFn.Sys.Cmd
 
   @unmerged ~w(DD AU UD UA DU AA UU)
+  @type args :: %{
+    optional(:cwd) => String.t(),
+    optional(:ignored) => boolean(),
+    optional(:paths) => [String.t()],
+    optional(:repo) => String.t(),
+    optional(:untracked) => String.t()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     with {:ok, cwd} <- fetch_cwd(args),
          {:ok, paths} <- fetch_paths(args),

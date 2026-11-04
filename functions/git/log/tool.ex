@@ -29,8 +29,20 @@ defmodule AgentFn.Git.Log do
   @rs <<0x1E>>
   @us <<0x1F>>
   @format "%x1e%H%x1f%h%x1f%an%x1f%ae%x1f%aI%x1f%P%x1f%s%x1f%b%x1f"
+  @type args :: %{
+    optional(:author) => String.t(),
+    optional(:cwd) => String.t(),
+    optional(:first_parent) => boolean(),
+    optional(:limit) => non_neg_integer(),
+    optional(:no_merges) => boolean(),
+    optional(:paths) => [String.t()],
+    optional(:ref) => String.t(),
+    optional(:repo) => String.t(),
+    optional(:since) => String.t(),
+    optional(:until) => String.t()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     cwd = args["cwd"] || args["repo"] || File.cwd!()
     ref = args["ref"] || "HEAD"

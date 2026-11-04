@@ -20,8 +20,15 @@ defmodule AgentFn.Sys.Cmd do
   # $0 is the executable, "$@" the args, $ALCHEMIST_SYS_CMD_STDERR the capture file.
   @wrapper ~S(exec "$0" "$@" 2>"$ALCHEMIST_SYS_CMD_STDERR")
   @stderr_var "ALCHEMIST_SYS_CMD_STDERR"
+  @type args :: %{
+    required(:argv) => [String.t()],
+    optional(:cwd) => String.t(),
+    optional(:env) => map(),
+    optional(:merge_stderr) => boolean(),
+    optional(:timeout_ms) => non_neg_integer()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     argv = get(args, "argv")
     cwd = get(args, "cwd")

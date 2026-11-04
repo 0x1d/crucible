@@ -10,8 +10,19 @@ defmodule AgentFn.Data.Filter do
   Ops: `eq`, `neq`, `contains`, `gt`, `gte`, `lt`, `lte`, `in`, `exists`.
   """
   @behaviour AgentFn.Tool
+  @type args :: %{
+    optional(:data) => [map()],
+    optional(:entries) => [map()],
+    optional(:field) => String.t(),
+    optional(:filters) => [map()],
+    optional(:items) => [map()],
+    optional(:key) => String.t(),
+    optional(:op) => String.t(),
+    optional(:rows) => [map()],
+    optional(:value) => term()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     with {:ok, rows, source} <- extract_rows(args),
          {:ok, filters} <- build_filters(args) do

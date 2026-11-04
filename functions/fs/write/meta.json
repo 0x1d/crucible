@@ -4,9 +4,10 @@
   "module": "Elixir.AgentFn.Fs.Write",
   "moduledoc": "Write or append text to a file.\n\n  Args:\n  - `path` (required)\n  - `content` (required string)\n  - `append` — when true, append instead of overwrite (default false)\n  - `overwrite` — required true to replace an existing file when not appending\n\n  Creates parent directories as needed.",
   "name": "fs.write",
-  "source_sha256": "1f89dc7472c3bbefdcbb865f0e5bc6730f857ebe0a1ec4e42de8d7e863a03a35",
+  "source_sha256": "f886fbf0ac3b2db76e0e4d9e01649bfefeff10f58f0282465583c6ae4f6d2848",
   "specs": [
-    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+    "@type args :: %{\n    optional(:append) => boolean(),\n    required(:content) => String.t(),\n    optional(:overwrite) => boolean(),\n    required(:path) => String.t()\n  }",
+    "@spec run(args()) :: {:ok, map()} | {:error, String.t()}"
   ],
-  "updated_at": "2026-11-01T14:40:57.602813Z"
+  "updated_at": "2026-11-04T21:59:58.794032Z"
 }

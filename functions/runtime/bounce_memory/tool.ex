@@ -1,8 +1,9 @@
 defmodule AgentFn.Runtime.BounceMemory do
   @moduledoc "Stop `Runtime.Memory` so OTP restarts it (reloads MiniGraf server)."
   @behaviour AgentFn.Tool
+  @type args :: %{optional(String.t()) => term()}
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     case Process.whereis(Runtime.Memory) do
       nil ->

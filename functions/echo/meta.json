@@ -4,9 +4,10 @@
   "module": "Elixir.AgentFn.Echo",
   "moduledoc": "Example codex entry. Returns the input args map with `\"echoed\" => true`.",
   "name": "echo",
-  "source_sha256": "1eddd1b7a3634d2287c7f834eed0255392410ac046bd9cc77288d7ca700c9443",
+  "source_sha256": "c1bb152d09789bd2cd16f59c3931b81e97c4e67d37134b77ad8922e88a8fb77d",
   "specs": [
-    "@spec run(map()) :: {:ok, map()}"
+    "@type args :: %{optional(String.t()) => term()}",
+    "@spec run(args()) :: {:ok, map()}"
   ],
-  "updated_at": "2026-11-01T14:40:57.408590Z"
+  "updated_at": "2026-11-04T21:59:57.138124Z"
 }

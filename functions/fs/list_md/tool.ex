@@ -8,8 +8,13 @@ defmodule AgentFn.Fs.ListMd do
   - `key` — optional list key for `md.table` (defaults to entries)
   """
   @behaviour AgentFn.Tool
+  @type args :: %{
+    optional(:columns) => [String.t()],
+    optional(:key) => String.t(),
+    required(:path) => String.t()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     with {:ok, listing} <- AgentFn.Fs.List.run(args) do
       table_args =

@@ -20,8 +20,14 @@ defmodule AgentFn.Codex.UncommittedReport do
   @behaviour AgentFn.Tool
 
   alias Runtime.{Codex, Engine}
+  @type args :: %{
+    optional(:functions_rel) => String.t(),
+    optional(:journal) => String.t(),
+    optional(:load_missing) => boolean(),
+    optional(:repo) => String.t()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     functions_root = Codex.functions_root() |> Path.expand()
     repo = (get(args, "repo") || Path.dirname(functions_root)) |> Path.expand()

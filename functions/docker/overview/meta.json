@@ -4,9 +4,10 @@
   "module": "Elixir.AgentFn.Docker.Overview",
   "moduledoc": "Short Docker overview: counts by Compose project, image, and state, plus published ports.\n\n  Args:\n  - `all` — if true, include stopped containers (default false)\n\n  Same result as `docker.ps_report`. Use this before `docker.ps` or `docker inspect`.",
   "name": "docker.overview",
-  "source_sha256": "6f1979e09e1d587b0cd2f1a947d0c9b8cecba014df5a5cac679c26cb55a9cf82",
+  "source_sha256": "e1561a597c8f5bbcf8f4b226075858ab9681d8e78847d34559f1edf57eb0b4e5",
   "specs": [
-    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+    "@type args :: %{\n    optional(:all) => boolean()\n  }",
+    "@spec run(args()) :: {:ok, map()} | {:error, String.t()}"
   ],
-  "updated_at": "2026-11-03T10:30:00Z"
+  "updated_at": "2026-11-04T21:59:56.772445Z"
 }
