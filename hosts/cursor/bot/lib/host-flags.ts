@@ -25,8 +25,8 @@ export const DEFAULT_HOST_FLAGS: HostFlags = {
   resultDigest: true,
   defaultMaxBytes: false,
   pinnedModel: false,
-  handoffTool: false,
-  handoffFork: false,
+  handoffTool: true,
+  handoffFork: true,
   toolResultLog: false,
 };
 

@@ -37,11 +37,17 @@ Do not pass `detail: true` unless the read failed and you are editing that entry
 When `call_function` returns `truncated: true`, answer from `head` and `tail`.
 Do not read `path` unless the user asked for a span that is not in those slices.
 
-**Discover domain entries first** when the slug is not already in the table above.
+**Known slug → one `call_function`.** If the slug is already in the table above,
+in a skill, or returned earlier this turn by `find_function`, call it once.
+Do not call `find_function` again, and do not pass `detail: true`, just to learn
+args for a slug you already have.
+
+**Discover domain entries first** when the slug is not already known.
 `find_function` with the word the user asked about (`git`, `weather`, `memory`, …)
 before falling back to primitives (`sys.cmd`, `http.get`).
 Do **not** skip straight to `sys.cmd` for git, or to `http.*` for weather, when
 dedicated slugs exist.
+Use `detail: true` only when editing that entry or the slim hit lacks required args.
 When you are unsure which entry fits, call `codex.docs` before answering.
 If a `find_function` search comes back empty, retry with a related capability
 word (`fs`, `cmd`, `http`) or use `codex.docs`.

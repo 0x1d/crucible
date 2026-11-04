@@ -2,7 +2,10 @@
 
 Tracks work from [cursor host context](2026-11-03-cursor-host-context.md),
 [context handoff](../specs/2026-11-03-context-handoff-design.md),
-[prompt cache](../specs/2026-11-03-prompt-cache-design.md), and related plans.
+[prompt cache](../specs/2026-11-03-prompt-cache-design.md), and
+[context growth fixes](../specs/2026-11-04-context-growth-fixes.md) (SDK-first
+summarize/autocompact/`updatedToolOutput`; alchemist handoff/fork + `resultDigest`
+as fallback).
 
 Toggle host flags with `/flags` (or `/ctx`) in the TUI or edit
 `hosts/cursor/.agent-serve/host-flags.json` (legacy `context-improvements.json` is still read).
@@ -18,16 +21,17 @@ Legacy `ALCHEMIST_CTX_*` env names are still accepted.
 | `resultDigest` | §1 bridge cap / digest | on | Shrinks large `call_function` results in the transcript; baseline named-read ~25.7k vs uncapped read ~119k. |
 | `defaultMaxBytes` | §6 default caps | off | Injects `max_bytes` on `fs.read` / `http.get`; lowers per-turn blobs; may hide tail unless user reads `path`. |
 | `pinnedModel` | prompt-cache design | off | Pins server default to `composer-2.5` at `reasoning_effort=high` (no `fast`); follow-up cache read should approach full prompt (eval gate). TUI `/model` overrides are ignored while this is on. |
-| `handoffTool` | handoff design | off | Exposes `handoff` server tool (~schema tokens); model can write `handoff.md`. |
-| `handoffFork` | handoff design | off | TUI opens a **new** session after handoff when over 200k or user compacted; the old agent store and transcript stay on disk—only the **live** prompt stops including that history. |
+| `handoffTool` | handoff design; [growth fixes](../specs/2026-11-04-context-growth-fixes.md) | **on** (2026-11-04) | Exposes `handoff` server tool (~schema tokens); model can write `handoff.md`. |
+| `handoffFork` | handoff design; growth fixes | **on** (2026-11-04) | TUI opens a **new** session after handoff when over 200k or user compacted; the old agent store and transcript stay on disk—only the **live** prompt stops including that history. |
 | `toolResultLog` | §7 observability | off | Logs largest tool results per turn to `.agent-serve/context-tool-sizes.log`. |
 
 Already shipped without a flag (measured in the host-context plan):
 
 - Named-path one-shot `fs.read` rule in `instructions.md`.
+- Known-slug one-shot `call_function` rule in `instructions.md` (2026-11-04).
 - Shorter always-on prompt (`bot/skills/*`).
 - `docker.ps_report` summary, array/string digests in `call_function`.
-- Footer cached/read/write/new split (`tui/view.ts`).
+- Footer cached/read/write/new split (`tui/view.ts`); guide clarifies `ctx` vs `new` (no silent prune).
 
 ## Verification log
 

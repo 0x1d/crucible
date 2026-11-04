@@ -121,6 +121,8 @@ claude · opus · high · ctx 90.1k/200k (45%) · hit · read 80.9k · write 0 �
 | Cache | `hit` when the last turn read from the prompt cache, `miss` when the host reported a read of zero. `read` and `write` are the cache-read and cache-write token counts. `new` is the rest of the prompt (`context − read − write`). A turn that does not report cache counters omits these fields. |
 | Cost | The running total of the session. Claude uses `total_cost_usd` of the latest SDK result. Cursor uses `costUsd` from `GET /v1/session/:id/cost`. |
 
+`ctx` is that turn's full prompt. `new` is only the uncached slice. A drop in `ctx` (or reading `new` as if it were `ctx`) does **not** mean the host pruned prior tool results. This Cursor host keeps the agent-store transcript until handoff opens a new session. See [context growth fixes](../internal/specs/2026-11-04-context-growth-fixes.md).
+
 The context field, including the percentage, is green below 150,000 tokens, yellow from 150,000 through 200,000 tokens, and red above 200,000 tokens.
 `hit`, `read`, and `write` use the success color.
 `miss` uses the warning color.

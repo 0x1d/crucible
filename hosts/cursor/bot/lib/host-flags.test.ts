@@ -11,6 +11,13 @@ import {
   saveHostFlags,
 } from "./host-flags.ts";
 
+test("defaults enable digests and handoff, leave model pin off", () => {
+  assert.equal(DEFAULT_HOST_FLAGS.resultDigest, true);
+  assert.equal(DEFAULT_HOST_FLAGS.handoffTool, true);
+  assert.equal(DEFAULT_HOST_FLAGS.handoffFork, true);
+  assert.equal(DEFAULT_HOST_FLAGS.pinnedModel, false);
+});
+
 test("load returns defaults when the file is missing", () => {
   const root = mkdtempSync(path.join(os.tmpdir(), "host-flags-"));
   try {
