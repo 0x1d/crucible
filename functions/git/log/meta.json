@@ -1,0 +1,16 @@
+{
+  "description": "Structured git commit history for one repository.\n\n  Runs `git log` with record/unit separators (so subjects and bodies with any\n  characters parse safely) and optional `--numstat` for per-file line counts.\n\n  Args:\n  - `cwd` / `repo` — repository directory (default: runtime cwd)\n  - `limit` — max commits (default 20, 1..500)\n  - `ref` — revision or range, e.g. `\"HEAD\"`, `\"main\"`, `\"v1..HEAD\"` (default `HEAD`);\n    must not start with `-`\n  - `since`, `until` — git date expressions (`\"3 days ago\"`, `\"2026-11-01\"`)\n  - `author` — author filter (git `--author` regex)\n  - `paths` — optional list of pathspecs (passed after `--`)\n  - `no_merges` — skip merge commits (default false)\n  - `first_parent` — follow only the first parent (default false)\n  - `numstat` — include per-file line counts (default true). Merge commits have\n    no numstat (git default), so their `files` is empty.\n\n  Returns `commits` — list of\n  `%{\"sha\", \"short\", \"author\", \"email\", \"date\", \"subject\", \"body\", \"parents\",\n  \"merge\", \"files\", \"added\", \"deleted\"}` where each file is\n  `%{\"path\", \"orig_path\", \"added\", \"deleted\", \"binary\"}` — plus `count`, `branch`, `ref`.",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Git.Log",
+  "moduledoc": "Structured git commit history for one repository.\n\n  Runs `git log` with record/unit separators (so subjects and bodies with any\n  characters parse safely) and optional `--numstat` for per-file line counts.\n\n  Args:\n  - `cwd` / `repo` — repository directory (default: runtime cwd)\n  - `limit` — max commits (default 20, 1..500)\n  - `ref` — revision or range, e.g. `\"HEAD\"`, `\"main\"`, `\"v1..HEAD\"` (default `HEAD`);\n    must not start with `-`\n  - `since`, `until` — git date expressions (`\"3 days ago\"`, `\"2026-11-01\"`)\n  - `author` — author filter (git `--author` regex)\n  - `paths` — optional list of pathspecs (passed after `--`)\n  - `no_merges` — skip merge commits (default false)\n  - `first_parent` — follow only the first parent (default false)\n  - `numstat` — include per-file line counts (default true). Merge commits have\n    no numstat (git default), so their `files` is empty.\n\n  Returns `commits` — list of\n  `%{\"sha\", \"short\", \"author\", \"email\", \"date\", \"subject\", \"body\", \"parents\",\n  \"merge\", \"files\", \"added\", \"deleted\"}` where each file is\n  `%{\"path\", \"orig_path\", \"added\", \"deleted\", \"binary\"}` — plus `count`, `branch`, `ref`.",
+  "name": "git.log",
+  "source_sha256": "e033f496034aa937e118eb74864468f7044f24cd145b37aeb71c6747d51365db",
+  "specs": [
+    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}",
+    "@spec argv(map(), String.t(), pos_integer(), [String.t()]) :: [String.t()]",
+    "@spec parse(String.t()) :: [map()]",
+    "@spec parse_numstat(String.t()) :: [map()]",
+    "@spec expand_rename(String.t()) :: {String.t(), String.t() | nil}"
+  ],
+  "updated_at": "2026-11-04T09:12:55.666523Z"
+}
