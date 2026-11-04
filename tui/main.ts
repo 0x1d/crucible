@@ -31,7 +31,8 @@ import { applyHostFlagsCommand } from "./host-flags.ts";
 import { rememberPrompt } from "./remember.ts";
 import { SessionStats } from "./stats.ts";
 import { type Theme, resolveTheme } from "./theme.ts";
-import { Transcript, footerLine } from "./view.ts";
+import { FollowUpQueue, buildQueuedMessage } from "./follow-up-queue.ts";
+import { Transcript, followUpQueueLines, footerLine } from "./view.ts";
 
 const HOSTS: Record<string, { description: string; create: () => HostAdapter }> = {
   claude: { description: "Claude Agent SDK", create: () => new ClaudeAdapter() },
@@ -49,6 +50,7 @@ try {
 const tui = new TuiAltScreen(new ProcessTerminal());
 const transcript = new Transcript(theme);
 const status = new Container();
+const queueBar = new Text("", 0, 0);
 const editor = new Editor(tui, theme.editor);
 const footer = new Text("", 0, 0);
 const changes = await ChangeTracker.start(repoRoot);
@@ -56,6 +58,8 @@ const changes = await ChangeTracker.start(repoRoot);
 let adapter: HostAdapter | undefined;
 let stats = new SessionStats();
 let turn: AbortController | undefined;
+let drainingFollowUps = false;
+const followUpQueue = new FollowUpQueue();
 let lastCtrlC = 0;
 
 editor.setAutocompleteProvider(new CombinedAutocompleteProvider(COMMANDS, repoRoot));
@@ -68,11 +72,17 @@ tui.setLayoutRoot(
       grow: 1,
       minSize: 1,
     },
-    { component: new VStack([status, editor, footer]), basis: "auto", shrink: 1, minSize: 1 },
+    { component: new VStack([status, queueBar, editor, footer]), basis: "auto", shrink: 1, minSize: 1 },
   ]),
 );
 
 function render(): void {
+  const queued = followUpQueue.snapshot();
+  queueBar.setText(
+    followUpQueueLines(theme, queued, {
+      injectHint: queued.length > 0 && turn !== undefined && adapter?.inject !== undefined,
+    }),
+  );
   if (adapter) {
     footer.setText(
       footerLine(theme, { host: adapter.name, model: adapter.model, effort: adapter.effort, stats }),
@@ -124,6 +134,7 @@ async function withStatus<T>(message: string, work: () => Promise<T>): Promise<T
 
 async function openSession(id: string | undefined): Promise<void> {
   if (!adapter) return;
+  clearFollowUpQueue("Cleared queued messages for the new session.");
   const host = adapter;
   const events = await withStatus("Loading session…", () => host.openSession(id));
   transcript.reset();
@@ -173,6 +184,7 @@ async function selectHost(): Promise<boolean> {
     adapter = HOSTS[name].create();
     stats = new SessionStats();
     transcript.reset();
+    clearFollowUpQueue("Cleared queued messages for the new host.");
     // Each adapter restores its saved model from its own host-flags.json.
   }
   await selectSession();
@@ -236,12 +248,67 @@ async function selectEffort(level: string): Promise<void> {
   }
 }
 
+function clearFollowUpQueue(notice: string): void {
+  if (followUpQueue.length === 0) return;
+  followUpQueue.clear();
+  transcript.info(notice);
+  render();
+}
+
+function queuedMessage(text: string): { prompt: string; shown: string } {
+  return buildQueuedMessage(text, (instructions) =>
+    rememberPrompt({
+      sessionId: adapter?.sessionId,
+      instructions,
+      now: new Date(),
+    }),
+  );
+}
+
+function enqueueDuringTurn(text: string): void {
+  const item = queuedMessage(text);
+  followUpQueue.enqueue(item);
+  render();
+}
+
+async function dispatchQueued(item: { prompt: string; shown: string }): Promise<void> {
+  const command = parseCommand(item.shown);
+  if (command) await handleCommand(command.name, command.arg);
+  else await runTurn(item.prompt, item.shown);
+}
+
+async function injectQueuedIntoTurn(): Promise<void> {
+  if (!turn || !adapter?.inject) return;
+  const item = followUpQueue.shift();
+  if (!item) return;
+  transcript.user(item.shown);
+  const result = await adapter.inject(item.prompt);
+  if (!result.ok) {
+    followUpQueue.unshift(item);
+    transcript.error(result.message ?? "Could not inject the queued message.");
+  }
+  render();
+}
+
+async function drainFollowUpQueue(): Promise<void> {
+  if (drainingFollowUps || turn) return;
+  drainingFollowUps = true;
+  try {
+    while (followUpQueue.length > 0 && !turn) {
+      const item = followUpQueue.shift();
+      if (!item) break;
+      await dispatchQueued(item);
+    }
+  } finally {
+    drainingFollowUps = false;
+  }
+}
+
 async function runTurn(prompt: string, shown: string): Promise<void> {
   if (!adapter) return;
   const host = adapter;
   transcript.user(shown);
   turn = new AbortController();
-  editor.disableSubmit = true;
   const loader = new Loader(tui, theme.fg.accent, theme.fg.muted, "Working… (Esc to stop)");
   status.addChild(loader);
   loader.start();
@@ -265,8 +332,8 @@ async function runTurn(prompt: string, shown: string): Promise<void> {
     status.clear();
     stats.lastTurnMs = Date.now() - started;
     turn = undefined;
-    editor.disableSubmit = false;
     render();
+    await drainFollowUpQueue();
   }
 }
 
@@ -325,11 +392,23 @@ async function handleCommand(name: string, arg: string): Promise<void> {
 
 editor.onSubmit = (text) => {
   const prompt = text.trim();
-  if (!prompt || turn) return;
+  if (!prompt) {
+    if (turn && followUpQueue.length > 0) {
+      injectQueuedIntoTurn().catch((error) => {
+        transcript.error(errorText(error));
+        render();
+      });
+    }
+    return;
+  }
   editor.addToHistory(prompt);
-  editor.setText("");
+  if (turn) {
+    enqueueDuringTurn(prompt);
+    return;
+  }
   const command = parseCommand(prompt);
-  const work = command ? handleCommand(command.name, command.arg) : runTurn(prompt, prompt);
+  const item = queuedMessage(prompt);
+  const work = command ? handleCommand(command.name, command.arg) : runTurn(item.prompt, item.shown);
   work.catch((error) => {
     transcript.error(errorText(error));
     render();

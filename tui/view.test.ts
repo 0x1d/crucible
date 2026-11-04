@@ -3,10 +3,30 @@ import { test } from "node:test";
 import { stripTerminalSequences } from "@earendil-works/pi-tui";
 import { SessionStats } from "./stats.ts";
 import { createTheme, themes } from "./theme.ts";
-import { ToolLine, Transcript, changeLine, colorDiff, footerLine } from "./view.ts";
+import {
+  ToolLine,
+  Transcript,
+  changeLine,
+  colorDiff,
+  followUpQueueLines,
+  footerLine,
+} from "./view.ts";
 
 const theme = createTheme("alchemist", themes.alchemist, "truecolor");
 const plain = (lines: string[]) => lines.map(stripTerminalSequences);
+
+test("follow-up queue lines list messages and optional inject hint", () => {
+  const plainLines = stripTerminalSequences(
+    followUpQueueLines(theme, [{ shown: "first" }, { shown: "/remember x" }], {
+      injectHint: true,
+    }),
+  );
+  assert.match(plainLines, /^queued \(2\)/);
+  assert.match(plainLines, /empty Enter injects #1/);
+  assert.match(plainLines, /1\. first/);
+  assert.match(plainLines, /2\. \/remember x/);
+  assert.equal(followUpQueueLines(theme, []), "");
+});
 
 test("the footer joins host, model, effort, context, cost, and turn time", () => {
   const stats = new SessionStats();

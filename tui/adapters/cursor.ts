@@ -330,6 +330,7 @@ export class CursorAdapter implements HostAdapter {
   private lastContextTokens = 0;
   private pendingHandoff = false;
   private lastHandoffOk = false;
+  private injectTurn: ((prompt: string) => Promise<{ ok: boolean; message?: string }>) | undefined;
 
   /** Starts the in-process server, or returns the running one. */
   private server(): Promise<AgentServeHandle> {
@@ -439,6 +440,12 @@ export class CursorAdapter implements HostAdapter {
 
   async listModels(): Promise<ModelChoice[]> {
     return CURSOR_MODELS.map((model) => ({ ...model, efforts: [...model.efforts] }));
+  }
+
+  async inject(prompt: string): Promise<{ ok: boolean; message?: string }> {
+    const injectTurn = this.injectTurn;
+    if (!injectTurn) return { ok: false, message: "No turn is in progress." };
+    return injectTurn(prompt);
   }
 
   setModel(model: string | undefined, effort: string | undefined): void {
@@ -648,6 +655,11 @@ export class CursorAdapter implements HostAdapter {
   ): AsyncIterable<HostEvent> {
     if (signal.aborted) return;
     const handle = await this.server();
+    const base = handle.url;
+    this.injectTurn = async (message) => {
+      const result = await this.followUp(base, message);
+      return result.ok ? { ok: true } : { ok: false, message: result.message };
+    };
     const streamAbort = new AbortController();
     let finished = false;
     this.lastHandoffOk = false;
@@ -724,6 +736,7 @@ export class CursorAdapter implements HostAdapter {
         yield { type: "error", message: error instanceof Error ? error.message : String(error) };
       }
     } finally {
+      this.injectTurn = undefined;
       finished = true;
       streamAbort.abort();
     }

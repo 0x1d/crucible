@@ -35,7 +35,7 @@ The transcript replays an opened session before the editor gets focus.
 
 The TUI uses the alternate screen of the terminal.
 The transcript fills the upper part of the screen and scrolls.
-The status line, the editor, and the footer stay at the bottom.
+The status line, the follow-up queue (when non-empty), the editor, and the footer stay at the bottom.
 When the TUI exits, the terminal shows the main screen again with the transcript printed on it.
 
 ## Commands
@@ -77,7 +77,7 @@ The checkpoint lines are part of the transcript, so a resumed session keeps them
 
 | Key | Action |
 | --- | --- |
-| `Enter` | Send the prompt. |
+| `Enter` | Send the prompt. While a turn runs, a non-empty prompt is queued for after the turn. Empty Enter injects one queued message into the turn in progress. |
 | `Shift+Enter` or `Ctrl+J` | Add a new line. |
 | `Up`, `Down` | Move through the prompt history of this run. |
 | `Esc` | Stop the turn in progress. |
@@ -88,6 +88,8 @@ The checkpoint lines are part of the transcript, so a resumed session keeps them
 | `PageUp`, `PageDown`, mouse wheel | Scroll the transcript. |
 | `Ctrl+Home`, `Ctrl+End` | Scroll to the start or the end of the transcript. |
 | `Ctrl+Shift+F` | Search the transcript. |
+
+While messages are queued, the TUI lists them above the editor (oldest first), with a count and an inject hint during an active turn.
 
 ## Transcript
 

@@ -44,5 +44,7 @@ export interface HostAdapter {
   listModels(): Promise<ModelChoice[]>;
   setModel(model: string | undefined, effort: string | undefined): void;
   send(prompt: string, signal: AbortSignal): AsyncIterable<HostEvent>;
+  /** Sends one user message into the turn that is already in progress. */
+  inject?(prompt: string): Promise<{ ok: boolean; message?: string }>;
   close(): Promise<void>;
 }
