@@ -170,6 +170,13 @@ function nested(event: CursorEvent): boolean {
   return Boolean(event.data?.parentCallId);
 }
 
+/** Follow-up or inject while a turn runs; not a user-visible failure (Agent SDK). */
+export function isTurnInterrupted(event: CursorEvent): boolean {
+  if (event.type !== "turn.failed") return false;
+  const message = (event.data?.message ?? "").toLowerCase();
+  return message.includes("turn interrupted") || message.includes("interrupted");
+}
+
 function usageEvent(usage: Usage | undefined): HostEvent {
   const event: HostEvent = { type: "usage", contextWindow: CURSOR_CONTEXT_WINDOW };
   if (!usage) return event;
@@ -210,6 +217,7 @@ export function mapCursorEvent(raw: unknown): HostEvent[] {
     case "turn.completed":
       return [usageEvent(data.usage), { type: "done", sessionId: event.sessionId ?? "" }];
     case "turn.failed":
+      if (isTurnInterrupted(event)) return [];
       return [{ type: "error", message: data.message ?? "The turn failed." }];
     default:
       return [];
@@ -660,7 +668,7 @@ export class CursorAdapter implements HostAdapter {
       const result = await this.followUp(base, message);
       return result.ok ? { ok: true } : { ok: false, message: result.message };
     };
-    const streamAbort = new AbortController();
+    let streamAbort = new AbortController();
     let finished = false;
     this.lastHandoffOk = false;
     const aborted = new Promise<void>((resolve) => {
@@ -681,55 +689,74 @@ export class CursorAdapter implements HostAdapter {
         }
       }
       if (signal.aborted && this.sessionId) await this.stopTurn(handle.url, this.sessionId);
-      const id = this.sessionId;
-      if (!id) {
-        yield { type: "error", message: "The session id was lost before the stream opened." };
-        return;
-      }
-      const response = await fetch(
-        `${handle.url}/v1/session/${encodeURIComponent(id)}/stream?startIndex=${this.nextIndex}`,
-        { signal: streamAbort.signal },
-      );
-      if (!response.ok) {
-        const body = await readJson(response);
-        if (!signal.aborted) yield { type: "error", message: errorText(body, response.status) };
-        return;
-      }
-      const messages = ndjson(response)[Symbol.asyncIterator]();
-      for (;;) {
-        const next = await nextTurnMessage(messages, aborted, signal);
-        if (next === undefined || next.done) {
-          if (!signal.aborted && next?.done) {
+
+      while (!finished && !signal.aborted) {
+        const id = this.sessionId;
+        if (!id) {
+          yield { type: "error", message: "The session id was lost before the stream opened." };
+          return;
+        }
+        const response = await fetch(
+          `${handle.url}/v1/session/${encodeURIComponent(id)}/stream?startIndex=${this.nextIndex}`,
+          { signal: streamAbort.signal },
+        );
+        if (!response.ok) {
+          const body = await readJson(response);
+          if (!signal.aborted) yield { type: "error", message: errorText(body, response.status) };
+          return;
+        }
+        const messages = ndjson(response)[Symbol.asyncIterator]();
+        let reconnect = false;
+        for (;;) {
+          const next = await nextTurnMessage(messages, aborted, signal);
+          if (next === undefined) {
+            if (!signal.aborted) reconnect = true;
+            break;
+          }
+          if (next.done) {
+            if (!signal.aborted) reconnect = true;
+            break;
+          }
+          const event = next.value;
+          this.noteIndex(event);
+          if (options.watchHandoff && isHandoffSuccess(event)) this.lastHandoffOk = true;
+          if (event.type === "turn.failed" && !signal.aborted && isTurnInterrupted(event)) {
+            reconnect = true;
+            break;
+          }
+          const mapped = withContextWindow(mapCursorEvent(event));
+          if (event.type === "turn.completed" || event.type === "turn.failed") {
+            const cost = await this.readCost(handle.url, id);
+            const usage = mapped.find((item) => item.type === "usage");
+            if (cost !== undefined && usage?.type === "usage") usage.costUsd = cost;
+            else if (cost !== undefined) {
+              mapped.unshift({ type: "usage", costUsd: cost, contextWindow: maxContextTokens() });
+            }
+            if (usage?.type === "usage" && usage.contextTokens !== undefined) {
+              this.lastContextTokens = usage.contextTokens;
+            }
+            if (isHandoffSuccess(event)) this.pendingHandoff = true;
+          }
+          if (options.yieldEvents) {
+            for (const item of mapped) {
+              if (signal.aborted && item.type === "error") continue;
+              yield item;
+            }
+          }
+          if (event.type === "turn.completed" || event.type === "turn.failed") {
+            finished = true;
+            return;
+          }
+        }
+        if (finished || signal.aborted) return;
+        if (!reconnect) {
+          if (!signal.aborted) {
             yield { type: "error", message: "The session stream ended before the turn finished." };
           }
           return;
         }
-        const event = next.value;
-        this.noteIndex(event);
-        if (options.watchHandoff && isHandoffSuccess(event)) this.lastHandoffOk = true;
-        const mapped = withContextWindow(mapCursorEvent(event));
-        if (event.type === "turn.completed" || event.type === "turn.failed") {
-          const cost = await this.readCost(handle.url, id);
-          const usage = mapped.find((item) => item.type === "usage");
-          if (cost !== undefined && usage?.type === "usage") usage.costUsd = cost;
-          else if (cost !== undefined) {
-            mapped.unshift({ type: "usage", costUsd: cost, contextWindow: maxContextTokens() });
-          }
-          if (usage?.type === "usage" && usage.contextTokens !== undefined) {
-            this.lastContextTokens = usage.contextTokens;
-          }
-          if (isHandoffSuccess(event)) this.pendingHandoff = true;
-        }
-        if (options.yieldEvents) {
-          for (const item of mapped) {
-            if (signal.aborted && item.type === "error") continue;
-            yield item;
-          }
-        }
-        if (event.type === "turn.completed" || event.type === "turn.failed") {
-          finished = true;
-          return;
-        }
+        streamAbort.abort();
+        streamAbort = new AbortController();
       }
     } catch (error) {
       if (!signal.aborted && !finished) {

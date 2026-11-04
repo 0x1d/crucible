@@ -5,6 +5,7 @@ import {
   contextTokens,
   createBody,
   followUpBody,
+  isTurnInterrupted,
   mapCursorEvent,
   mapCursorEvents,
   modelConfig,
@@ -103,6 +104,12 @@ test("a failed turn gives the error message", () => {
   assert.deepEqual(mapCursorEvent({ type: "turn.failed", data: { message: "nope", status: "error" } }), [
     { type: "error", message: "nope" },
   ]);
+});
+
+test("turn interrupted from inject or follow-up is not surfaced as an error", () => {
+  const event = { type: "turn.failed", data: { message: "turn interrupted" } };
+  assert.equal(isTurnInterrupted(event), true);
+  assert.deepEqual(mapCursorEvent(event), []);
 });
 
 test("a replay maps prompts, replies, tools, and usage once", () => {
