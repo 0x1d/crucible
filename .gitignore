@@ -12,3 +12,4 @@ runtime/.fetch
 docs/review/
 hosts/cursor/.eval-memory/
 /artifacts/
+handoff.md
