@@ -1,7 +1,7 @@
 import { defineTool } from "@grok/agent-sdk/tools";
 import * as z from "zod/v4";
 import { capToolResult } from "../lib/cap-tool-result.ts";
-import { runCodexTool } from "../lib/codex-tool";
+import { runCodexTool } from "../lib/codex-tool.ts";
 
 export default defineTool({
   description:

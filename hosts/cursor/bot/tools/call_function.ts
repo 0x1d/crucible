@@ -1,7 +1,7 @@
 import { defineTool } from "@grok/agent-sdk/tools";
 import * as z from "zod/v4";
 import { capToolResult } from "../lib/cap-tool-result.ts";
-import { runCodexTool } from "../lib/codex-tool";
+import { runCodexTool } from "../lib/codex-tool.ts";
 import { exploreGateBlocked } from "../lib/explore-gate.ts";
 import {
   DEFAULT_READ_HTTP_MAX_BYTES,

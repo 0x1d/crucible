@@ -1,6 +1,6 @@
 import type { ToolExecuteResult } from "@grok/agent-sdk";
 import type { CodexRequest } from "../../../../core/protocol.ts";
-import { runCodexOp } from "./elixir-bridge";
+import { runCodexOp } from "./elixir-bridge.ts";
 
 /** Surface a codex `ok: false` result as a tool error for the model. */
 export async function runCodexTool(
