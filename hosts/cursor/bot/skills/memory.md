@@ -4,6 +4,8 @@ description: Use when a memory.remember, memory.query, memory.transact, memory.r
 
 # Memory call examples
 
+For repo + memory + git status in one turn (replaces `decision/minimal-status-probe` chains), call `explore` with `profile: "status"` instead of separate `memory.overview`, `git.status`, and log probes.
+
 Overview (ids only), then query one entity:
 
 ```json

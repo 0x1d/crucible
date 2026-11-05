@@ -6,9 +6,11 @@ import { test } from "node:test";
 
 import {
   DEFAULT_HOST_FLAGS,
+  DEFAULT_MEMORY_EXPLORE_SETTINGS,
   defaultHostFlags,
   hostFlagEnvKey,
   loadHostFlags,
+  loadMemoryExploreSettings,
   saveHostFlags,
   setHistoryReclaim,
   historyReclaimFromBooleans,
@@ -18,6 +20,15 @@ import {
   parseReclaimModeToken,
 } from "./host-flags.ts";
 
+test("memory explore settings default", () => {
+  const root = mkdtempSync(path.join(os.tmpdir(), "host-flags-me-"));
+  try {
+    assert.deepEqual(loadMemoryExploreSettings(root), DEFAULT_MEMORY_EXPLORE_SETTINGS);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("cursor defaults use handoffFork reclaim; digests on; model pin off", () => {
   assert.equal(DEFAULT_HOST_FLAGS.historyReclaim, "handoffFork");
   assert.equal(DEFAULT_HOST_FLAGS.resultDigest, true);
@@ -26,6 +37,7 @@ test("cursor defaults use handoffFork reclaim; digests on; model pin off", () =>
   assert.equal(DEFAULT_HOST_FLAGS.autoSummarize, false);
   assert.equal(DEFAULT_HOST_FLAGS.autoCompact, false);
   assert.equal(DEFAULT_HOST_FLAGS.pinnedModel, false);
+  assert.equal(DEFAULT_HOST_FLAGS.defaultMaxBytes, true);
 });
 
 test("claude defaults use autocompact reclaim", () => {

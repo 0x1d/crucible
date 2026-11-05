@@ -47,6 +47,12 @@ export const STRUCTURED_LIST_INPUT_TOKEN_BUDGET = 16_500;
  */
 export const FIND_SEARCH_SLIM_INPUT_TOKEN_BUDGET = 28_000;
 
+/**
+ * One `explore` profile `status` replaces memory+git+log probe chains.
+ * Calibrate with `agent-sdk eval --dir hosts/cursor context-size/explore-status`.
+ */
+export const EXPLORE_STATUS_INPUT_TOKEN_BUDGET = 32_000;
+
 const NAMED_READ_PROMPT =
   "read  docs/internal/plans/2026-11-03-cursor-host-context.md";
 
@@ -236,6 +242,19 @@ function findCollapsedArray(
   return undefined;
 }
 
+function isCompactExploreStatus(value: unknown): boolean {
+  const parsed = parseToolJson(value);
+  if (parsed === null || typeof parsed !== "object") return false;
+  const record = parsed as Record<string, unknown>;
+  if (record.ok !== true && record.function !== "explore") return false;
+  const result = (record.result ?? record) as Record<string, unknown>;
+  if (result.profile !== "status" && result["profile"] !== "status") return false;
+  const payload = (record.result && typeof record.result === "object") ? record.result as Record<string, unknown> : result;
+  if (typeof payload.summary_md !== "string") return false;
+  const text = JSON.stringify(payload);
+  return text.length <= 8_192;
+}
+
 export default defineEval({
   tags: ["context"],
   description:
@@ -409,6 +428,39 @@ export default defineEval({
         );
         t.check(t.reply, includes(/\d+/));
         t.check(t.reply, includes(/@spec\s+run/i));
+      },
+    },
+    {
+      id: "explore-status",
+      description: "explore profile status stays compact and under 32k input tokens.",
+      async test(t) {
+        const turn = await t.send(
+          [
+            "Call call_function exactly once with this JSON:",
+            '{"name":"explore","args":{"profile":"status","limit":8}}.',
+            "Reply with the git branch from summary_md and the memory entity count if present.",
+            "Do not call any other tool.",
+          ].join(" "),
+        );
+        const inputTokens = recordUsage(t, turn.events, turn.toolCalls);
+        t.succeeded();
+        t.notCalledTool("find_function");
+        t.calledTool("call_function", {
+          input: { name: "explore", args: { profile: "status" } },
+          count: 1,
+          output: (value) => isCompactExploreStatus(value),
+        });
+        t.maxToolCalls(1);
+        t.check(
+          inputTokens,
+          satisfies(
+            (value) =>
+              typeof value === "number" &&
+              value >= 0 &&
+              value <= EXPLORE_STATUS_INPUT_TOKEN_BUDGET,
+            `input tokens <= ${EXPLORE_STATUS_INPUT_TOKEN_BUDGET}`,
+          ),
+        );
       },
     },
   ],

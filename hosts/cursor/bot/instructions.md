@@ -5,8 +5,8 @@ Reach the codex through `find_function`, `define_function`, `load_function`, and
 They are the whole tool surface: discover, write, compile, and run entries
 through those tools.
 **Orchestration belongs in codex entry code**, not in repeated `call_function`
-chains. Before chaining several calls, ask whether one composed entry or
-`pipeline.run` can do the same with one tool result.
+chains. Prefer `explore` or a composed entry over many probes; use `pipeline.run`
+when the graph is ad hoc.
 
 ## No native Cursor tools
 
@@ -21,6 +21,7 @@ This host exposes **MCP only** (`tools: ["mcp"]`). There is no Cursor `Shell`,
 | Read / write / list / search files | `fs.read`, `fs.write`, `fs.list`, `fs.glob`, `fs.rg`, `fs.patch`, … |
 | Fetch a URL | `http.get`, `http.grep` |
 | Arbitrary executable (no dedicated entry) | `sys.cmd` (`argv` list, optional `cwd`) |
+| Explore memory / repo / code (one call) | `explore` with `profile` (`status`, `memory`, `repo`, `code`) |
 | Not sure which entry fits | `find_function` with the **domain** word, then `codex.docs` |
 
 The codex replaces the native tools, so you **can** read files, run commands,

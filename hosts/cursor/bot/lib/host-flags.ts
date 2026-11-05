@@ -115,7 +115,7 @@ export function defaultHostFlags(host: HostId = "cursor"): HostFlags {
   const historyReclaim: HistoryReclaimMode = host === "claude" ? "autocompact" : "handoffFork";
   return {
     resultDigest: true,
-    defaultMaxBytes: false,
+    defaultMaxBytes: true,
     pinnedModel: false,
     toolResultLog: false,
     historyReclaim,
@@ -131,14 +131,29 @@ export type SessionModelPicker = {
   effort?: string;
 };
 
-type HostConfigFile = HostFlags & {
-  sessionModel?: SessionModelPicker;
-  /** Context budget in tokens: footer window, handoff fork threshold, Claude autoCompactWindow. */
-  maxContextTokens?: number;
-};
+type HostConfigFile = HostFlags &
+  Partial<MemoryExploreSettings> & {
+    sessionModel?: SessionModelPicker;
+    /** Context budget in tokens: footer window, handoff fork threshold, Claude autoCompactWindow. */
+    maxContextTokens?: number;
+  };
 
 /** Used when host-flags.json has no `maxContextTokens`. */
 export const DEFAULT_MAX_CONTEXT_TOKENS = 200_000;
+
+export type MemoryExploreSettings = {
+  memoryAutoRetain: boolean;
+  memoryRetainEveryTurns: number;
+  memoryRecallBeforeExplore: boolean;
+  requireExploreBeforeProbe: boolean;
+};
+
+export const DEFAULT_MEMORY_EXPLORE_SETTINGS: MemoryExploreSettings = {
+  memoryAutoRetain: false,
+  memoryRetainEveryTurns: 0,
+  memoryRecallBeforeExplore: true,
+  requireExploreBeforeProbe: false,
+};
 
 function isTokenCount(value: unknown): value is number {
   return typeof value === "number" && Number.isInteger(value) && value > 0;
@@ -209,6 +224,18 @@ function mergeConfigFile(raw: unknown, host: HostId = "cursor"): HostConfigFile 
     }
   }
   if (isTokenCount(record.maxContextTokens)) base.maxContextTokens = record.maxContextTokens;
+
+  if (typeof record.memoryAutoRetain === "boolean") base.memoryAutoRetain = record.memoryAutoRetain;
+  if (typeof record.memoryRecallBeforeExplore === "boolean") {
+    base.memoryRecallBeforeExplore = record.memoryRecallBeforeExplore;
+  }
+  if (typeof record.requireExploreBeforeProbe === "boolean") {
+    base.requireExploreBeforeProbe = record.requireExploreBeforeProbe;
+  }
+  if (typeof record.memoryRetainEveryTurns === "number" && record.memoryRetainEveryTurns >= 0) {
+    base.memoryRetainEveryTurns = Math.floor(record.memoryRetainEveryTurns);
+  }
+
   return base;
 }
 
@@ -253,6 +280,23 @@ export function saveSessionModel(
 const MAX_CONTEXT_ENV = "ALCHEMIST_HOST_FLAG_MAX_CONTEXT_TOKENS";
 
 /** Stored context budget, overridden by ALCHEMIST_HOST_FLAG_MAX_CONTEXT_TOKENS. */
+export function loadMemoryExploreSettings(
+  stateRoot = defaultStateRoot(),
+  host: HostId = "cursor",
+): MemoryExploreSettings {
+  const file = readConfigFile(stateRoot, host);
+  return {
+    ...DEFAULT_MEMORY_EXPLORE_SETTINGS,
+    memoryAutoRetain: file.memoryAutoRetain ?? DEFAULT_MEMORY_EXPLORE_SETTINGS.memoryAutoRetain,
+    memoryRetainEveryTurns:
+      file.memoryRetainEveryTurns ?? DEFAULT_MEMORY_EXPLORE_SETTINGS.memoryRetainEveryTurns,
+    memoryRecallBeforeExplore:
+      file.memoryRecallBeforeExplore ?? DEFAULT_MEMORY_EXPLORE_SETTINGS.memoryRecallBeforeExplore,
+    requireExploreBeforeProbe:
+      file.requireExploreBeforeProbe ?? DEFAULT_MEMORY_EXPLORE_SETTINGS.requireExploreBeforeProbe,
+  };
+}
+
 export function loadMaxContextTokens(
   stateRoot = defaultStateRoot(),
   host: HostId = "cursor",

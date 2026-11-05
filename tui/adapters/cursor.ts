@@ -7,9 +7,11 @@ import {
   hostFlagEnvKey,
   loadHostFlags,
   loadMaxContextTokens,
+  loadMemoryExploreSettings,
   loadSessionModel,
   saveSessionModel,
 } from "../../hosts/cursor/bot/lib/host-flags.ts";
+import { prependMemoryRecallBeforeExplore } from "../../hosts/cursor/bot/lib/memory-recall-before-explore.ts";
 import { applySessionModelEnv } from "../../hosts/cursor/bot/lib/agent-model.ts";
 import { nextTurnMessage } from "./claude.ts";
 import {
@@ -680,9 +682,11 @@ export class CursorAdapter implements HostAdapter {
     });
     try {
       if (!options.alreadySubmitted) {
+        const recallSettings = loadMemoryExploreSettings(stateRoot, "cursor");
+        const outbound = await prependMemoryRecallBeforeExplore(prompt, recallSettings);
         const started = this.sessionId
-          ? await this.followUp(handle.url, prompt)
-          : await this.create(handle.url, prompt);
+          ? await this.followUp(handle.url, outbound)
+          : await this.create(handle.url, outbound);
         if (!started.ok) {
           if (!signal.aborted) yield { type: "error", message: started.message };
           return;

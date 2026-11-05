@@ -1,37 +1,13 @@
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
-
-import type { ToolExecuteResult } from "@grok/agent-sdk";
 import { defineTool } from "@grok/agent-sdk/tools";
 import * as z from "zod/v4";
+import { capToolResult } from "../lib/cap-tool-result.ts";
 import { runCodexTool } from "../lib/codex-tool";
-import { DEFAULT_READ_HTTP_MAX_BYTES, resolveHostFlags } from "../lib/host-flags.ts";
-import { presentResult } from "../lib/result-digest";
-import { logToolResultSize } from "../lib/tool-result-log.ts";
-
-type CallContext = {
-  toolCallId?: string;
-  workspaceDir: string;
-};
-
-async function capResult(
-  result: ToolExecuteResult,
-  ctx: CallContext,
-  slug: string,
-): Promise<ToolExecuteResult> {
-  const flags = resolveHostFlags();
-  logToolResultSize(slug, result, flags.toolResultLog);
-  if (!flags.resultDigest) return result;
-  const id =
-    (ctx.toolCallId ?? "result").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 48) ||
-    "result";
-  const saved = path.join(ctx.workspaceDir, "artifacts", id + ".json");
-  const presented = presentResult(result, saved);
-  if (!presented.replace) return result;
-  await mkdir(path.dirname(saved), { recursive: true });
-  await writeFile(saved, presented.text);
-  return presented.value;
-}
+import { exploreGateBlocked } from "../lib/explore-gate.ts";
+import {
+  DEFAULT_READ_HTTP_MAX_BYTES,
+  loadMemoryExploreSettings,
+  resolveHostFlags,
+} from "../lib/host-flags.ts";
 
 export default defineTool({
   description:
@@ -45,6 +21,14 @@ export default defineTool({
       .describe("JSON object passed to run/1"),
   }),
   async execute({ name, args }, ctx) {
+    const exploreSettings = loadMemoryExploreSettings();
+    const blocked = exploreGateBlocked(
+      name,
+      ctx.workspaceDir,
+      exploreSettings.requireExploreBeforeProbe,
+    );
+    if (blocked) return blocked;
+
     let callArgs = args ?? {};
     const flags = resolveHostFlags();
     if (
@@ -55,6 +39,6 @@ export default defineTool({
       callArgs = { ...callArgs, max_bytes: DEFAULT_READ_HTTP_MAX_BYTES };
     }
     const result = await runCodexTool({ op: "call", name, args: callArgs });
-    return capResult(result, ctx, name);
+    return capToolResult(result, ctx, name);
   },
 });

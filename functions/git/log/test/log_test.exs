@@ -11,8 +11,20 @@ defmodule AgentFn.Git.LogTest do
     %{dir: dir}
   end
 
+  describe "argv/1" do
+    test "omits numstat and uses limit 8 by default" do
+      argv = Log.argv(%{}, "HEAD", 8, [])
+      refute "--numstat" in argv
+      assert ["log", "-n", "8" | _] = argv
+    end
+
+    test "includes numstat when requested" do
+      assert "--numstat" in Log.argv(%{"numstat" => true}, "HEAD", 8, [])
+    end
+  end
+
   describe "run/1" do
-    test "returns commits newest first with numstat", %{dir: dir} do
+    test "returns commits newest first with numstat when enabled", %{dir: dir} do
       write!(dir, "a.txt", "1\n2\n")
       commit_all!(dir, "feat: add a")
       write!(dir, "a.txt", "1\n")
@@ -20,7 +32,7 @@ defmodule AgentFn.Git.LogTest do
       commit_all!(dir, "fix(a): trim a")
 
       assert {:ok, %{"commits" => [second, first], "count" => 2, "branch" => "main"}} =
-               Log.run(%{"cwd" => dir})
+               Log.run(%{"cwd" => dir, "numstat" => true})
 
       assert first["subject"] == "feat: add a"
       assert first["author"] == "Test"

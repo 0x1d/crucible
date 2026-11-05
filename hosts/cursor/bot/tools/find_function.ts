@@ -1,5 +1,6 @@
 import { defineTool } from "@grok/agent-sdk/tools";
 import * as z from "zod/v4";
+import { capToolResult } from "../lib/cap-tool-result.ts";
 import { runCodexTool } from "../lib/codex-tool";
 
 export default defineTool({
@@ -25,12 +26,13 @@ export default defineTool({
         "When true, describe one entry: query must be the exact slug (moduledoc + specs). Not valid with substring search.",
       ),
   }),
-  async execute({ query, limit, detail }) {
-    return runCodexTool({
+  async execute({ query, limit, detail }, ctx) {
+    const result = await runCodexTool({
       op: "find",
       query,
       ...(limit !== undefined ? { limit } : {}),
       ...(detail !== undefined ? { detail } : {}),
     });
+    return capToolResult(result, ctx, "find_function");
   },
 });

@@ -1,5 +1,6 @@
 import { defineTool } from "@grok/agent-sdk/tools";
 import * as z from "zod/v4";
+import { capToolResult } from "../lib/cap-tool-result.ts";
 import { runCodexTool } from "../lib/codex-tool";
 
 export default defineTool({
@@ -8,7 +9,8 @@ export default defineTool({
   inputSchema: z.object({
     name: z.string().describe("Function slug to load"),
   }),
-  async execute({ name }) {
-    return runCodexTool({ op: "load", name });
+  async execute({ name }, ctx) {
+    const result = await runCodexTool({ op: "load", name });
+    return capToolResult(result, ctx, "load_function");
   },
 });
