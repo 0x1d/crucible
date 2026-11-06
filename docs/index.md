@@ -61,6 +61,7 @@ subsystems.
 | [Codex protocol](./reference/protocol.md) | Host integrators and contributors | Request and response contracts for all four operations. |
 | [Host adapters](./reference/hosts.md) | Host integrators | Mapping environments to the codex protocol. |
 | [Claude host README](../hosts/claude/README.md) | Host integrators | Running and evaluating the Claude Agent SDK example host. |
+| [ACP host README](../hosts/acp/README.md) | Host integrators | Running external Agent Client Protocol agents as Alchemist hosts. |
 | [Security boundary](./reference/security.md) | Operators and security reviewers | Current trust model and arbitrary-code risks. |
 | [Runtime notes](../runtime/README.md) | Runtime contributors | Working on the `:runtime` application and its Mix project. |
 | [Repository-agent rules](../AGENTS.md) | Coding agents contributing to the repository | Applying repository commands, layout rules, and contribution constraints. |

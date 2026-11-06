@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 /** Host that owns a `.agent-serve/host-flags.json` state root. */
-export type HostId = "cursor" | "claude";
+export type HostId = "cursor" | "claude" | "acp";
 
 /**
  * Exclusive history-reclaim mechanism.
@@ -72,6 +72,7 @@ const hostsRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..
 
 export function reclaimModesForHost(host: HostId): HistoryReclaimMode[] {
   if (host === "claude") return ["autocompact", "handoffFork", "off"];
+  if (host === "acp") return ["handoffFork", "off"];
   return ["summarize", "handoffFork", "off"];
 }
 

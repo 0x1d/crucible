@@ -76,6 +76,13 @@ No single vendor SDK bills across Cursor, OpenCode, and Anthropic. Unify at the
 - **Chat and evals:** `npm run chat:claude` and `npm run eval:claude`. See the [host README](../../hosts/claude/README.md).
 - **Terminal UI:** `npm run tui` runs this host in the terminal UI under `tui/`. See [Terminal UI](../guides/tui.md).
 
+## Agent Client Protocol (this repository)
+
+- **Package:** `@agentclientprotocol/sdk`. Alchemist is the ACP client, and the selected CLI process is the ACP agent.
+- **Adapter:** `hosts/acp/connection.ts` owns the subprocess and connection, and `tui/adapters/acp.ts` maps session updates to TUI events.
+- **Codex:** `hosts/shared/alchemist-mcp-tools.ts` serves the codex tools to the agent through MCP-over-ACP.
+- **Terminal UI:** ACP agents appear in the TUI host dialog. The `serve` channel does not route to them. See the [host README](../../hosts/acp/README.md).
+
 ## Anthropic Messages API (direct)
 
 - **API:** Messages API with tool definitions.

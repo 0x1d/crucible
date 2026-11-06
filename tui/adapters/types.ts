@@ -38,6 +38,8 @@ export interface HostAdapter {
   readonly sessionId: string | undefined;
   readonly model: string | undefined;
   readonly effort: string | undefined;
+  /** A limitation of this host to show after a session opens. */
+  readonly notice?: string;
   listSessions(): Promise<SessionSummary[]>;
   /** Opens a session and returns its replayed events. `undefined` starts a new session. */
   openSession(id: string | undefined): Promise<HostEvent[]>;

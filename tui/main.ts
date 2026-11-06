@@ -22,17 +22,26 @@ import {
   matchesKey,
 } from "@earendil-works/pi-tui";
 import { repoRoot } from "../core/elixir-bridge.ts";
+import type { RequestPermissionOutcome, RequestPermissionRequest } from "@agentclientprotocol/sdk/unstable";
+import { AcpClientAdapter } from "./adapters/acp.ts";
 import { ClaudeAdapter } from "./adapters/claude.ts";
 import { CursorAdapter } from "./adapters/cursor.ts";
 import type { HostAdapter } from "./adapters/types.ts";
 import { ChangeTracker } from "./changes.ts";
 import { COMMANDS, parseCommand } from "./commands.ts";
-import { applyHostFlagsCommand, defaultStateRoot, loadMemoryExploreSettings } from "./host-flags.ts";
+import { applyHostFlagsCommand, asHostId, defaultStateRoot, loadMemoryExploreSettings } from "./host-flags.ts";
 import { shouldAutoRetain } from "./auto-memory-retain.ts";
 import { rememberPrompt } from "./remember.ts";
 import { SessionStats } from "./stats.ts";
 import { type Theme, resolveTheme } from "./theme.ts";
 import { FollowUpQueue, buildQueuedMessage } from "./follow-up-queue.ts";
+import {
+  loadAcpHosts,
+  parseHostPickerValue,
+  probedAgentSelectItems,
+  sdkHostValue,
+  unavailableReason,
+} from "./acp-host-picker.ts";
 import { Transcript, followUpQueueLines, footerLine } from "./view.ts";
 
 const HOSTS: Record<string, { description: string; create: () => HostAdapter }> = {
@@ -97,9 +106,16 @@ function errorText(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-/** Shows a select list as an overlay. Resolves with the selected value, or undefined on Esc. */
-function pick(title: string, items: SelectItem[]): Promise<string | undefined> {
+/**
+ * Shows a select list as an overlay. Resolves with the selected value, or undefined on Esc
+ * or when `signal` aborts.
+ */
+function pick(title: string, items: SelectItem[], signal?: AbortSignal): Promise<string | undefined> {
   return new Promise((resolve) => {
+    if (signal?.aborted) {
+      resolve(undefined);
+      return;
+    }
     const box = new Box(2, 1, theme.bg.surface);
     const list = new SelectList(items, 12, theme.selectList);
     box.addChild(new Text(theme.bold(theme.fg.accent(title)), 0, 0));
@@ -110,13 +126,16 @@ function pick(title: string, items: SelectItem[]): Promise<string | undefined> {
     const handle = tui.showOverlay(box, { width: "60%", minWidth: 50, maxHeight: "80%", anchor: "center" });
     tui.setFocus(list);
     const done = (value: string | undefined) => {
+      signal?.removeEventListener("abort", cancel);
       handle.hide();
       tui.setFocus(editor);
       render();
       resolve(value);
     };
+    const cancel = () => done(undefined);
+    signal?.addEventListener("abort", cancel, { once: true });
     list.onSelect = (item) => done(item.value);
-    list.onCancel = () => done(undefined);
+    list.onCancel = cancel;
     tui.requestRender();
   });
 }
@@ -134,6 +153,19 @@ async function withStatus<T>(message: string, work: () => Promise<T>): Promise<T
   }
 }
 
+/** Asks the user to answer an ACP agent's permission request. */
+async function pickPermission(
+  request: RequestPermissionRequest,
+  signal: AbortSignal,
+): Promise<RequestPermissionOutcome> {
+  const optionId = await pick(
+    `Allow: ${request.toolCall.title ?? "tool call"}`,
+    request.options.map((o) => ({ value: o.optionId, label: o.name, description: o.kind })),
+    signal,
+  );
+  return optionId === undefined ? { outcome: "cancelled" } : { outcome: "selected", optionId };
+}
+
 async function openSession(id: string | undefined): Promise<void> {
   if (!adapter) return;
   clearFollowUpQueue("Cleared queued messages for the new session.");
@@ -143,6 +175,7 @@ async function openSession(id: string | undefined): Promise<void> {
   for (const event of events) transcript.apply(event);
   transcript.endTurn();
   transcript.info(id ? `Session ${id} on ${host.name}.` : `New session on ${host.name}.`);
+  if (host.notice) transcript.info(host.notice);
   stats = id ? SessionStats.fromReplay(events) : new SessionStats();
   completedTurns = id
     ? events.filter((e) => e.type === "done").length
@@ -177,20 +210,56 @@ async function selectSession(): Promise<void> {
 }
 
 async function selectHost(): Promise<boolean> {
-  const items = Object.entries(HOSTS).map(([value, h]) => ({
-    value,
-    label: value,
-    description: h.description,
+  const sdkItems = Object.entries(HOSTS).map(([name, h]) => ({
+    value: sdkHostValue(name),
+    label: name,
+    description: `SDK · ${h.description}`,
   }));
-  const name = await pick("Host", items);
-  if (name === undefined) return false;
-  if (adapter?.name !== name) {
+  let acpAgents: Awaited<ReturnType<typeof loadAcpHosts>> = [];
+  try {
+    acpAgents = await withStatus("Probing ACP agents…", () => loadAcpHosts(repoRoot, repoRoot));
+  } catch (error) {
+    transcript.error(`ACP discovery failed: ${errorText(error)}`);
+  }
+  const picked = await pick("Host", [...sdkItems, ...probedAgentSelectItems(acpAgents)]);
+  if (picked === undefined) return false;
+
+  const hostChoice = parseHostPickerValue(picked);
+  if (!hostChoice) {
+    transcript.error(`Unknown host selection: ${picked}`);
+    render();
+    return false;
+  }
+
+  let adapterName: string;
+  let createAdapter: () => HostAdapter;
+  if (hostChoice.kind === "acp") {
+    const agent = acpAgents.find((a) => a.id === hostChoice.id);
+    const unavailable = agent ? unavailableReason(agent) : "not found";
+    if (!agent || unavailable) {
+      transcript.error(`ACP agent "${hostChoice.id}" is unavailable: ${unavailable}`);
+      render();
+      return selectHost();
+    }
+    adapterName = `acp:${agent.id}`;
+    createAdapter = () => new AcpClientAdapter(agent, { requestPermission: pickPermission });
+  } else {
+    const name = hostChoice.name;
+    if (!(name in HOSTS)) {
+      transcript.error(`Unknown SDK host: ${name}`);
+      render();
+      return false;
+    }
+    adapterName = name;
+    createAdapter = HOSTS[name].create;
+  }
+  if (adapter?.name !== adapterName) {
     await adapter?.close();
-    adapter = HOSTS[name].create();
+    adapter = createAdapter();
     stats = new SessionStats();
     transcript.reset();
     clearFollowUpQueue("Cleared queued messages for the new host.");
-    // Each adapter restores its saved model from its own host-flags.json.
+    // Each SDK adapter restores its saved model from its own host-flags.json.
   }
   await selectSession();
   return true;
@@ -223,6 +292,11 @@ async function selectModel(): Promise<void> {
   if (!adapter) return;
   const host = adapter;
   const models = await withStatus("Loading models…", () => host.listModels());
+  if (models.length === 0) {
+    transcript.info(`${host.name} does not report any models.`);
+    render();
+    return;
+  }
   const model = await pick(
     "Model",
     models.map((m) => ({ value: m.id, label: m.label, description: m.id })),
@@ -242,6 +316,11 @@ async function selectEffort(level: string): Promise<void> {
   const efforts =
     models.find((m) => m.id === host.model)?.efforts ??
     [...new Set(models.flatMap((m) => m.efforts))];
+  if (efforts.length === 0) {
+    transcript.info(`${host.name} does not report any effort levels.`);
+    render();
+    return;
+  }
   const effort =
     level || (await pick("Effort", efforts.map((e) => ({ value: e, label: e }))));
   if (!effort) return;
@@ -338,7 +417,7 @@ async function runTurn(prompt: string, shown: string): Promise<void> {
     stats.lastTurnMs = Date.now() - started;
     if (!turn.signal.aborted) {
       completedTurns += 1;
-      const hostId = host.name === "claude" ? "claude" : "cursor";
+      const hostId = asHostId(host.name);
       const retain = loadMemoryExploreSettings(defaultStateRoot(hostId), hostId);
       if (shouldAutoRetain(completedTurns, retain)) {
         followUpQueue.enqueue(queuedMessage("/remember"));

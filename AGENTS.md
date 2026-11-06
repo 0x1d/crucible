@@ -63,6 +63,8 @@ Do not hand-author that HTML or copy a full rendered PR comment into a commit.
 - `hosts/cursor/evals/` is filesystem evals (`evals.config.ts` required).
   Not `bot/evals/`. That path is ignored.
 - `hosts/claude/` is the Claude Agent SDK example host. `npm run eval:claude` runs its evals.
+- `hosts/acp/` is the ACP client host. External agents run as subprocesses. `npm run eval:acp` runs its eval.
+- `hosts/shared/` is codex tool code shared by the Claude and ACP hosts.
 - `tui/` is the terminal UI. It imports the hosts. No file under `hosts/` or `core/` imports it.
 
 ## Documentation
@@ -81,7 +83,8 @@ Name the long-lived process, its supervision tree, and its state files.
   evidence seeding, and side-effect gates.
 - Add npm deps on a first cut. Stick to what `@grok/agent-sdk` and
   `@anthropic-ai/claude-agent-sdk` already ship.
-  `@earendil-works/pi-tui` is the one exception. Only `tui/` imports it.
+  `@earendil-works/pi-tui` is an exception. Only `tui/` imports it.
+  `@agentclientprotocol/sdk` (pinned) and `@modelcontextprotocol/server` are exceptions for the ACP host.
 - Point `serve` at a parent folder during bring-up. It mounts every sibling.
 
 ## Full codebase review (Elixir)

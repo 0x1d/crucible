@@ -14,6 +14,8 @@ It imports the hosts, and no host imports it.
 It uses `@earendil-works/pi-tui` for rendering.
 
 The host registry holds the Claude Agent SDK host and the Cursor Agent SDK host.
+The host dialog also lists external agents from the [ACP host](../../hosts/acp/README.md), each with its probe result.
+Selecting an ACP agent starts it as a subprocess, and its permission requests open a dialog.
 
 ## Start the TUI
 

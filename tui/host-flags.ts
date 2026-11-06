@@ -36,7 +36,9 @@ export {
   DEFAULT_MEMORY_EXPLORE_SETTINGS,
 };
 
-function asHostId(host: string | undefined): HostId {
+/** Maps an adapter name to its host. ACP adapters are named `acp:<agent id>`. */
+export function asHostId(host: string | undefined): HostId {
+  if (host?.startsWith("acp:") || host === "acp") return "acp";
   return host === "claude" ? "claude" : "cursor";
 }
 
@@ -157,7 +159,9 @@ export function applyHostFlagsCommand(
     if (isReclaimFlagId(id)) {
       if (!reclaimFlagLabel(id, hostId)) {
         const hint =
-          id === "autoCompact"
+          hostId === "acp"
+            ? `${id} is not available on ACP hosts. Use /flags reclaim handoffFork or off.`
+            : id === "autoCompact"
             ? "autoCompact is Claude-only; on Cursor use autoSummarize / reclaim summarize"
             : "autoSummarize is Cursor-only; on Claude use autoCompact / reclaim autocompact";
         return { message: hint, config };
