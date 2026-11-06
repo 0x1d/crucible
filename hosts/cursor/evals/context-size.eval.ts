@@ -38,6 +38,21 @@ export const DOCKER_REPORT_INPUT_TOKEN_BUDGET = 16_500;
  */
 export const STRUCTURED_LIST_INPUT_TOKEN_BUDGET = 16_500;
 
+/**
+ * One `find_function` search for `memory` (default limit 12, no `detail`).
+ * Slim hits include name, summary, and run/1 @spec only.
+ * A `detail: true` describe of the same slug measured much larger on prior
+ * find-inflation work; this budget keeps discovery under the named-read ceiling.
+ * Calibrate with `agent-sdk eval --dir hosts/cursor context-size/find-search-slim`.
+ */
+export const FIND_SEARCH_SLIM_INPUT_TOKEN_BUDGET = 28_000;
+
+/**
+ * One `explore` profile `status` replaces memory+git+log probe chains.
+ * Calibrate with `agent-sdk eval --dir hosts/cursor context-size/explore-status`.
+ */
+export const EXPLORE_STATUS_INPUT_TOKEN_BUDGET = 32_000;
+
 const NAMED_READ_PROMPT =
   "read  docs/internal/plans/2026-11-03-cursor-host-context.md";
 
@@ -90,6 +105,43 @@ function recordUsage(
  * and one array node whose sample is shorter than the array.
  * An inlined listing is about `bytes` long and has no such node.
  */
+function parseToolJson(value: unknown): unknown {
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return undefined;
+    }
+  }
+  return value;
+}
+
+/**
+ * Slim find search: `detail: false`, no per-hit moduledoc, optional run/1 specs.
+ */
+function isSlimFindSearch(value: unknown): boolean {
+  const parsed = parseToolJson(value);
+  if (parsed === null || typeof parsed !== "object") return false;
+  const record = parsed as Record<string, unknown>;
+  if (record.ok !== true || record.detail !== false) return false;
+  if (!Array.isArray(record.functions) || record.functions.length === 0) return false;
+
+  let hasRunSpec = false;
+  for (const item of record.functions) {
+    if (item === null || typeof item !== "object") return false;
+    const hit = item as Record<string, unknown>;
+    if (typeof hit.name !== "string" || typeof hit.summary !== "string") return false;
+    if ("moduledoc" in hit) return false;
+    if (hit.specs === undefined) continue;
+    if (!Array.isArray(hit.specs)) return false;
+    for (const spec of hit.specs) {
+      if (typeof spec !== "string" || !/^@spec\s+run\s*\(/.test(spec)) return false;
+      hasRunSpec = true;
+    }
+  }
+  return hasRunSpec;
+}
+
 function isListingDigest(value: unknown): boolean {
   const text = typeof value === "string" ? value : JSON.stringify(value);
   let parsed: unknown = value;
@@ -190,10 +242,23 @@ function findCollapsedArray(
   return undefined;
 }
 
+function isCompactExploreStatus(value: unknown): boolean {
+  const parsed = parseToolJson(value);
+  if (parsed === null || typeof parsed !== "object") return false;
+  const record = parsed as Record<string, unknown>;
+  if (record.ok !== true && record.function !== "explore") return false;
+  const result = (record.result ?? record) as Record<string, unknown>;
+  if (result.profile !== "status" && result["profile"] !== "status") return false;
+  const payload = (record.result && typeof record.result === "object") ? record.result as Record<string, unknown> : result;
+  if (typeof payload.summary_md !== "string") return false;
+  const text = JSON.stringify(payload);
+  return text.length <= 8_192;
+}
+
 export default defineEval({
   tags: ["context"],
   description:
-    "Named reads, large reads, and a structured listing stay within their input-token budgets.",
+    "Named reads, large reads, structured listings, and slim find search stay within their input-token budgets.",
   timeoutMs: 180_000,
   cases: [
     {
@@ -326,6 +391,76 @@ export default defineEval({
           ),
         );
         t.check(t.reply, includes(/\d+/));
+      },
+    },
+    {
+      id: "find-search-slim",
+      description:
+        "find_function search returns slim hits with run/1 @spec and stays under 28k input tokens.",
+      async test(t) {
+        const turn = await t.send(
+          [
+            "Call find_function exactly once with this JSON:",
+            '{"query":"memory"}.',
+            "Do not set detail to true.",
+            "Then reply with the hit count and the memory.overview run/1 @spec line if it appears.",
+            "Do not call any other tool.",
+          ].join(" "),
+        );
+        const inputTokens = recordUsage(t, turn.events, turn.toolCalls);
+        t.succeeded();
+        t.notCalledTool("call_function");
+        t.calledTool("find_function", {
+          input: { query: "memory" },
+          count: 1,
+          output: (value) => isSlimFindSearch(value),
+        });
+        t.maxToolCalls(1);
+        t.check(
+          inputTokens,
+          satisfies(
+            (value) =>
+              typeof value === "number" &&
+              value >= 0 &&
+              value <= FIND_SEARCH_SLIM_INPUT_TOKEN_BUDGET,
+            `input tokens <= ${FIND_SEARCH_SLIM_INPUT_TOKEN_BUDGET}`,
+          ),
+        );
+        t.check(t.reply, includes(/\d+/));
+        t.check(t.reply, includes(/@spec\s+run/i));
+      },
+    },
+    {
+      id: "explore-status",
+      description: "explore profile status stays compact and under 32k input tokens.",
+      async test(t) {
+        const turn = await t.send(
+          [
+            "Call call_function exactly once with this JSON:",
+            '{"name":"explore","args":{"profile":"status","limit":8}}.',
+            "Reply with the git branch from summary_md and the memory entity count if present.",
+            "Do not call any other tool.",
+          ].join(" "),
+        );
+        const inputTokens = recordUsage(t, turn.events, turn.toolCalls);
+        t.succeeded();
+        t.notCalledTool("find_function");
+        t.calledTool("call_function", {
+          input: { name: "explore", args: { profile: "status" } },
+          count: 1,
+          output: (value) => isCompactExploreStatus(value),
+        });
+        t.maxToolCalls(1);
+        t.check(
+          inputTokens,
+          satisfies(
+            (value) =>
+              typeof value === "number" &&
+              value >= 0 &&
+              value <= EXPLORE_STATUS_INPUT_TOKEN_BUDGET,
+            `input tokens <= ${EXPLORE_STATUS_INPUT_TOKEN_BUDGET}`,
+          ),
+        );
       },
     },
   ],

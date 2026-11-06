@@ -9,8 +9,12 @@ defmodule AgentFn.Codex.Docs do
   - `title` — document title (default "Codex entries")
   """
   @behaviour AgentFn.Tool
+  @type args :: %{
+    optional(:query) => String.t(),
+    optional(:title) => String.t()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     query = Map.get(args, "query") || Map.get(args, :query)
     title = Map.get(args, "title") || Map.get(args, :title) || "Codex entries"

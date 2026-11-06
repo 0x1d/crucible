@@ -13,8 +13,16 @@ defmodule AgentFn.Http.Grep do
   @behaviour AgentFn.Tool
 
   alias AgentFn.Http.Get
+  @type args :: %{
+    optional(:context) => non_neg_integer(),
+    optional(:ignore_case) => boolean(),
+    optional(:max_matches) => non_neg_integer(),
+    required(:pattern) => String.t(),
+    optional(:range) => String.t(),
+    required(:url) => String.t()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     url = args["url"]
     ctx = args["context"] || 0

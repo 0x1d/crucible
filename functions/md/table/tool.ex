@@ -12,8 +12,13 @@ defmodule AgentFn.Md.Table do
   - `columns` — ordered column names (defaults to sorted union of keys)
   """
   @behaviour AgentFn.Tool
+  @type args :: %{
+    optional(:columns) => [String.t()],
+    optional(:data) => [map()],
+    optional(:key) => String.t()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     data = unwrap_data(args)
     key = Map.get(args, "key") || Map.get(args, :key)

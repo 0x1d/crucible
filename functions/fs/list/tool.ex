@@ -11,8 +11,11 @@ defmodule AgentFn.Fs.List do
   value exposed by `File.stat/1`.
   """
   @behaviour AgentFn.Tool
+  @type args :: %{
+    required(:path) => String.t()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     path = Map.get(args, "path") || Map.get(args, :path)
 

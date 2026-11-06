@@ -18,8 +18,16 @@ defmodule AgentFn.Codex.CommitUncommitted do
 
   alias AgentFn.Codex.UncommittedReport
   alias Runtime.Codex
+  @type args :: %{
+    optional(:dry_run) => boolean(),
+    optional(:functions_rel) => String.t(),
+    optional(:journal) => String.t(),
+    optional(:load_missing) => boolean(),
+    optional(:repo) => String.t(),
+    optional(:slugs) => [String.t()]
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     dry_run? = truthy?(fetch(args, "dry_run"), true)
     only = normalize_slugs(fetch(args, "slugs"))

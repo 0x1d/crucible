@@ -8,6 +8,7 @@ defmodule Runtime.MetadataTest do
 
     assert is_binary(meta["moduledoc"])
     assert String.contains?(meta["moduledoc"], "echoed")
-    assert Enum.any?(meta["specs"], &String.contains?(&1, "run"))
+    assert Enum.any?(meta["specs"], &String.starts_with?(&1, "@type args ::"))
+    assert Enum.any?(meta["specs"], &String.match?(&1, ~r/^@spec\s+run\(/))
   end
 end

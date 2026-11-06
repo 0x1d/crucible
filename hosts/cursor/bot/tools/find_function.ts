@@ -1,10 +1,11 @@
 import { defineTool } from "@grok/agent-sdk/tools";
 import * as z from "zod/v4";
-import { runCodexTool } from "../lib/codex-tool";
+import { capToolResult } from "../lib/cap-tool-result.ts";
+import { runCodexTool } from "../lib/codex-tool.ts";
 
 export default defineTool({
   description:
-    "Search codex slugs by substring. Returns name and one-line summary per hit (not full docs). Use a tight query (e.g. memory.overview). Skip when the slug is already known.",
+    "Search codex slugs by substring. Returns name, one-line summary, and run/1 @spec per hit (not full moduledoc). Use a tight query (e.g. memory.overview). Skip when the slug is already known. With detail: true, query must be one exact slug (e.g. fs.read) — never combine detail with discovery search.",
   effect: "read",
   inputSchema: z.object({
     query: z
@@ -21,14 +22,17 @@ export default defineTool({
     detail: z
       .boolean()
       .optional()
-      .describe("When true, return full moduledoc and specs per hit"),
+      .describe(
+        "When true, describe one entry: query must be the exact slug (moduledoc + specs). Not valid with substring search.",
+      ),
   }),
-  async execute({ query, limit, detail }) {
-    return runCodexTool({
+  async execute({ query, limit, detail }, ctx) {
+    const result = await runCodexTool({
       op: "find",
       query,
       ...(limit !== undefined ? { limit } : {}),
       ...(detail !== undefined ? { detail } : {}),
     });
+    return capToolResult(result, ctx, "find_function");
   },
 });

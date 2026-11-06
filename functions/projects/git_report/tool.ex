@@ -7,8 +7,12 @@ defmodule AgentFn.Projects.GitReport do
   - `max_depth` — how deep to search for `.git` (default 2)
   """
   @behaviour AgentFn.Tool
+  @type args :: %{
+    optional(:max_depth) => non_neg_integer(),
+    optional(:root) => String.t()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) do
     root = Map.get(args, "root", "/home/master/src")
     max_depth = Map.get(args, "max_depth", 2)

@@ -9,8 +9,14 @@ defmodule AgentFn.Http.Get do
   - `max_bytes` — optional response body cap (truncates when exceeded)
   """
   @behaviour AgentFn.Tool
+  @type args :: %{
+    optional(:headers) => map(),
+    optional(:max_bytes) => non_neg_integer(),
+    optional(:timeout_ms) => non_neg_integer(),
+    required(:url) => String.t()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     url = Map.get(args, "url") || Map.get(args, :url)
     headers_in = Map.get(args, "headers") || Map.get(args, :headers) || %{}

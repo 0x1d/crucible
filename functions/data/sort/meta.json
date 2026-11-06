@@ -4,9 +4,10 @@
   "module": "Elixir.AgentFn.Data.Sort",
   "moduledoc": "Sort a list of maps by one field.\n\n  Args:\n  - `entries` / `rows` / `items` / `data` — list of maps\n  - `by` or `field` (required)\n  - `order` — `asc` (default) or `desc`",
   "name": "data.sort",
-  "source_sha256": "84d9d39b9e0ef52768cea0d3b5340240bb24e7a6b289a97d261c162658e99b24",
+  "source_sha256": "99cd6f198fc7b54dd2908d71c80f91cd875f663d2dfd118926eaafc02f03e2ec",
   "specs": [
-    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+    "@type args :: %{\n    optional(:by) => String.t(),\n    optional(:data) => [map()],\n    optional(:entries) => [map()],\n    optional(:field) => String.t(),\n    optional(:items) => [map()],\n    optional(:key) => String.t(),\n    optional(:order) => String.t(),\n    optional(:rows) => [map()]\n  }",
+    "@spec run(args()) :: {:ok, map()} | {:error, String.t()}"
   ],
-  "updated_at": "2026-11-02T10:25:52.347908Z"
+  "updated_at": "2026-11-04T21:59:55.804532Z"
 }

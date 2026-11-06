@@ -230,6 +230,7 @@ A named repo read must stay at or under **32,000** input tokens, with one `fs.re
 A 142 KB read must stay at or under **24,000** input tokens, and the tool result must be a string digest with `truncated: true`.
 A `docker.ps_report` summary must stay at or under **16,500** input tokens, with one call and no container list.
 A `docker.ps` listing must stay at or under **16,500** input tokens, and the tool result must be an array digest whose sample is shorter than the array.
+A `find_function` search for `memory` (no `detail`) must stay at or under **28,000** input tokens, with slim hits that include run/1 `@spec` lines and no per-hit moduledoc.
 32,000 sits above the shrunk-prompt measurement (25,743) and below the search turn (62,802).
 24,000 sits above the string digest (21,556) and below the uncapped read (119,237).
 16,500 sits above the summary (14,728) and below the `docker.ps_report` listing (17,490).

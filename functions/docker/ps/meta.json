@@ -4,9 +4,10 @@
   "module": "Elixir.AgentFn.Docker.Ps",
   "moduledoc": "List Docker containers via `docker ps`.\n\n  Args:\n  - `all` — if true, include stopped containers (default false)\n\n  Returns `containers` as normalized maps (`id`, `name`, `image`, `status`,\n  `state`, `ports`, `created`, `command`, `project`) and `count`.\n  `project` is the Compose project label, or nil.",
   "name": "docker.ps",
-  "source_sha256": "778a8165ff194806f8c1eb209fe253b5fc87c4f498a3a86b8f2dc3d9c19158b3",
+  "source_sha256": "3bb15c08408faf98495a5f6295c5a4873d2d4663e834f88caf4d088866139700",
   "specs": [
-    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+    "@type args :: %{\n    optional(:all) => boolean()\n  }",
+    "@spec run(args()) :: {:ok, map()} | {:error, String.t()}"
   ],
-  "updated_at": "2026-11-03T10:32:42.708606Z"
+  "updated_at": "2026-11-04T21:59:57.012275Z"
 }

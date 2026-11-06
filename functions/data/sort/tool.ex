@@ -8,8 +8,18 @@ defmodule AgentFn.Data.Sort do
   - `order` — `asc` (default) or `desc`
   """
   @behaviour AgentFn.Tool
+  @type args :: %{
+    optional(:by) => String.t(),
+    optional(:data) => [map()],
+    optional(:entries) => [map()],
+    optional(:field) => String.t(),
+    optional(:items) => [map()],
+    optional(:key) => String.t(),
+    optional(:order) => String.t(),
+    optional(:rows) => [map()]
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     field = Map.get(args, "by") || Map.get(args, :by) || Map.get(args, "field") || Map.get(args, :field)
     order = Map.get(args, "order") || Map.get(args, :order) || "asc"

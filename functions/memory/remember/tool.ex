@@ -19,8 +19,15 @@ defmodule AgentFn.Memory.Remember do
   alias AgentFn.Memory.{Query, Transact}
 
   @attr "source-session"
+  @type args :: %{
+    required(:facts) => [map()],
+    required(:reason) => String.t(),
+    optional(:rules) => [String.t()],
+    optional(:session_id) => String.t(),
+    optional(:source_session) => String.t()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     sid = session_id(args)
     facts = normalize_facts(Map.get(args, "facts") || Map.get(args, :facts) || [])

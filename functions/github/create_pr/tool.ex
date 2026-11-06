@@ -24,8 +24,19 @@ defmodule AgentFn.Github.CreatePr do
   On soft failure: `ok` => false, `error`, `message`, plus `compare_url`.
   """
   @behaviour AgentFn.Tool
+  @type args :: %{
+    optional(:base) => String.t(),
+    optional(:body) => String.t(),
+    optional(:cwd) => String.t(),
+    optional(:draft) => boolean(),
+    optional(:dry_run) => boolean(),
+    optional(:head) => String.t(),
+    optional(:repo) => String.t(),
+    optional(:timeout_ms) => non_neg_integer(),
+    optional(:title) => String.t()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     timeout = get(args, "timeout_ms") || 60_000
 

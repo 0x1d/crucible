@@ -11,8 +11,16 @@ defmodule AgentFn.Text.Slice do
   Prefer one mode: `head`, `tail`, or `start_line`(+optional `end_line`).
   """
   @behaviour AgentFn.Tool
+  @type args :: %{
+    optional(:end_line) => pos_integer(),
+    optional(:head) => non_neg_integer(),
+    optional(:path) => String.t(),
+    optional(:start_line) => pos_integer(),
+    optional(:tail) => non_neg_integer(),
+    optional(:text) => String.t()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     text = Map.get(args, "text") || Map.get(args, :text)
     path = Map.get(args, "path") || Map.get(args, :path)

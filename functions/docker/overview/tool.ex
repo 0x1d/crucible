@@ -8,7 +8,10 @@ defmodule AgentFn.Docker.Overview do
   Same result as `docker.ps_report`. Use this before `docker.ps` or `docker inspect`.
   """
   @behaviour AgentFn.Tool
+  @type args :: %{
+    optional(:all) => boolean()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args), do: AgentFn.Docker.PsReport.run(args)
 end

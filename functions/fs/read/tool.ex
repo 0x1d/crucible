@@ -8,8 +8,12 @@ defmodule AgentFn.Fs.Read do
     content is truncated and `truncated` is true
   """
   @behaviour AgentFn.Tool
+  @type args :: %{
+    optional(:max_bytes) => non_neg_integer(),
+    required(:path) => String.t()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     path = Map.get(args, "path") || Map.get(args, :path)
     max_bytes = Map.get(args, "max_bytes") || Map.get(args, :max_bytes)

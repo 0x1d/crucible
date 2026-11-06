@@ -26,7 +26,14 @@ defmodule AgentFn.Memory.Query do
   """
 
   @behaviour AgentFn.Tool
+  @type args :: %{
+    optional(:as_of) => String.t() | non_neg_integer(),
+    optional(:datalog) => String.t(),
+    optional(:find) => [String.t()],
+    optional(:valid_at) => String.t(),
+    optional(:where) => [list()]
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args), do: Runtime.Memory.query(args)
 end

@@ -4,9 +4,10 @@
   "module": "Elixir.AgentFn.Sessions.Search",
   "moduledoc": "Search alchemist/Cursor session logs efficiently.\n\n  Default target is the shared journal behind session `memory/` symlinks:\n  `hosts/cursor/.agent-serve/cursor/memory/journal.jsonl`.\n  Pass `path` / `root` to search anywhere else.\n\n  Args:\n  - `pattern` (required) — regex (or fixed string when `fixed_strings` is true)\n  - `path` / `root` — override search root/file (default: shared journal)\n  - `session_id` — optional substring filter on parsed `sessionId`\n  - `ignore_case`, `fixed_strings`, `follow_symlinks`, `glob`, `max_matches`, `timeout_ms`\n    — forwarded to `fs.rg`\n  - `snippet` — max chars for `userMessage` / `result` snippets (default 180)\n\n  Returns structured `hits` with `at`, `session_id`, `user_message`, `result`,\n  plus raw `path` / `line`. Prefer this over grepping `.sessions/*/memory`\n  (those dirs symlink to one journal).",
   "name": "sessions.search",
-  "source_sha256": "8eea81da6cba58afe52e0b603eb63546817794f8a66f541000f47affa58a7c70",
+  "source_sha256": "1cf1e840e2f78a1f44f6860242b50ef380b27ee0c7bdde3726a0ead1c08b5a65",
   "specs": [
-    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+    "@type args :: %{\n    optional(:fixed_strings) => boolean(),\n    optional(:follow_symlinks) => boolean(),\n    optional(:glob) => String.t(),\n    optional(:ignore_case) => boolean(),\n    optional(:max_matches) => non_neg_integer(),\n    optional(:path) => String.t(),\n    required(:pattern) => String.t(),\n    optional(:root) => String.t(),\n    optional(:session_id) => String.t(),\n    optional(:snippet) => non_neg_integer(),\n    optional(:timeout_ms) => non_neg_integer()\n  }",
+    "@spec run(args()) :: {:ok, map()} | {:error, String.t()}"
   ],
-  "updated_at": "2026-11-01T14:40:58.055786Z"
+  "updated_at": "2026-11-04T22:00:04.454587Z"
 }

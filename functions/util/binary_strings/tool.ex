@@ -14,8 +14,11 @@ defmodule AgentFn.Util.BinaryStrings do
 
   Returns `size`, `strings`, `string_count`, `uuid_hits`, `needle_hits`.
   """
+  @type args :: %{
+    optional(:filter) => String.t()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(%{"path" => path} = args) when is_binary(path) do
     with {:ok, bin} <- File.read(path) do
       min_len = Map.get(args, "min_len", 4)

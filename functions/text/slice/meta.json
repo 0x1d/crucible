@@ -4,9 +4,10 @@
   "module": "Elixir.AgentFn.Text.Slice",
   "moduledoc": "Slice text by head/tail lines or an inclusive line range.\n\n  Args:\n  - `text` or `path` — subject (exactly one)\n  - `head` — first N lines\n  - `tail` — last N lines\n  - `start_line` / `end_line` — inclusive 1-based range\n\n  Prefer one mode: `head`, `tail`, or `start_line`(+optional `end_line`).",
   "name": "text.slice",
-  "source_sha256": "86b59c65d8bb22647ad8f55ab1a978e39cf87203c73d5ad8322b9a11c02b7311",
+  "source_sha256": "46867dfd10b217cfac7f591733838ac241950f0ee970eca4955292cad47ea37c",
   "specs": [
-    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+    "@type args :: %{\n    optional(:end_line) => pos_integer(),\n    optional(:head) => non_neg_integer(),\n    optional(:path) => String.t(),\n    optional(:start_line) => pos_integer(),\n    optional(:tail) => non_neg_integer(),\n    optional(:text) => String.t()\n  }",
+    "@spec run(args()) :: {:ok, map()} | {:error, String.t()}"
   ],
-  "updated_at": "2026-11-01T14:40:58.133222Z"
+  "updated_at": "2026-11-04T22:00:04.916764Z"
 }

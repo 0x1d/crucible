@@ -12,8 +12,17 @@ defmodule AgentFn.Demo.Report do
   - `title` — report heading text
   """
   @behaviour AgentFn.Tool
+  @type args :: %{
+    optional(:by) => String.t(),
+    optional(:columns) => [String.t()],
+    optional(:field) => String.t(),
+    optional(:op) => String.t(),
+    optional(:order) => String.t(),
+    optional(:title) => String.t(),
+    optional(:value) => term()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     title = Map.get(args, "title") || Map.get(args, :title) || "Codex report"
     by = Map.get(args, "by") || Map.get(args, :by) || "path"

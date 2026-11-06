@@ -4,9 +4,10 @@
   "module": "Elixir.AgentFn.Fs.Tree",
   "moduledoc": "Build a bounded-depth directory tree.\n\n  Args:\n  - `path` (required)\n  - `max_depth` — default 3 (0 = only the root node)\n  - `ignore` — optional list of basename glob patterns to skip (e.g. `\".git\"`, `\"node_modules\"`)\n\n  Returns a nested `tree` map with `name`, `type`, `children`.",
   "name": "fs.tree",
-  "source_sha256": "b3e4494b8a9c5d5601e82588f7482875e7db3437b283c306aa338ccc47a2a2e0",
+  "source_sha256": "3940735d7cce5a34ed0d13579b8bbf3ddfab28bbc4b2fe819bd51df248c00a2f",
   "specs": [
-    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+    "@type args :: %{\n    optional(:ignore) => [String.t()],\n    optional(:max_depth) => non_neg_integer(),\n    required(:path) => String.t()\n  }",
+    "@spec run(args()) :: {:ok, map()} | {:error, String.t()}"
   ],
-  "updated_at": "2026-11-01T14:40:57.584882Z"
+  "updated_at": "2026-11-04T21:59:58.656002Z"
 }

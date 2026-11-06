@@ -4,9 +4,10 @@
   "module": "Elixir.AgentFn.Data.Filter",
   "moduledoc": "Filter a list of maps by field predicates.\n\n  Args:\n  - `entries` / `rows` / `items` / `data` — list of maps\n  - Single predicate: `field`, `op`, `value`\n  - Or `filters` — list of `%{field, op, value}` (AND)\n\n  Ops: `eq`, `neq`, `contains`, `gt`, `gte`, `lt`, `lte`, `in`, `exists`.",
   "name": "data.filter",
-  "source_sha256": "ab32c515d34340e8e38bf37db055fc778e01e33f23ed6aa48a608f480ef50863",
+  "source_sha256": "5bae119c96890747f0bc4d8d5415e6a240072fa6e5ecb14f91b76b5a91fdf884",
   "specs": [
-    "@spec run(map()) :: {:ok, map()} | {:error, String.t()}"
+    "@type args :: %{\n    optional(:data) => [map()],\n    optional(:entries) => [map()],\n    optional(:field) => String.t(),\n    optional(:filters) => [map()],\n    optional(:items) => [map()],\n    optional(:key) => String.t(),\n    optional(:op) => String.t(),\n    optional(:rows) => [map()],\n    optional(:value) => term()\n  }",
+    "@spec run(args()) :: {:ok, map()} | {:error, String.t()}"
   ],
-  "updated_at": "2026-11-01T14:40:57.204232Z"
+  "updated_at": "2026-11-04T21:59:55.402960Z"
 }

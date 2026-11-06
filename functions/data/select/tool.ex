@@ -9,8 +9,18 @@ defmodule AgentFn.Data.Select do
   - `key` — optional list key when unwrapping `data`
   """
   @behaviour AgentFn.Tool
+  @type args :: %{
+    optional(:columns) => [String.t()],
+    optional(:data) => [map()],
+    optional(:entries) => [map()],
+    optional(:items) => [map()],
+    optional(:key) => String.t(),
+    optional(:keys) => [String.t()],
+    optional(:rename) => map(),
+    optional(:rows) => [map()]
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     keys = Map.get(args, "keys") || Map.get(args, :keys) || Map.get(args, "columns") || Map.get(args, :columns)
     rename = Map.get(args, "rename") || Map.get(args, :rename) || %{}

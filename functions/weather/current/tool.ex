@@ -34,8 +34,14 @@ defmodule AgentFn.Weather.Current do
     96 => "Thunderstorm with slight hail",
     99 => "Thunderstorm with heavy hail"
   }
+  @type args :: %{
+    optional(:city) => String.t(),
+    optional(:country) => String.t(),
+    optional(:location) => String.t(),
+    optional(:place) => String.t()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     with {:ok, place} <- place_name(args),
          {:ok, geo} <- geocode(place, args["country"] || args[:country]),

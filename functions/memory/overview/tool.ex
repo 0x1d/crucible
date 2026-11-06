@@ -6,7 +6,13 @@ defmodule AgentFn.Memory.Overview do
   """
 
   @behaviour AgentFn.Tool
+  @type args :: %{
+    optional(:as_of) => String.t() | non_neg_integer(),
+    optional(:limit) => non_neg_integer(),
+    optional(:prefix) => String.t(),
+    optional(:valid_at) => String.t()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args), do: Runtime.Memory.overview(args)
 end

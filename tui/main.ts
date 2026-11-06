@@ -27,7 +27,8 @@ import { CursorAdapter } from "./adapters/cursor.ts";
 import type { HostAdapter } from "./adapters/types.ts";
 import { ChangeTracker } from "./changes.ts";
 import { COMMANDS, parseCommand } from "./commands.ts";
-import { applyHostFlagsCommand } from "./host-flags.ts";
+import { applyHostFlagsCommand, defaultStateRoot, loadMemoryExploreSettings } from "./host-flags.ts";
+import { shouldAutoRetain } from "./auto-memory-retain.ts";
 import { rememberPrompt } from "./remember.ts";
 import { SessionStats } from "./stats.ts";
 import { type Theme, resolveTheme } from "./theme.ts";
@@ -61,6 +62,7 @@ let turn: AbortController | undefined;
 let drainingFollowUps = false;
 const followUpQueue = new FollowUpQueue();
 let lastCtrlC = 0;
+let completedTurns = 0;
 
 editor.setAutocompleteProvider(new CombinedAutocompleteProvider(COMMANDS, repoRoot));
 // The transcript scrolls. Status, editor, and footer stay at the bottom of the screen.
@@ -142,6 +144,9 @@ async function openSession(id: string | undefined): Promise<void> {
   transcript.endTurn();
   transcript.info(id ? `Session ${id} on ${host.name}.` : `New session on ${host.name}.`);
   stats = id ? SessionStats.fromReplay(events) : new SessionStats();
+  completedTurns = id
+    ? events.filter((e) => e.type === "done").length
+    : 0;
   render();
 }
 
@@ -331,6 +336,17 @@ async function runTurn(prompt: string, shown: string): Promise<void> {
     loader.stop();
     status.clear();
     stats.lastTurnMs = Date.now() - started;
+    if (!turn.signal.aborted) {
+      completedTurns += 1;
+      const hostId = host.name === "claude" ? "claude" : "cursor";
+      const retain = loadMemoryExploreSettings(defaultStateRoot(hostId), hostId);
+      if (shouldAutoRetain(completedTurns, retain)) {
+        followUpQueue.enqueue(queuedMessage("/remember"));
+        transcript.info(
+          `Queued auto-retain (turn ${completedTurns}, every ${retain.memoryRetainEveryTurns}).`,
+        );
+      }
+    }
     turn = undefined;
     render();
     await drainFollowUpQueue();

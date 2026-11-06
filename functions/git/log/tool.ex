@@ -7,7 +7,7 @@ defmodule AgentFn.Git.Log do
 
   Args:
   - `cwd` / `repo` — repository directory (default: runtime cwd)
-  - `limit` — max commits (default 20, 1..500)
+  - `limit` — max commits (default 8, 1..500)
   - `ref` — revision or range, e.g. `"HEAD"`, `"main"`, `"v1..HEAD"` (default `HEAD`);
     must not start with `-`
   - `since`, `until` — git date expressions (`"3 days ago"`, `"2026-11-01"`)
@@ -15,7 +15,8 @@ defmodule AgentFn.Git.Log do
   - `paths` — optional list of pathspecs (passed after `--`)
   - `no_merges` — skip merge commits (default false)
   - `first_parent` — follow only the first parent (default false)
-  - `numstat` — include per-file line counts (default true). Merge commits have
+  - `numstat` — include per-file line counts (default false). Turn on for
+    analytics/CI; agent status turns should use oneline git instead. Merge commits have
     no numstat (git default), so their `files` is empty.
 
   Returns `commits` — list of
@@ -29,12 +30,24 @@ defmodule AgentFn.Git.Log do
   @rs <<0x1E>>
   @us <<0x1F>>
   @format "%x1e%H%x1f%h%x1f%an%x1f%ae%x1f%aI%x1f%P%x1f%s%x1f%b%x1f"
+  @type args :: %{
+    optional(:author) => String.t(),
+    optional(:cwd) => String.t(),
+    optional(:first_parent) => boolean(),
+    optional(:limit) => non_neg_integer(),
+    optional(:no_merges) => boolean(),
+    optional(:paths) => [String.t()],
+    optional(:ref) => String.t(),
+    optional(:repo) => String.t(),
+    optional(:since) => String.t(),
+    optional(:until) => String.t()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     cwd = args["cwd"] || args["repo"] || File.cwd!()
     ref = args["ref"] || "HEAD"
-    limit = args["limit"] |> to_int(20) |> max(1) |> min(500)
+    limit = args["limit"] |> to_int(8) |> max(1) |> min(500)
 
     with :ok <- check_opt("ref", ref),
          :ok <- check_opt("since", args["since"]),
@@ -54,7 +67,7 @@ defmodule AgentFn.Git.Log do
   @spec argv(map(), String.t(), pos_integer(), [String.t()]) :: [String.t()]
   def argv(args, ref, limit, paths) do
     ["log", "-n", Integer.to_string(limit), "--no-color", "--pretty=format:" <> @format] ++
-      flag(Map.get(args, "numstat", true) != false, "--numstat") ++
+      flag(Map.get(args, "numstat", false) == true, "--numstat") ++
       flag(args["no_merges"] == true, "--no-merges") ++
       flag(args["first_parent"] == true, "--first-parent") ++
       opt("--since=", args["since"]) ++

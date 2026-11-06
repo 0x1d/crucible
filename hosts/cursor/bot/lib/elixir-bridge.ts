@@ -1,1 +1,1 @@
-export { runCodexOp } from "../../../../core/elixir-bridge";
+export { runCodexOp } from "../../../../core/elixir-bridge.ts";

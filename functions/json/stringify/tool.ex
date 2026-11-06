@@ -7,8 +7,13 @@ defmodule AgentFn.Json.Stringify do
   - `pretty` — optional boolean for pretty printing
   """
   @behaviour AgentFn.Tool
+  @type args :: %{
+    optional(:data) => term(),
+    optional(:pretty) => boolean(),
+    optional(:value) => term()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     has_value? = Map.has_key?(args, "value") or Map.has_key?(args, :value)
     has_data? = Map.has_key?(args, "data") or Map.has_key?(args, :data)

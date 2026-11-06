@@ -12,8 +12,15 @@ defmodule AgentFn.Memory.BySession do
   - `as_of` / `valid_at` — optional temporal args forwarded to `memory.query`
   """
   @behaviour AgentFn.Tool
+  @type args :: %{
+    optional(:as_of) => String.t() | non_neg_integer(),
+    optional(:exact) => boolean(),
+    optional(:session_id) => String.t(),
+    optional(:source_session) => String.t(),
+    optional(:valid_at) => String.t()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     sid =
       Map.get(args, "session_id") || Map.get(args, :session_id) ||

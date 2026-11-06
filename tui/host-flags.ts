@@ -8,8 +8,10 @@ import {
   defaultHostFlags,
   defaultStateRoot,
   loadHostFlags,
+  loadMemoryExploreSettings,
   loadMaxContextTokens,
   saveHostFlags,
+  DEFAULT_MEMORY_EXPLORE_SETTINGS,
   saveMaxContextTokens,
   parseTokenCount,
   DEFAULT_MAX_CONTEXT_TOKENS,
@@ -29,7 +31,9 @@ export {
   defaultHostFlags,
   defaultStateRoot,
   loadHostFlags,
+  loadMemoryExploreSettings,
   saveHostFlags,
+  DEFAULT_MEMORY_EXPLORE_SETTINGS,
 };
 
 function asHostId(host: string | undefined): HostId {
@@ -48,8 +52,12 @@ export function formatHostFlags(
   root: string = defaultStateRoot(host),
 ): string {
   const modes = reclaimModesForHost(host).join(" | ");
+  const memoryExplore = loadMemoryExploreSettings(root, host);
   const lines = [
     `maxContextTokens: ${loadMaxContextTokens(root, host)}`,
+    `memoryAutoRetain: ${memoryExplore.memoryAutoRetain ? "on" : "off"} (every ${memoryExplore.memoryRetainEveryTurns || "—"} turns)`,
+    `memoryRecallBeforeExplore: ${memoryExplore.memoryRecallBeforeExplore ? "on" : "off"}`,
+    `requireExploreBeforeProbe: ${memoryExplore.requireExploreBeforeProbe ? "on" : "off"}`,
     `historyReclaim: ${config.historyReclaim} (allowed: ${modes})`,
     ...HOST_FLAG_IDS.filter((id) => !isReclaimFlagId(id)).map(
       (id) => `${id}: ${config[id] ? "on" : "off"}`,

@@ -14,8 +14,15 @@ defmodule AgentFn.Github.RepoFiles do
   @behaviour AgentFn.Tool
 
   alias AgentFn.Http.Get
+  @type args :: %{
+    optional(:contains) => String.t(),
+    optional(:ext) => [String.t()],
+    optional(:limit) => non_neg_integer(),
+    optional(:ref) => String.t(),
+    required(:repo) => String.t()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     repo = args["repo"]
     ref = args["ref"] || "HEAD"

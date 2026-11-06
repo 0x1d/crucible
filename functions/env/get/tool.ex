@@ -9,8 +9,12 @@ defmodule AgentFn.Env.Get do
   Missing variables appear as `null` in `values`.
   """
   @behaviour AgentFn.Tool
+  @type args :: %{
+    optional(:name) => String.t(),
+    optional(:names) => [String.t()]
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     names =
       case Map.get(args, "names") || Map.get(args, :names) do

@@ -10,8 +10,11 @@ defmodule AgentFn.Docker.Ps do
   `project` is the Compose project label, or nil.
   """
   @behaviour AgentFn.Tool
+  @type args :: %{
+    optional(:all) => boolean()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     all? = truthy?(Map.get(args, "all") || Map.get(args, :all, false))
     argv = if all?, do: ["ps", "-a", "--format", "{{json .}}"], else: ["ps", "--format", "{{json .}}"]

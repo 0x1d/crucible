@@ -10,8 +10,13 @@ defmodule AgentFn.Fs.Glob do
   to the root on each entry.
   """
   @behaviour AgentFn.Tool
+  @type args :: %{
+    optional(:path) => String.t(),
+    required(:pattern) => String.t(),
+    optional(:root) => String.t()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     root = Map.get(args, "path") || Map.get(args, :path) || Map.get(args, "root") || Map.get(args, :root)
     pattern = Map.get(args, "pattern") || Map.get(args, :pattern)

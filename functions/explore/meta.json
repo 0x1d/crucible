@@ -1,0 +1,13 @@
+{
+  "description": "Composed exploration: memory recall, git, search, or custom `pipeline.run` in one call.\n\n  Prefer this over chaining `call_function` for probes when the host sets\n  `requireExploreBeforeProbe`. Returns essentials only (compact git, capped lists).\n\n  Profiles:\n  - `status` — memory recall + compact git + oneline log + optional handoff head\n  - `memory` — entity ids with descriptions\n  - `repo` — compact git + oneline log\n  - `code` — `fs.rg` with low match cap\n  - `custom` — `steps` forwarded to `pipeline.run` (seed includes memory when `recall_memory`)\n\n  Args: `profile`, `goal`, `repo`/`cwd`, `query`, `paths`, `limit` (default 12),\n  `recall_memory` (default true), `steps` (custom only).",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Explore",
+  "moduledoc": "Composed exploration: memory recall, git, search, or custom `pipeline.run` in one call.\n\n  Prefer this over chaining `call_function` for probes when the host sets\n  `requireExploreBeforeProbe`. Returns essentials only (compact git, capped lists).\n\n  Profiles:\n  - `status` — memory recall + compact git + oneline log + optional handoff head\n  - `memory` — entity ids with descriptions\n  - `repo` — compact git + oneline log\n  - `code` — `fs.rg` with low match cap\n  - `custom` — `steps` forwarded to `pipeline.run` (seed includes memory when `recall_memory`)\n\n  Args: `profile`, `goal`, `repo`/`cwd`, `query`, `paths`, `limit` (default 12),\n  `recall_memory` (default true), `steps` (custom only).",
+  "name": "explore",
+  "source_sha256": "60aab888bd9abb1630007f1f071bd0f2f17ad032f02d75fbd5e46ecf81b47d2d",
+  "specs": [
+    "@type args :: map()",
+    "@spec run(args()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-11-05T07:09:10.544045Z"
+}

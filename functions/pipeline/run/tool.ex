@@ -28,8 +28,15 @@ defmodule AgentFn.Pipeline.Run do
   Returns `result` (last ok result), `steps` (trace), `ctx`, `count`, `ok`.
   """
   @behaviour AgentFn.Tool
+  @type args :: %{
+    optional(:ctx) => map(),
+    optional(:max_steps) => non_neg_integer(),
+    optional(:seed) => map(),
+    required(:steps) => [map()],
+    optional(:stop_on_error) => boolean()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     steps = get(args, "steps")
     seed = stringify_keys(get(args, "seed") || get(args, "ctx") || %{})

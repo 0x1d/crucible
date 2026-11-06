@@ -4,8 +4,9 @@ defmodule AgentFn.Echo do
   """
 
   @behaviour AgentFn.Tool
+  @type args :: %{optional(String.t()) => term()}
 
-  @spec run(map()) :: {:ok, map()}
+  @spec run(args()) :: {:ok, map()}
   def run(args) when is_map(args) do
     {:ok, Map.put(args, "echoed", true)}
   end

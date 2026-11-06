@@ -7,8 +7,13 @@ defmodule AgentFn.Md.Code do
   - `lang` — optional language tag for the fence
   """
   @behaviour AgentFn.Tool
+  @type args :: %{
+    optional(:content) => String.t(),
+    optional(:lang) => String.t(),
+    optional(:text) => String.t()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     content = Map.get(args, "content") || Map.get(args, :content) || Map.get(args, "text") || Map.get(args, :text)
     lang = Map.get(args, "lang") || Map.get(args, :lang) || ""

@@ -28,8 +28,14 @@ defmodule AgentFn.Codex.Patch do
   alias Runtime.Codex
   alias Runtime.Engine
   alias AgentFn.Sys.Cmd
+  @type args :: %{
+    optional(:dry_run) => boolean(),
+    required(:edits) => [map()],
+    optional(:name) => String.t(),
+    required(:slug) => String.t()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     with {:ok, slug} <- fetch_slug(args),
          {:ok, edits} <- fetch_edits(args),

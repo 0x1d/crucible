@@ -29,8 +29,17 @@ defmodule AgentFn.Git.Diff do
   alias AgentFn.Sys.Cmd
 
   @default_max 200_000
+  @type args :: %{
+    optional(:cwd) => String.t(),
+    optional(:paths) => [String.t()],
+    optional(:ref) => String.t(),
+    optional(:repo) => String.t(),
+    optional(:staged) => boolean(),
+    optional(:stat_only) => boolean(),
+    optional(:to) => String.t()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     with {:ok, cwd} <- fetch_cwd(args),
          {:ok, paths} <- fetch_paths(args),

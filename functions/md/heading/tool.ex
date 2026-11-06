@@ -7,8 +7,13 @@ defmodule AgentFn.Md.Heading do
   - `level` — 1..6 (default 1)
   """
   @behaviour AgentFn.Tool
+  @type args :: %{
+    optional(:content) => String.t(),
+    optional(:level) => pos_integer(),
+    optional(:text) => String.t()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     text = Map.get(args, "text") || Map.get(args, :text) || Map.get(args, "content") || Map.get(args, :content)
     level = Map.get(args, "level") || Map.get(args, :level) || 1

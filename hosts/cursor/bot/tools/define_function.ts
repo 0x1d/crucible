@@ -1,6 +1,7 @@
 import { defineTool } from "@grok/agent-sdk/tools";
 import * as z from "zod/v4";
-import { runCodexTool } from "../lib/codex-tool";
+import { capToolResult } from "../lib/cap-tool-result.ts";
+import { runCodexTool } from "../lib/codex-tool.ts";
 
 export default defineTool({
   description:
@@ -20,12 +21,13 @@ export default defineTool({
       .optional()
       .describe("Short summary stored in the codex for find_function"),
   }),
-  async execute({ name, source, description }) {
-    return runCodexTool({
+  async execute({ name, source, description }, ctx) {
+    const result = await runCodexTool({
       op: "define",
       name,
       source,
       description,
     });
+    return capToolResult(result, ctx, "define_function");
   },
 });

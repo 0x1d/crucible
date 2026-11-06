@@ -7,8 +7,12 @@ defmodule AgentFn.Md.Concat do
   - `separator` — join string (default `"\\n\\n"`)
   """
   @behaviour AgentFn.Tool
+  @type args :: %{
+    required(:parts) => [String.t()],
+    optional(:separator) => String.t()
+  }
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     parts = Map.get(args, "parts") || Map.get(args, :parts)
     sep = Map.get(args, "separator") || Map.get(args, :separator) || "\n\n"

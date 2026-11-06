@@ -8,8 +8,9 @@ defmodule AgentFn.Pipeline.Demo do
 
   alias AgentFn.Echo
   alias AgentFn.Pipeline.Demo.Steps.Enrich
+  @type args :: %{optional(String.t()) => term()}
 
-  @spec run(map()) :: {:ok, map()} | {:error, String.t()}
+  @spec run(args()) :: {:ok, map()} | {:error, String.t()}
   def run(args) when is_map(args) do
     enriched = Enrich.apply(args)
 
