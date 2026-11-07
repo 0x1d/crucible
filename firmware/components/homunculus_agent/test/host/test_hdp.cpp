@@ -2,6 +2,7 @@
 // Build and run: test/host/run.sh
 #include <cstdio>
 #include <fstream>
+#include <initializer_list>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -113,6 +114,87 @@ static void test_server(const json::object &v)
     CHECK(seg.segment_id && *seg.segment_id == 1 && seg.text == "Hi", "tts fields");
 }
 
+// Minimal device-message schema check (protocol/src/messages.ts, device direction) used to
+// verify that builder output is valid and that the invalid device vectors are rejected.
+static bool is_uint(const json::value *v)
+{
+    return v && ((v->is_int64() && v->get_int64() >= 0) || v->is_uint64());
+}
+
+static bool is_one_of(const json::value *v, std::initializer_list<const char *> values)
+{
+    if (!v || !v->is_string()) {
+        return false;
+    }
+    for (auto *s : values) {
+        if (v->get_string() == s) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool valid_device_message(const json::value &v)
+{
+    if (!v.is_object()) {
+        return false;
+    }
+    const auto &o = v.as_object();
+    auto *type = o.if_contains("type");
+    if (!type || !type->is_string()) {
+        return false;
+    }
+    const std::string t(type->get_string());
+    if (t == "hello") {
+        auto *dev = o.if_contains("device");
+        auto *caps = o.if_contains("capabilities");
+        return is_uint(o.if_contains("version")) && dev && dev->is_object() && caps && caps->is_object() &&
+               caps->as_object().contains("audio");
+    }
+    if (t == "listen") {
+        if (!is_one_of(o.if_contains("state"), {"start", "stop"})) {
+            return false;
+        }
+        if (auto *m = o.if_contains("mode"); m && !is_one_of(m, {"auto", "manual", "realtime"})) {
+            return false;
+        }
+        if (auto *tr = o.if_contains("trigger");
+                tr && !is_one_of(tr, {"wake_word", "touch", "button", "motion", "follow_up"})) {
+            return false;
+        }
+        return true;
+    }
+    if (t == "abort") {
+        return is_one_of(o.if_contains("reason"), {"barge_in", "user_cancel", "wake_word"});
+    }
+    if (t == "tts.played") {
+        return is_uint(o.if_contains("segment_id"));
+    }
+    if (t == "tool.result") {
+        auto *p = o.if_contains("payload");
+        if (!p || !p->is_object()) {
+            return false;
+        }
+        const auto &po = p->as_object();
+        return is_one_of(po.if_contains("jsonrpc"), {"2.0"}) && po.contains("id") &&
+               (po.contains("result") != po.contains("error"));
+    }
+    if (t == "confirm.result") {
+        auto *a = o.if_contains("approved");
+        auto *r = o.if_contains("request_id");
+        return r && r->is_string() && a && a->is_bool();
+    }
+    if (t == "event") {
+        auto *n = o.if_contains("name");
+        return n && n->is_string();
+    }
+    if (t == "goodbye") {
+        auto *r = o.if_contains("reason");
+        return r && r->is_string();
+    }
+    return true;  // unknown type: forward compatible
+}
+
 static bool same(const std::string &built, const json::value &expected)
 {
     return json::parse(built) == expected;
@@ -155,8 +237,48 @@ static void test_device(const json::object &v)
     CHECK(same(hdp::make_tool_result(3, hdp::text_content("ok")), valid.at(6)), "tool.result");
     CHECK(same(hdp::make_tool_error("t-4", -32602, "level out of range"), valid.at(7)), "tool.result error");
     CHECK(same(hdp::make_goodbye("power_off"), valid.at(10)), "goodbye");
+    CHECK(same(hdp::make_confirm_result("c1", false), valid.at(8)), "confirm.result");
     auto touch = json::parse(hdp::make_listen_start("auto", "touch"));
     CHECK(!touch.as_object().contains("wake_word"), "listen start without wake word");
+
+    // Schema check against the vectors, then against every builder's output.
+    for (const auto &item : valid) {
+        CHECK(valid_device_message(item), "valid device vector rejected: %s", json::serialize(item).c_str());
+    }
+    for (const auto &item : v.at("invalid").as_array()) {
+        CHECK(!valid_device_message(item), "invalid device vector accepted: %s", json::serialize(item).c_str());
+    }
+    for (const auto &item : v.at("unknown").as_array()) {
+        CHECK(valid_device_message(item), "unknown device vector rejected: %s", json::serialize(item).c_str());
+    }
+    const std::string built[] = {
+        hello,
+        hdp::make_listen_start("auto", "touch"),
+        hdp::make_listen_start("auto", "wake_word", "computer"),
+        hdp::make_listen_stop(),
+        hdp::make_abort("barge_in"),
+        hdp::make_abort("wake_word"),
+        hdp::make_abort("user_cancel"),
+        hdp::make_tts_played(0),
+        hdp::make_tool_result(json::value("x"), hdp::text_content("ok")),
+        hdp::make_tool_error(7, -32601, "device tool not implemented"),
+        hdp::make_confirm_result("c2", true),
+        hdp::make_goodbye("shutdown"),
+    };
+    for (const auto &b : built) {
+        CHECK(valid_device_message(json::parse(b)), "builder output invalid: %s", b.c_str());
+    }
+}
+
+static void test_stream_flags()
+{
+    CHECK(hdp::stream_flags(0, false) == hdp::FLAG_FIRST, "seq 0 not flagged first");
+    CHECK(hdp::stream_flags(1, false) == 0, "seq 1 flagged");
+    CHECK(hdp::stream_flags(41, true) == hdp::FLAG_LAST, "last flag");
+    CHECK(hdp::stream_flags(0, true) == (hdp::FLAG_FIRST | hdp::FLAG_LAST), "single-frame stream");
+    // Matches the "uplink first frame" vector header byte 1.
+    auto f = hdp::encode_frame(hdp::FRAME_OPUS_UPLINK, hdp::stream_flags(0, false), 7, 0, nullptr, 0);
+    CHECK(f.size() == hdp::FRAME_HEADER_BYTES && f[1] == 0x01, "first frame header");
 }
 
 int main(int argc, char **argv)
@@ -167,6 +289,10 @@ int main(int argc, char **argv)
     test_frames(frames.as_object());
     test_server(messages.at("server").as_object());
     test_device(messages.at("device").as_object());
+    test_stream_flags();
+    auto confirm = hdp::parse_server_message(
+                       R"({"type":"confirm.request","request_id":"c9","title":"t","detail":"d","timeout_ms":1000})");
+    CHECK(confirm.type == hdp::ServerType::ConfirmRequest && confirm.request_id == "c9", "confirm.request id");
     std::printf("%d checks, %d failures\n", g_checks, g_failures);
     return g_failures == 0 ? 0 : 1;
 }

@@ -37,6 +37,12 @@ struct Frame {
     size_t payload_len = 0;
 };
 
+// Uplink flags for frame `seq` of a stream: bit0 on seq 0, bit1 on the last frame.
+constexpr uint8_t stream_flags(uint32_t seq, bool last)
+{
+    return static_cast<uint8_t>((seq == 0 ? FLAG_FIRST : 0) | (last ? FLAG_LAST : 0));
+}
+
 // Writes the 10-byte header to `out`.
 void write_frame_header(uint8_t *out, uint8_t type, uint8_t flags, uint16_t stream_id, uint32_t seq,
                         uint16_t payload_len);
@@ -87,6 +93,8 @@ std::string make_tts_played(uint32_t segment_id);
 // JSON-RPC 2.0 response for a tool.call request id; exactly one of result / error.
 std::string make_tool_result(const boost::json::value &id, const boost::json::value &result);
 std::string make_tool_error(const boost::json::value &id, int code, std::string_view message);
+// Answer to confirm.request (§4.5).
+std::string make_confirm_result(std::string_view request_id, bool approved);
 std::string make_goodbye(std::string_view reason);
 
 // MCP tools/call result with a single text content item.
@@ -140,6 +148,8 @@ struct ServerMessage {
     std::string method;
     std::string tool_name;
     boost::json::object arguments;
+    // confirm.request
+    std::string request_id;
     // error
     std::string code;
     std::string message;

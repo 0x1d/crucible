@@ -171,6 +171,11 @@ std::string make_tool_error(const json::value &id, int code, std::string_view me
     });
 }
 
+std::string make_confirm_result(std::string_view request_id, bool approved)
+{
+    return json::serialize(json::object{{"type", "confirm.result"}, {"request_id", request_id}, {"approved", approved}});
+}
+
 std::string make_goodbye(std::string_view reason)
 {
     return json::serialize(json::object{{"type", "goodbye"}, {"reason", reason}});
@@ -426,7 +431,7 @@ bool parse_typed(ServerMessage &m, std::string &err)
     }
     if (t == "confirm.request") {
         m.type = ServerType::ConfirmRequest;
-        return k.str("request_id", nullptr) && k.str("title", nullptr) && k.str("detail", nullptr) &&
+        return k.str("request_id", &m.request_id) && k.str("title", nullptr) && k.str("detail", nullptr) &&
                k.uint("timeout_ms", nullptr);
     }
     if (t == "notify") {
