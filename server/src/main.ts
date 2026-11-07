@@ -1,0 +1,37 @@
+// Homunculus server entry point.
+import { readFileSync } from "node:fs";
+import { startGateway } from "./gateway/server.js";
+import { createLogger } from "./log.js";
+import { attachLoopback } from "./orchestrator/loopback.js";
+
+const env = process.env;
+const log = createLogger();
+
+const tls =
+  env.HOMUNCULUS_TLS_CERT && env.HOMUNCULUS_TLS_KEY
+    ? { cert: readFileSync(env.HOMUNCULUS_TLS_CERT), key: readFileSync(env.HOMUNCULUS_TLS_KEY) }
+    : undefined;
+
+const deviceTokens = (env.HOMUNCULUS_DEVICE_TOKENS ?? "").split(",").filter(Boolean);
+if (deviceTokens.length === 0) {
+  if (tls) throw new Error("HOMUNCULUS_DEVICE_TOKENS must be set when TLS is enabled");
+  deviceTokens.push("dev");
+  log.warn("dev_token", { note: "HOMUNCULUS_DEVICE_TOKENS unset; accepting token 'dev' (plain ws)" });
+}
+
+const gateway = await startGateway({
+  host: env.HOMUNCULUS_HOST ?? "0.0.0.0",
+  port: Number(env.HOMUNCULUS_PORT ?? 8443),
+  tls,
+  deviceTokens,
+  config: { follow_up_window_ms: 6000, captions: true, language: "en" },
+  onConnection: attachLoopback,
+  log,
+});
+
+for (const sig of ["SIGINT", "SIGTERM"] as const) {
+  process.once(sig, () => {
+    log.info("shutdown", { signal: sig });
+    void gateway.close().then(() => process.exit(0));
+  });
+}

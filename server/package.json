@@ -8,13 +8,18 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "spike:claude": "tsx src/spikes/claude-streaming.ts"
+    "spike:claude": "tsx src/spikes/claude-streaming.ts",
+    "dev": "tsx src/main.ts",
+    "test": "node --import tsx --test test/*.test.ts"
   },
   "dependencies": {
-    "@anthropic-ai/claude-agent-sdk": "^0.3.319"
+    "@anthropic-ai/claude-agent-sdk": "^0.3.319",
+    "@homunculus/protocol": "workspace:*",
+    "ws": "^8.22.1"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
+    "@types/ws": "^8.18.2",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2"
   }
