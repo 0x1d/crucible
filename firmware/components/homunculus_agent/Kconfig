@@ -71,4 +71,19 @@ menu "Homunculus agent"
         bool "Log per-turn uplink/latency statistics"
         default y
 
+    config HOMUNCULUS_SYSTEM_STATS_INTERVAL_S
+        int "CPU load / heap log interval (s, 0 = off)"
+        range 0 3600
+        default 5
+        help
+            Logs per-core CPU load (100 % minus idle task share) and internal heap
+            free / minimum every N seconds.
+
+    config HOMUNCULUS_DEV_CONSOLE
+        bool "Development console on USB-Serial-JTAG"
+        default y
+        help
+            Single-key commands read from the USB-Serial-JTAG console:
+            t = touch, w = wake word, s = system stats. Development builds only.
+
 endmenu

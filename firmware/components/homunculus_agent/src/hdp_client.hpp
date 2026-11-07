@@ -1,5 +1,7 @@
 // HDP/1 WebSocket transport (spec 4.1): sub-protocol hdp.v1, auth/device headers,
 // ping every 20 s, reconnect with exponential backoff 1 s -> 60 s + jitter.
+// send_*() and stop() may be called from different threads; stop() waits for
+// in-flight sends. stop() must not be called from a callback (WebSocket task).
 #pragma once
 
 #include <atomic>
@@ -45,6 +47,7 @@ private:
     void on_data(const esp_websocket_event_data_t *ev);
     void schedule_reconnect(const char *why, const esp_websocket_event_data_t *ev);
 
+    mutable std::mutex handle_mutex_;  // guards client_ against stop() during send
     esp_websocket_client_handle_t client_ = nullptr;
     Callbacks callbacks_;
     std::string headers_;

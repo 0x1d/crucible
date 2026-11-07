@@ -12,3 +12,6 @@ CONFIG_SR_WN_WN9_COMPUTER_TTS=y
 
 # Per-task CPU statistics for the Phase 0 bench.
 CONFIG_BROOKESIA_UTILS_THREAD_PROFILER_ENABLE_FREERTOS_CONFIG=y
+
+# RealTime chat mode: the agent gates uplink/downlink itself (spec 03 §3.2.1).
+CONFIG_BROOKESIA_AGENT_MANAGER_DEFAULT_CHAT_MODE_REAL_TIME=y

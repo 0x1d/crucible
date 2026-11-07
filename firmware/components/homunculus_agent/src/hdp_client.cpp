@@ -66,6 +66,7 @@ bool HdpClient::start(const Config &config, Callbacks callbacks)
 
 void HdpClient::stop()
 {
+    std::lock_guard lock(handle_mutex_);
     if (!client_) {
         return;
     }
@@ -79,12 +80,14 @@ void HdpClient::stop()
 
 bool HdpClient::is_connected() const
 {
+    std::lock_guard lock(handle_mutex_);
     return client_ && esp_websocket_client_is_connected(client_);
 }
 
 bool HdpClient::send_text(const std::string &text, uint32_t timeout_ms)
 {
-    if (!is_connected()) {
+    std::lock_guard lock(handle_mutex_);
+    if (!client_ || !esp_websocket_client_is_connected(client_)) {
         return false;
     }
     int n = esp_websocket_client_send_text(client_, text.data(), static_cast<int>(text.size()),
@@ -94,7 +97,8 @@ bool HdpClient::send_text(const std::string &text, uint32_t timeout_ms)
 
 bool HdpClient::send_binary(const uint8_t *data, size_t len, uint32_t timeout_ms)
 {
-    if (!is_connected()) {
+    std::lock_guard lock(handle_mutex_);
+    if (!client_ || !esp_websocket_client_is_connected(client_)) {
         return false;
     }
     int n = esp_websocket_client_send_bin(client_, reinterpret_cast<const char *>(data), static_cast<int>(len),

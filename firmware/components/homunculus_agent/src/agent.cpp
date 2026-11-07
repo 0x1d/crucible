@@ -2,14 +2,25 @@
 // The base agent::Base class owns the audio encoder/decoder dataflow operations; this file
 // maps them onto HDP/1 (spec 04): uplink Opus frames are sent via WebSocket, downlink Opus
 // frames are fed back through Base::feed_audio_decoder_data().
+//
+// Brookesia integration (agent_manager 0.8):
+// - The agent stays in the Started/Awake state. Wake words are taken from the AudioEncoder
+//   AFEEventHappened event; Brookesia only forwards WakeStart to on_wakeup() when Slept.
+// - afe_wake_start/end_timeout_ms = 0: the encoder service never emits WakeEnd, so Brookesia
+//   never moves the agent to Sleep (which would drop encoder data and decoder writes).
+// - support_general_functions = {InterruptSpeaking} and set_speaking() around TTS: Brookesia
+//   calls on_interrupt_speaking() on WakeStart while speaking (wake-word barge-in) and then
+//   drops decoder writes until reset_interrupted_speaking() (called at the next tts start).
 #include "homunculus/agent.hpp"
 
-#include <cmath>
+#include <algorithm>
+#include <cctype>
 #include <chrono>
 #include <cstdio>
 #include <cstring>
+#include "esp_heap_caps.h"
 #include "esp_log.h"
-#include "esp_random.h"
+#include "esp_pthread.h"
 #include "esp_timer.h"
 #include "sdkconfig.h"
 
@@ -28,13 +39,48 @@ using AudioHelper = esp_brookesia::service::helper::Audio;
 using AudioEncoderHelper = esp_brookesia::service::helper::AudioEncoder<0>;
 using AudioDecoderHelper = esp_brookesia::service::helper::AudioDecoder<0>;
 using AudioPlaybackHelper = esp_brookesia::service::helper::AudioPlayback;
+using AgentManagerHelper = esp_brookesia::service::helper::AgentManager;
 
 namespace {
 
 constexpr const char *TAG = "hom_agent";
-constexpr int64_t FRAME_US = 60 * 1000;  // 60 ms Opus frame (server pacer rate)
+constexpr size_t DL_QUEUE_MAX = 64;                     // frames (3.8 s at 60 ms)
+constexpr int64_t UPLINK_LAST_WAIT_SERVER_US = 200 * 1000;  // wait for a frame to carry the last flag
+constexpr int64_t UPLINK_LAST_WAIT_DEVICE_US = 100 * 1000;
 
-const char *ui_to_string(UiState s)
+int64_t now_us()
+{
+    return esp_timer_get_time();
+}
+
+// Creates a std::thread with its own name / stack / priority / core (esp_pthread),
+// restoring the caller's pthread defaults afterwards.
+std::thread spawn(const char *name, size_t stack, int prio, int core, std::function<void()> fn)
+{
+    esp_pthread_cfg_t saved = esp_pthread_get_default_config();
+    const bool had_cfg = esp_pthread_get_cfg(&saved) == ESP_OK;
+    esp_pthread_cfg_t cfg = esp_pthread_get_default_config();
+    cfg.stack_size = stack;
+    cfg.prio = prio;
+    cfg.thread_name = name;
+    cfg.pin_to_core = core;
+    // Stacks in PSRAM (CONFIG_SPIRAM_ALLOW_STACK_EXTERNAL_MEMORY): internal RAM is scarce with
+    // Wi-Fi + AFE running; these threads do no flash access.
+    cfg.stack_alloc_caps = MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT;
+    esp_pthread_set_cfg(&cfg);
+    std::thread t(std::move(fn));
+    if (had_cfg) {
+        esp_pthread_set_cfg(&saved);
+    } else {
+        cfg = esp_pthread_get_default_config();
+        esp_pthread_set_cfg(&cfg);
+    }
+    return t;
+}
+
+}  // namespace
+
+const char *to_string(UiState s)
 {
     switch (s) {
     case UiState::Offline: return "offline";
@@ -45,8 +91,6 @@ const char *ui_to_string(UiState s)
     }
     return "?";
 }
-
-}  // namespace
 
 // ---------------------------------------------------------------------------
 // Singleton
@@ -60,8 +104,9 @@ HomunculusAgent &HomunculusAgent::get_instance()
 HomunculusAgent::HomunculusAgent(): esp_brookesia::agent::Base(
     esp_brookesia::agent::AgentAttributes{
         .name = NAME,
+        .support_general_functions = {AgentManagerHelper::AgentGeneralFunction::InterruptSpeaking},
     },
-    "0.1.0",
+    FIRMWARE,
     esp_brookesia::agent::AudioConfig{
         .encoder = AudioHelper::EncoderDynamicConfig{
             .type = AudioHelper::CodecFormat::OPUS,
@@ -71,8 +116,15 @@ HomunculusAgent::HomunculusAgent(): esp_brookesia::agent::Base(
                 .sample_rate = 16000,
                 .frame_duration = 60,
             },
-            .extra = std::monostate{},
+            // Without an Opus extra config the encoder is opened with bitrate 0 and fails.
+            .extra = AudioHelper::EncoderExtraConfigOpus{
+                .enable_vbr = true,
+                .bitrate = 24000,
+            },
             .enable_afe = true,
+            // 0 = never emit WakeEnd (no automatic Brookesia Sleep, see file header).
+            .afe_wake_start_timeout_ms = 0,
+            .afe_wake_end_timeout_ms = 0,
         },
         .decoder = AudioHelper::DecoderDynamicConfig{
             .type = AudioHelper::CodecFormat::OPUS,
@@ -107,16 +159,38 @@ bool HomunculusAgent::on_activate()
 bool HomunculusAgent::on_startup()
 {
     ESP_LOGI(TAG, "startup");
+    const auto &words = get_wake_words();
+    if (!words.empty()) {
+        wake_word_ = words.front();
+        std::transform(wake_word_.begin(), wake_word_.end(), wake_word_.begin(),
+                       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    }
+    afe_connection_ = AudioEncoderHelper::subscribe_event(
+                          AudioEncoderHelper::EventId::AFEEventHappened,
+    [this](const std::string &, const std::string &event) {
+        if (event == "WakeStart") {
+            ESP_LOGI(TAG, "AFE WakeStart");
+            post([this] { on_wake_word(); });
+        }
+    });
+    if (!afe_connection_.connected()) {
+        ESP_LOGW(TAG, "AFE event subscription failed: wake word disabled");
+    }
+
     running_ = true;
-    worker_ = std::thread(&HomunculusAgent::worker_loop, this);
-    player_ = std::thread(&HomunculusAgent::player_loop, this);
+    worker_ = spawn("hom_worker", 8 * 1024, 6, 0, [this] { worker_loop(); });
+    player_ = spawn("hom_player", 8 * 1024, 7, 0, [this] { player_loop(); });
     trigger_general_event(esp_brookesia::agent::GeneralEvent::Started);
     return true;
 }
 
 void HomunculusAgent::on_shutdown()
 {
+    // Brookesia calls this before stop_audio_encoder(): the encoder thread may still call
+    // on_encoder_data_ready(). Uplink is disabled and client_ released under uplink_mutex_;
+    // an in-flight send keeps its own shared_ptr and HdpClient::stop() waits for it.
     ESP_LOGI(TAG, "shutdown");
+    afe_connection_.disconnect();
     running_ = false;
     {
         std::lock_guard lock(work_mutex_);
@@ -128,70 +202,100 @@ void HomunculusAgent::on_shutdown()
     }
     if (worker_.joinable()) worker_.join();
     if (player_.joinable()) player_.join();
-    if (client_) client_->stop();
-    client_.reset();
+
+    std::shared_ptr<HdpClient> client;
+    {
+        std::lock_guard lock(uplink_mutex_);
+        uplink_active_ = false;
+        uplink_end_pending_ = false;
+        client = std::move(client_);
+    }
+    if (client) {
+        client->send_text(hdp::make_goodbye("shutdown"), 200);
+        client->stop();
+    }
+    {
+        std::lock_guard lock(player_mutex_);
+        player_reset_locked();
+        accept_downlink_ = false;
+    }
+    session_ready_ = false;
+    ui_ = UiState::Offline;
+    if (state_cb_) state_cb_(UiState::Offline);
     trigger_general_event(esp_brookesia::agent::GeneralEvent::Stopped);
 }
 
 bool HomunculusAgent::on_sleep()
 {
+    // Not triggered by this agent (WakeEnd disabled). If something else sleeps the agent,
+    // Brookesia drops encoder data and decoder writes; the HDP session and UI stay as they are.
     ESP_LOGI(TAG, "sleep");
-    post([this] { set_ui(UiState::Offline); });
     trigger_general_event(esp_brookesia::agent::GeneralEvent::Slept);
     return true;
 }
 
 bool HomunculusAgent::on_wakeup()
 {
+    // The wake word itself is handled from the AFE event subscription.
     ESP_LOGI(TAG, "wakeup");
-    post([this] { start_listen("wake_word", nullptr); });
     trigger_general_event(esp_brookesia::agent::GeneralEvent::Awake);
     return true;
 }
 
 bool HomunculusAgent::on_interrupt_speaking()
 {
+    // Brookesia: AFE WakeStart while is_speaking(). Same handling as the wake word
+    // subscription; whichever arrives second is ignored (already listening).
     ESP_LOGI(TAG, "interrupt_speaking");
-    post([this] { stop_speaking_locally(); });
+    post([this] { on_wake_word(); });
     return true;
 }
 
 bool HomunculusAgent::on_encoder_data_ready(const uint8_t *data, size_t data_size)
 {
-    std::lock_guard lock(uplink_mutex_);
-    if (!uplink_active_ || !data || data_size == 0) return true;
+    if (!data || data_size == 0) return true;
 
-    uint8_t flags = 0;
-    if (uplink_end_pending_) {
-        flags |= hdp::FLAG_LAST;
-        uplink_end_pending_ = false;
-        uplink_active_ = false;
-        stats_.uplink_end_us = esp_timer_get_time();
-        // Hand off finalisation to worker thread.
-        post([this] { uplink_done(); });
+    std::vector<uint8_t> frame;
+    std::shared_ptr<HdpClient> client;
+    bool last = false;
+    uint16_t sid = 0;
+    {
+        std::lock_guard lock(uplink_mutex_);
+        if (!uplink_active_) return true;
+        last = uplink_end_pending_;
+        sid = stream_id_;
+        frame = hdp::encode_frame(hdp::FRAME_OPUS_UPLINK, hdp::stream_flags(uplink_seq_, last), stream_id_,
+                                  uplink_seq_, data, data_size);
+        uplink_seq_++;
+        if (last) {
+            uplink_end_pending_ = false;
+            uplink_active_ = false;
+        }
+        client = client_;
     }
-
-    auto frame = hdp::encode_frame(hdp::FRAME_OPUS_UPLINK, flags, stream_id_, uplink_seq_++, data, data_size);
     if (frame.empty()) {
-        ESP_LOGW(TAG, "uplink frame too large");
-        return false;
+        ESP_LOGW(TAG, "uplink frame too large (%u bytes)", static_cast<unsigned>(data_size));
+        return true;
     }
 
-    const int64_t t0 = esp_timer_get_time();
-    const bool ok = client_ && client_->send_binary(frame.data(), frame.size(), 100);
-    if (!ok) stats_.up_send_fail++;
-
-    const int64_t dt = esp_timer_get_time() - t0;
-    stats_.up_frames++;
-    stats_.up_bytes += data_size;
-    if (dt > stats_.up_send_max_us) stats_.up_send_max_us = dt;
-    if (stats_.last_frame_us > 0) {
-        const int64_t gap = t0 - stats_.last_frame_us;
-        stats_.up_gap_sum_us += gap;
-        if (gap > stats_.up_gap_max_us) stats_.up_gap_max_us = gap;
+    const int64_t t0 = now_us();
+    const bool ok = client && client->send_binary(frame.data(), frame.size(), 100);
+    const int64_t dt = now_us() - t0;
+    {
+        std::lock_guard lock(stats_mutex_);
+        if (!ok) stats_.up_send_fail++;
+        stats_.up_frames++;
+        stats_.up_bytes += data_size;
+        stats_.up_send_max_us = std::max(stats_.up_send_max_us, dt);
+        if (stats_.last_frame_us > 0) {
+            stats_.up_gap_max_us = std::max(stats_.up_gap_max_us, t0 - stats_.last_frame_us);
+        }
+        stats_.last_frame_us = t0;
     }
-    stats_.last_frame_us = t0;
-    return ok;
+    if (last) {
+        post([this, sid] { uplink_done(sid, true); });
+    }
+    return true;
 }
 
 // ---------------------------------------------------------------------------
@@ -210,14 +314,18 @@ void HomunculusAgent::set_caption_callback(CaptionCallback cb)
 void HomunculusAgent::touch()
 {
     post([this] {
-        if (ui_ == UiState::Speaking) {
-            start_listen("touch", "barge_in");
-        } else if (ui_ == UiState::Listening) {
-            end_uplink_by_device("touch");
+        ESP_LOGI(TAG, "touch (ui %s)", to_string(ui_.load()));
+        if (ui_ == UiState::Listening) {
+            end_uplink(true, "touch");
         } else {
-            start_listen("touch", nullptr);
+            start_listen("touch", nullptr, "barge_in");
         }
     });
+}
+
+void HomunculusAgent::simulate_wake_word()
+{
+    post([this] { on_wake_word(); });
 }
 
 // ---------------------------------------------------------------------------
@@ -238,7 +346,7 @@ void HomunculusAgent::worker_loop()
     while (running_) {
         std::unique_lock lock(work_mutex_);
         work_cv_.wait_for(lock, std::chrono::milliseconds(10), [this] { return !work_.empty() || !running_; });
-        while (!work_.empty()) {
+        while (!work_.empty() && running_) {
             auto fn = std::move(work_.front());
             work_.pop_front();
             lock.unlock();
@@ -246,57 +354,64 @@ void HomunculusAgent::worker_loop()
             lock.lock();
         }
         lock.unlock();
-        tick();
+        if (running_) tick();
     }
     ESP_LOGI(TAG, "worker end");
 }
 
 void HomunculusAgent::tick()
 {
-    const int64_t now = esp_timer_get_time();
+    const int64_t now = now_us();
 
-    // Connect HDP once Wi-Fi is up.
     if (!client_ && wifi::is_connected()) {
-        client_ = std::make_unique<HdpClient>();
-        client_->start(
-            {
-                .url = CONFIG_HOMUNCULUS_SERVER_URL,
-                .token = CONFIG_HOMUNCULUS_DEVICE_TOKEN,
-                .device_id = wifi::mac_string(),
-                .model = MODEL,
-                .firmware = "0.1.0",
-            },
-            {
-                .connected = [this] { post([this] { handle_connected(); }); },
-                .disconnected = [this] { post([this] { handle_disconnected(); }); },
-                .text = [this](std::string &&s) { post([this, s = std::move(s)]() mutable { handle_text(std::move(s)); }); },
-                .binary = [this](const uint8_t *d, size_t n) {
-                    std::vector<uint8_t> v(d, d + n);
-                    post([this, v = std::move(v)]() mutable { handle_binary(v.data(), v.size()); });
-                },
-            });
+        connect();
+    }
+    // Wi-Fi lost: the WebSocket notices only on the next failed send or ping timeout.
+    // Drop the connection so the next session starts with a fresh hello.
+    if (client_ && !wifi::is_connected()) {
+        ESP_LOGW(TAG, "wifi lost");
+        std::shared_ptr<HdpClient> client;
+        {
+            std::lock_guard lock(uplink_mutex_);
+            uplink_active_ = false;
+            uplink_end_pending_ = false;
+            client = std::move(client_);
+        }
+        handle_disconnected();
+        client->stop();
     }
 
-    // Timeouts while session is ready.
     if (session_ready_) {
-        if (uplink_active_ && listen_deadline_us_ > 0 && now > listen_deadline_us_) {
-            end_uplink_by_device("max_length");
-        }
-        if (uplink_end_pending_ && uplink_done_deadline_us_ > 0 && now > uplink_done_deadline_us_) {
-            // No encoder frame arrived to carry the last-flag; finalize anyway.
+        bool active, end_pending, by_device;
+        uint16_t sid;
+        {
             std::lock_guard lock(uplink_mutex_);
-            uplink_end_pending_ = false;
-            uplink_active_ = false;
-            post([this] { uplink_done(); });
+            active = uplink_active_;
+            end_pending = uplink_end_pending_;
+            by_device = uplink_end_by_device_;
+            sid = stream_id_;
+        }
+        if (active && !end_pending && listen_deadline_us_ > 0 && now > listen_deadline_us_) {
+            end_uplink(true, "max_length");
+        }
+        if (end_pending && uplink_done_deadline_us_ > 0 && now > uplink_done_deadline_us_) {
+            // No encoder frame arrived to carry the last flag: end the stream with listen.stop.
+            {
+                std::lock_guard lock(uplink_mutex_);
+                uplink_end_pending_ = false;
+                uplink_active_ = false;
+            }
+            uplink_done_deadline_us_ = 0;
+            if (by_device) send(hdp::make_listen_stop());
+            uplink_done(sid, false);
         }
         if (ui_ == UiState::Thinking && thinking_deadline_us_ > 0 && now > thinking_deadline_us_) {
             ESP_LOGW(TAG, "thinking timeout");
-            stop_speaking_locally();
-            set_ui(UiState::Idle);
+            to_idle();
         }
     }
 
-    // Send tts.played events that are due.
+    // tts.played events that are due (estimated end of playback of each segment).
     std::vector<uint16_t> played;
     {
         std::lock_guard lock(player_mutex_);
@@ -316,8 +431,9 @@ void HomunculusAgent::tick()
 
 void HomunculusAgent::set_ui(UiState s)
 {
-    if (ui_.load() == s) return;
-    ESP_LOGI(TAG, "ui %s -> %s", ui_to_string(ui_.load()), ui_to_string(s));
+    const UiState old = ui_.load();
+    if (old == s) return;
+    ESP_LOGI(TAG, "ui %s -> %s", to_string(old), to_string(s));
     ui_ = s;
     if (state_cb_) state_cb_(s);
 }
@@ -325,93 +441,135 @@ void HomunculusAgent::set_ui(UiState s)
 // ---------------------------------------------------------------------------
 // HDP connection
 
+void HomunculusAgent::connect()
+{
+    const std::string url = CONFIG_HOMUNCULUS_SERVER_URL;
+#if !CONFIG_HOMUNCULUS_ALLOW_PLAIN_WS
+    if (url.rfind("ws://", 0) == 0) {
+        if (!url_rejected_) {
+            ESP_LOGE(TAG, "ws:// server URL rejected (CONFIG_HOMUNCULUS_ALLOW_PLAIN_WS disabled)");
+            url_rejected_ = true;
+        }
+        return;
+    }
+#endif
+    auto client = std::make_shared<HdpClient>();
+    const bool ok = client->start(
+    {
+        .url = url,
+        .token = CONFIG_HOMUNCULUS_DEVICE_TOKEN,
+        .device_id = wifi::mac_string(),
+        .model = MODEL,
+        .firmware = FIRMWARE,
+    },
+    {
+        .connected = [this] { post([this] { handle_connected(); }); },
+        .disconnected = [this] { post([this] { handle_disconnected(); }); },
+        .text = [this](std::string &&s) { post([this, s = std::move(s)] { handle_text(s); }); },
+        .binary = [this](const uint8_t *d, size_t n) {
+            std::vector<uint8_t> v(d, d + n);
+            post([this, v = std::move(v)] { handle_binary(v.data(), v.size()); });
+        },
+    });
+    if (!ok) {
+        return;  // retried on the next tick
+    }
+    std::lock_guard lock(uplink_mutex_);
+    client_ = std::move(client);
+}
+
 void HomunculusAgent::handle_connected()
 {
-    ESP_LOGI(TAG, "hdp connected");
-    client_->reset_backoff();
-
-    std::vector<uint32_t> rates = {16000, 24000};
+    ESP_LOGI(TAG, "hdp connected%s%s", session_id_.empty() ? "" : ", resume ", session_id_.c_str());
     hdp::HelloParams p{
         .model = MODEL,
-        .firmware = "0.1.0",
+        .firmware = FIRMWARE,
         .board = BOARD,
         .display_width = 466,
         .display_height = 466,
         .display_shape = "round",
         .color_depth = 16,
-        .output_sample_rates = std::move(rates),
+        .output_sample_rates = {16000, 24000},
         .mics = 1,
         .aec = true,
-        .wake_word = true,
+        .wake_word = afe_connection_.connected(),
         .inputs = {"touch"},
         .battery = std::nullopt,
         .avatar_engine = {},
         .emotes = {},
         .tools = {},
-        .resume_session_id = {},
+        .resume_session_id = session_id_,
     };
     send(hdp::make_hello(p));
 }
 
 void HomunculusAgent::handle_disconnected()
 {
-    ESP_LOGW(TAG, "hdp disconnected");
-    session_ready_ = false;
-    session_id_.clear();
-    stop_speaking_locally();
+    const bool was_ready = session_ready_.exchange(false);
+    if (was_ready) ESP_LOGW(TAG, "hdp session lost");
+    abort_uplink();
+    listen_deadline_us_ = 0;
+    uplink_done_deadline_us_ = 0;
+    thinking_deadline_us_ = 0;
+    stop_playback();
     set_ui(UiState::Offline);
 }
 
 void HomunculusAgent::handle_text(const std::string &text)
 {
+    auto m = hdp::parse_server_message(text);
     if (!session_ready_) {
-        auto m = hdp::parse_server_message(text);
-        if (m.type != hdp::ServerType::Hello) {
-            ESP_LOGW(TAG, "expected hello, got %s", hdp::to_string(m.type));
-            send(hdp::make_goodbye("hello_required"));
-            if (client_) client_->stop();
-            return;
+        if (m.type == hdp::ServerType::Hello) {
+            handle_hello(m);
+        } else if (m.type == hdp::ServerType::Error) {
+            ESP_LOGW(TAG, "server error before hello: %s: %s", m.code.c_str(), m.message.c_str());
+        } else {
+            ESP_LOGW(TAG, "expected hello, got %s (ignored)", m.type_name.c_str());
         }
-        handle_hello(m);
         return;
     }
 
-    auto m = hdp::parse_server_message(text);
-    if (m.type == hdp::ServerType::Invalid) {
-        ESP_LOGW(TAG, "invalid message: %s", m.error.c_str());
-        return;
-    }
     switch (m.type) {
+    case hdp::ServerType::Invalid:
+        ESP_LOGW(TAG, "invalid message: %s", m.error.c_str());
+        break;
     case hdp::ServerType::Hello:
         handle_hello(m);
         break;
     case hdp::ServerType::Listen:
-        if (m.state == "stop") end_uplink_by_server();
+        if (m.state == "stop") end_uplink(false, "server");
         break;
     case hdp::ServerType::Stt:
+        if (m.final) ESP_LOGI(TAG, "stt: %s", m.text.c_str());
         if (caption_cb_) caption_cb_(false, m.text, m.final);
         break;
     case hdp::ServerType::AgentStatus:
         if (m.phase == "thinking" || m.phase == "tool" || m.phase == "responding") {
-            if (ui_ != UiState::Speaking) set_ui(UiState::Thinking);
-        } else if (m.phase == "done" && ui_ == UiState::Thinking) {
-            set_ui(UiState::Idle);
+            if (ui_ == UiState::Idle) set_ui(UiState::Thinking);
+        } else if (m.phase == "done") {
+            if (ui_ == UiState::Thinking) to_idle();
         } else if (m.phase == "error") {
-            set_ui(UiState::Idle);
+            if (ui_ == UiState::Thinking) to_idle();
         }
         break;
     case hdp::ServerType::Tts:
         handle_tts(m);
         break;
     case hdp::ServerType::Avatar:
-        // Avatar rendering is Phase 2; just log for now.
+        // Avatar rendering is Phase 2. avatar{state: idle} ends a turn without speech
+        // (no speech detected, empty transcript).
+        if (!m.state.empty()) {
+            server_idle_ = m.state == "idle";
+            if (server_idle_ && ui_ == UiState::Thinking) to_idle();
+        }
         break;
     case hdp::ServerType::ToolCall:
         handle_tool_call(m);
         break;
     case hdp::ServerType::ConfirmRequest:
-        // Phase 3: for now acknowledge with yes.
-        send(hdp::make_tool_result(boost::json::value(m.session_id), hdp::text_content("confirmed")));
+        // No confirmation UI yet (Phase 3): deny.
+        ESP_LOGW(TAG, "confirm.request %s denied (no confirmation UI)", m.request_id.c_str());
+        send(hdp::make_confirm_result(m.request_id, false));
         break;
     case hdp::ServerType::Notify:
         if (caption_cb_) caption_cb_(true, m.text, true);
@@ -420,7 +578,7 @@ void HomunculusAgent::handle_text(const std::string &text)
         break;
     case hdp::ServerType::Error:
         ESP_LOGW(TAG, "server error %s: %s", m.code.c_str(), m.message.c_str());
-        set_ui(UiState::Idle);
+        if (ui_ == UiState::Thinking) to_idle();
         break;
     default:
         break;
@@ -429,10 +587,22 @@ void HomunculusAgent::handle_text(const std::string &text)
 
 void HomunculusAgent::handle_hello(const hdp::ServerMessage &m)
 {
+    if (m.format != "opus") {
+        ESP_LOGE(TAG, "server downlink format %s not supported", m.format.c_str());
+    }
+    if (!session_id_.empty() && m.session_id != session_id_) {
+        ESP_LOGI(TAG, "session %s not resumed", session_id_.c_str());
+    }
     session_id_ = m.session_id;
-    downlink_rate_ = m.sample_rate;
+    // Opus decodes at any output rate; the downlink rate only matters for the encoder side.
+    dl_frame_us_ = static_cast<int64_t>(m.frame_ms) * 1000;
     session_ready_ = true;
-    ESP_LOGI(TAG, "session %s sample_rate %u format %s", session_id_.c_str(), m.sample_rate, m.format.c_str());
+    {
+        std::lock_guard lock(uplink_mutex_);
+        if (client_) client_->reset_backoff();
+    }
+    ESP_LOGI(TAG, "session %s, downlink %s %u Hz %u ms", session_id_.c_str(), m.format.c_str(),
+             static_cast<unsigned>(m.sample_rate), static_cast<unsigned>(m.frame_ms));
     set_ui(UiState::Idle);
 }
 
@@ -440,24 +610,49 @@ void HomunculusAgent::handle_tts(const hdp::ServerMessage &m)
 {
     if (m.state == "start") {
         {
-            std::lock_guard lock(player_mutex_);
-            accept_downlink_ = true;
-            dl_generation_++;
+            std::lock_guard lock(uplink_mutex_);
+            if (uplink_active_ && !uplink_end_pending_) {
+                ESP_LOGW(TAG, "tts start while listening ignored");
+                return;
+            }
         }
-        set_ui(UiState::Speaking);
+        {
+            std::lock_guard lock(player_mutex_);
+            player_reset_locked();
+            accept_downlink_ = true;
+        }
+        {
+            std::lock_guard lock(stats_mutex_);
+            if (stats_.tts_start_us == 0) stats_.tts_start_us = now_us();
+        }
+        thinking_deadline_us_ = 0;
+        // Brookesia drops decoder writes while interrupted (after a wake-word barge-in).
+        reset_interrupted_speaking();
+        set_speaking(true);
+        if (ui_ != UiState::Listening) set_ui(UiState::Speaking);
         return;
     }
     if (m.state == "segment_start") {
+        if (!m.text.empty()) ESP_LOGI(TAG, "tts segment %u: %s", m.segment_id.value_or(0), m.text.c_str());
         if (caption_cb_ && !m.text.empty()) caption_cb_(true, m.text, false);
         return;
     }
     if (m.state == "segment_end") {
-        if (m.segment_id) player_segment_end(*m.segment_id);
+        if (m.segment_id) {
+            std::lock_guard lock(player_mutex_);
+            if (accept_downlink_) {
+                dl_segments_ended_.insert(static_cast<uint16_t>(*m.segment_id));
+                player_check_segment_locked(static_cast<uint16_t>(*m.segment_id));
+            }
+        }
         return;
     }
     if (m.state == "stop") {
-        player_tts_stop();
-        speech_finished();
+        std::lock_guard lock(player_mutex_);
+        if (accept_downlink_) {  // else: stream already flushed (barge-in)
+            dl_stop_pending_ = true;
+            player_cv_.notify_one();
+        }
     }
 }
 
@@ -470,213 +665,298 @@ void HomunculusAgent::handle_tool_call(const hdp::ServerMessage &m)
 
 void HomunculusAgent::send(const std::string &text)
 {
-    if (client_ && client_->is_connected()) {
-        if (!client_->send_text(text, 200)) {
-            ESP_LOGW(TAG, "send_text failed");
-        }
+    if (client_ && !client_->send_text(text, 200)) {
+        ESP_LOGW(TAG, "send_text failed");
     }
 }
 
 // ---------------------------------------------------------------------------
-// Uplink
+// Turns / uplink
 
-void HomunculusAgent::start_listen(const char *trigger, const char *abort_reason)
+void HomunculusAgent::on_wake_word()
 {
-    if (!session_ready_ || ui_ == UiState::Listening) return;
+    ESP_LOGI(TAG, "wake word (ui %s)", to_string(ui_.load()));
+    if (ui_ == UiState::Listening) return;
+    start_listen("wake_word", wake_word_.c_str(), "wake_word");
+}
 
-    if (abort_reason) {
-        send(hdp::make_abort(abort_reason));
-        stop_speaking_locally();
+void HomunculusAgent::start_listen(const char *trigger, const char *wake_word, const char *abort_reason)
+{
+    if (!session_ready_) {
+        ESP_LOGW(TAG, "listen ignored: no session");
+        return;
+    }
+    if (ui_ == UiState::Listening) return;
+
+    if (ui_ == UiState::Speaking || ui_ == UiState::Thinking) {
+        send(hdp::make_abort(abort_reason ? abort_reason : "barge_in"));
+        stop_playback();
     }
 
+    const int64_t t = now_us();
+    {
+        std::lock_guard lock(stats_mutex_);
+        stats_ = TurnStats{};
+        stats_.listen_start_us = t;
+    }
+    // listen.start goes out before the first uplink frame (spec 4.6).
+    send(hdp::make_listen_start("auto", trigger, wake_word ? wake_word : ""));
     {
         std::lock_guard lock(uplink_mutex_);
-        uplink_active_ = true;
-        uplink_end_pending_ = false;
         stream_id_++;
         uplink_seq_ = 0;
-        uplink_buf_.clear();
-        listen_start_us_ = esp_timer_get_time();
+        uplink_end_pending_ = false;
+        uplink_end_by_device_ = false;
+        uplink_active_ = true;
     }
-
-    stats_ = TurnStats{};
-    stats_.listen_start_us = esp_timer_get_time();
-    listen_deadline_us_ = stats_.listen_start_us + static_cast<int64_t>(CONFIG_HOMUNCULUS_MAX_UTTERANCE_MS) * 1000;
+    server_idle_ = false;
+    set_listening(true);
+    listen_deadline_us_ = t + static_cast<int64_t>(CONFIG_HOMUNCULUS_MAX_UTTERANCE_MS) * 1000;
+    uplink_done_deadline_us_ = 0;
     thinking_deadline_us_ = 0;
-
-    send(hdp::make_listen_start("auto", trigger, ""));
     set_ui(UiState::Listening);
 }
 
-void HomunculusAgent::end_uplink_by_server()
-{
-    std::lock_guard lock(uplink_mutex_);
-    if (!uplink_active_) return;
-    uplink_end_pending_ = true;
-    uplink_done_deadline_us_ = esp_timer_get_time() + 200 * 1000;
-}
-
-void HomunculusAgent::end_uplink_by_device(const char *why)
-{
-    std::lock_guard lock(uplink_mutex_);
-    if (!uplink_active_ || uplink_end_pending_) return;
-    uplink_end_pending_ = true;
-    stats_.uplink_end = why;
-    stats_.uplink_end_us = esp_timer_get_time();
-    uplink_done_deadline_us_ = esp_timer_get_time() + 100 * 1000;
-    listen_deadline_us_ = 0;
-}
-
-void HomunculusAgent::uplink_done()
+void HomunculusAgent::end_uplink(bool by_device, const char *why)
 {
     {
         std::lock_guard lock(uplink_mutex_);
-        if (uplink_active_ || uplink_end_pending_) return;
+        if (!uplink_active_ || uplink_end_pending_) return;
+        uplink_end_pending_ = true;
+        uplink_end_by_device_ = by_device;
     }
-    set_ui(UiState::Thinking);
-    thinking_deadline_us_ = esp_timer_get_time() + static_cast<int64_t>(CONFIG_HOMUNCULUS_THINKING_TIMEOUT_MS) * 1000;
-    log_turn_stats();
+    {
+        std::lock_guard lock(stats_mutex_);
+        stats_.uplink_end = why;
+        stats_.uplink_end_us = now_us();
+    }
+    uplink_done_deadline_us_ = now_us() + (by_device ? UPLINK_LAST_WAIT_DEVICE_US : UPLINK_LAST_WAIT_SERVER_US);
+    listen_deadline_us_ = 0;
 }
 
-void HomunculusAgent::stop_speaking_locally()
+void HomunculusAgent::abort_uplink()
+{
+    {
+        std::lock_guard lock(uplink_mutex_);
+        uplink_active_ = false;
+        uplink_end_pending_ = false;
+    }
+    set_listening(false);
+}
+
+void HomunculusAgent::uplink_done(uint16_t stream_id, bool last_sent)
+{
+    {
+        std::lock_guard lock(uplink_mutex_);
+        if (stream_id != stream_id_ || uplink_active_) return;  // superseded by a new listen
+    }
+    uplink_done_deadline_us_ = 0;
+    set_listening(false);
+    log_uplink_stats();
+    (void)last_sent;
+    if (ui_ != UiState::Listening) return;
+    if (server_idle_) {
+        to_idle();
+        return;
+    }
+    set_ui(UiState::Thinking);
+    thinking_deadline_us_ = now_us() + static_cast<int64_t>(CONFIG_HOMUNCULUS_THINKING_TIMEOUT_MS) * 1000;
+}
+
+void HomunculusAgent::stop_playback()
 {
     {
         std::lock_guard lock(player_mutex_);
-        dl_queue_.clear();
-        dl_segments_ended_.clear();
-        dl_segment_play_end_.clear();
-        dl_played_due_.clear();
+        player_reset_locked();
         accept_downlink_ = false;
-        dl_generation_++;
     }
-    set_ui(UiState::Idle);
+    player_cv_.notify_one();
+    set_speaking(false);
 }
 
-void HomunculusAgent::speech_finished()
+void HomunculusAgent::speech_finished(uint32_t generation)
 {
+    {
+        std::lock_guard lock(player_mutex_);
+        if (generation != dl_generation_) return;
+        accept_downlink_ = false;
+    }
+    set_speaking(false);
+    {
+        std::lock_guard lock(stats_mutex_);
+        stats_.play_end_us = now_us();
+    }
+    log_turn_stats();
+    if (ui_ == UiState::Speaking) set_ui(UiState::Idle);
+}
+
+void HomunculusAgent::to_idle()
+{
+    thinking_deadline_us_ = 0;
+    stop_playback();
     set_ui(UiState::Idle);
 }
 
 // ---------------------------------------------------------------------------
 // Downlink player
+//
+// Jitter buffer: playback (re)starts once CONFIG_HOMUNCULUS_JITTER_PREFILL_FRAMES frames are
+// queued, or earlier when the stream is known to be complete (segment end / tts stop).
+// Each fed frame advances the estimated end of playback by one frame duration
+// (play_end = max(now, play_end) + frame). tts.played for a segment is due at the play end
+// of its last frame; Speaking ends at the play end after tts stop.
 
 void HomunculusAgent::handle_binary(const uint8_t *data, size_t len)
 {
     auto frame = hdp::decode_frame(data, len);
     if (!frame) {
-        ESP_LOGW(TAG, "bad downlink frame");
+        ESP_LOGW(TAG, "bad downlink frame (%u bytes)", static_cast<unsigned>(len));
         return;
     }
     if (frame->type != hdp::FRAME_OPUS_DOWNLINK) {
         ESP_LOGW(TAG, "unexpected downlink frame type %u", frame->type);
         return;
     }
-
-    DownlinkFrame df{
-        .segment = frame->stream_id,
-        .flags = frame->flags,
-        .data = std::vector<uint8_t>(frame->payload, frame->payload + frame->payload_len),
-    };
+    bool dropped = false;
+    bool overflow = false;
     {
         std::lock_guard lock(player_mutex_);
         if (!accept_downlink_) {
-            stats_.dl_dropped++;
-            return;
+            dropped = true;
+        } else {
+            if (dl_queue_.size() >= DL_QUEUE_MAX) {
+                dl_queue_.pop_front();
+                overflow = true;
+            }
+            dl_queue_.push_back(DownlinkFrame{
+                .segment = frame->stream_id,
+                .flags = frame->flags,
+                .data = std::vector<uint8_t>(frame->payload, frame->payload + frame->payload_len),
+            });
         }
-        dl_queue_.push_back(std::move(df));
     }
-    player_cv_.notify_one();
+    {
+        std::lock_guard lock(stats_mutex_);
+        if (dropped || overflow) stats_.dl_dropped++;
+        if (!dropped && stats_.first_rx_us == 0) stats_.first_rx_us = now_us();
+    }
+    if (!dropped) player_cv_.notify_one();
+}
+
+void HomunculusAgent::player_reset_locked()
+{
+    dl_queue_.clear();
+    dl_segments_ended_.clear();
+    dl_segments_reported_.clear();
+    dl_segment_play_end_.clear();
+    dl_played_due_.clear();
+    dl_primed_ = false;
+    dl_stop_pending_ = false;
+    dl_play_end_us_ = 0;
+    dl_generation_++;
+}
+
+void HomunculusAgent::player_check_segment_locked(uint16_t segment)
+{
+    if (!dl_segments_ended_.count(segment) || dl_segments_reported_.count(segment)) return;
+    for (const auto &f : dl_queue_) {
+        if (f.segment == segment) return;  // frames still queued
+    }
+    dl_segments_reported_.insert(segment);
+    auto it = dl_segment_play_end_.find(segment);
+    const int64_t due = it != dl_segment_play_end_.end() ? it->second : now_us();
+    dl_played_due_.push_back({segment, due});
 }
 
 void HomunculusAgent::player_loop()
 {
     ESP_LOGI(TAG, "player start");
+    const size_t prefill = CONFIG_HOMUNCULUS_JITTER_PREFILL_FRAMES;
+    std::unique_lock lock(player_mutex_);
     while (running_) {
-        std::unique_lock lock(player_mutex_);
-        player_cv_.wait_for(lock, std::chrono::milliseconds(20),
-                            [this] { return !dl_queue_.empty() || !running_ || dl_stop_after_drain_; });
+        const int64_t now = now_us();
+        const bool complete = dl_stop_pending_ || (!dl_queue_.empty() && (dl_queue_.back().flags & hdp::FLAG_LAST));
+        const bool can_play = !dl_queue_.empty() && (dl_primed_ || dl_queue_.size() >= prefill || complete);
 
-        if (!running_) break;
+        if (!can_play) {
+            if (dl_queue_.empty() && now >= dl_play_end_us_) {
+                if (dl_stop_pending_) {
+                    // All audio of this tts stream has been played out.
+                    dl_stop_pending_ = false;
+                    dl_primed_ = false;
+                    const uint32_t gen = dl_generation_;
+                    post([this, gen] { speech_finished(gen); });
+                } else if (dl_primed_) {
+                    dl_primed_ = false;  // underrun: prefill again
+                    std::lock_guard slock(stats_mutex_);
+                    stats_.dl_underruns++;
+                }
+            }
+            // Wake up when the buffered audio has played out, or on new data.
+            int64_t wait_us = 20 * 1000;
+            if (dl_play_end_us_ > now) wait_us = std::min<int64_t>(wait_us, dl_play_end_us_ - now + 1000);
+            player_cv_.wait_for(lock, std::chrono::microseconds(wait_us));
+            continue;
+        }
 
-        std::deque<DownlinkFrame> q;
-        q.swap(dl_queue_);
+        DownlinkFrame f = std::move(dl_queue_.front());
+        dl_queue_.pop_front();
+        dl_primed_ = true;
         const uint32_t gen = dl_generation_;
-        const bool stop_after_drain = dl_stop_after_drain_;
-        dl_stop_after_drain_ = false;
         lock.unlock();
 
-        if (stats_.tts_start_us == 0) stats_.tts_start_us = esp_timer_get_time();
-        if (stats_.first_rx_us == 0) stats_.first_rx_us = esp_timer_get_time();
-
-        for (auto &df : q) {
-            if (gen != dl_generation_) break;  // generation bumped by barge-in
-
-            // Feed the base-class playback operation. Base::feed_audio_decoder_data()
-            // is synchronous and handles decoding + speaker output.
-            if (!feed_audio_decoder_data(df.data.data(), df.data.size())) {
-                stats_.dl_underruns++;
-            } else {
+        const bool ok = feed_audio_decoder_data(f.data.data(), f.data.size());
+        const int64_t fed_at = now_us();
+        {
+            std::lock_guard slock(stats_mutex_);
+            if (ok) {
                 stats_.dl_frames++;
-                if (stats_.first_fed_us == 0) stats_.first_fed_us = esp_timer_get_time();
-            }
-
-            // Each HDP frame carries one 60 ms Opus frame from the server pacer.
-            {
-                std::lock_guard lock(player_mutex_);
-                dl_segment_play_end_[df.segment] += FRAME_US;
-            }
-
-            if (df.flags & hdp::FLAG_LAST) {
-                player_segment_end(df.segment);
+                if (stats_.first_fed_us == 0) stats_.first_fed_us = fed_at;
+            } else {
+                stats_.dl_feed_fail++;
             }
         }
 
-        if (stop_after_drain && q.empty()) {
-            speech_finished();
-        }
+        lock.lock();
+        if (gen != dl_generation_) continue;  // flushed while feeding
+        dl_play_end_us_ = std::max(fed_at, dl_play_end_us_) + dl_frame_us_.load();
+        dl_segment_play_end_[f.segment] = dl_play_end_us_;
+        if (f.flags & hdp::FLAG_LAST) dl_segments_ended_.insert(f.segment);
+        player_check_segment_locked(f.segment);
     }
     ESP_LOGI(TAG, "player end");
-}
-
-void HomunculusAgent::player_flush()
-{
-    std::lock_guard lock(player_mutex_);
-    dl_queue_.clear();
-}
-
-void HomunculusAgent::player_segment_end(uint16_t segment)
-{
-    std::lock_guard lock(player_mutex_);
-    dl_segments_ended_.insert(segment);
-    const int64_t due = esp_timer_get_time() + dl_segment_play_end_[segment];
-    dl_played_due_.push_back({segment, due});
-}
-
-void HomunculusAgent::player_tts_stop()
-{
-    std::lock_guard lock(player_mutex_);
-    dl_stop_after_drain_ = true;
-    player_cv_.notify_one();
 }
 
 // ---------------------------------------------------------------------------
 // Statistics
 
+void HomunculusAgent::log_uplink_stats()
+{
+#if CONFIG_HOMUNCULUS_TURN_STATS
+    std::lock_guard lock(stats_mutex_);
+    const int64_t now = now_us();
+    ESP_LOGI(TAG,
+             "uplink: %lld ms, end=%s, frames=%u, bytes=%u, send_fail=%u, gap_max=%lld ms, send_max=%lld ms",
+             stats_.listen_start_us > 0 ? (now - stats_.listen_start_us) / 1000 : 0LL, stats_.uplink_end,
+             static_cast<unsigned>(stats_.up_frames), static_cast<unsigned>(stats_.up_bytes),
+             static_cast<unsigned>(stats_.up_send_fail), stats_.up_gap_max_us / 1000, stats_.up_send_max_us / 1000);
+#endif
+}
+
 void HomunculusAgent::log_turn_stats()
 {
 #if CONFIG_HOMUNCULUS_TURN_STATS
     std::lock_guard lock(stats_mutex_);
-    const int64_t now = esp_timer_get_time();
+    auto rel = [this](int64_t t) -> long long {
+        return (t > 0 && stats_.uplink_end_us > 0) ? (t - stats_.uplink_end_us) / 1000 : -1;
+    };
+    // Times in ms after listen.stop (server endpoint) / device end of utterance.
     ESP_LOGI(TAG,
-             "turn stats: listen=%lld ms, uplink_end=%s, tts_start=%lld ms, first_rx=%lld ms, "
-             "first_fed=%lld ms, up_frames=%u, up_bytes=%u, up_send_fail=%u, up_gap_max=%lld ms, "
-             "dl_frames=%u, dl_dropped=%u, dl_underruns=%u",
-             (stats_.listen_start_us > 0 ? (now - stats_.listen_start_us) / 1000 : 0), stats_.uplink_end,
-             (stats_.tts_start_us > 0 ? (stats_.tts_start_us - stats_.listen_start_us) / 1000 : 0),
-             (stats_.first_rx_us > 0 ? (stats_.first_rx_us - stats_.listen_start_us) / 1000 : 0),
-             (stats_.first_fed_us > 0 ? (stats_.first_fed_us - stats_.listen_start_us) / 1000 : 0),
-             stats_.up_frames, stats_.up_bytes, stats_.up_send_fail, stats_.up_gap_max_us / 1000, stats_.dl_frames,
-             stats_.dl_dropped, stats_.dl_underruns);
+             "turn: after listen.stop: tts_start=%lld ms, first_rx=%lld ms, first_fed=%lld ms, play_end=%lld ms; "
+             "dl_frames=%u, dl_dropped=%u, dl_underruns=%u, dl_feed_fail=%u",
+             rel(stats_.tts_start_us), rel(stats_.first_rx_us), rel(stats_.first_fed_us), rel(stats_.play_end_us),
+             static_cast<unsigned>(stats_.dl_frames), static_cast<unsigned>(stats_.dl_dropped),
+             static_cast<unsigned>(stats_.dl_underruns), static_cast<unsigned>(stats_.dl_feed_fail));
 #endif
 }
 

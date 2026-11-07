@@ -6,8 +6,12 @@
 //   wake word / touch -> listen.start, AFE Opus frames -> binary 0x01 uplink
 //   until server listen.stop; tts framing + binary 0x02 downlink -> jitter
 //   buffer -> decoder; tts.played per segment; tool.call -> tool.result.
-// Barge-in while speaking: wake word (Brookesia InterruptSpeaking) or touch
-// -> abort + flush playback + new listen.start. No VAD barge-in (spec R-06).
+// Barge-in while speaking: wake word (AFE WakeStart / Brookesia InterruptSpeaking)
+// or touch -> abort + flush playback + new listen.start. No VAD barge-in (spec R-06).
+//
+// Threads: a worker thread owns all turn state (HDP messages, UI state, timers);
+// a player thread feeds the decoder; the Brookesia encoder thread sends uplink
+// frames; the WebSocket task only posts work to the worker.
 #pragma once
 
 #include <atomic>
@@ -45,6 +49,7 @@ public:
     static constexpr const char *NAME = "Homunculus";
     static constexpr const char *MODEL = "ws-s3-amoled-175c";
     static constexpr const char *BOARD = "waveshare/esp32_s3_touch_amoled_1_75c";
+    static constexpr const char *FIRMWARE = "0.1.0";
 
     using StateCallback = std::function<void(UiState)>;
     // is_agent: true = agent speech (tts segment text), false = user transcript (stt).
@@ -57,8 +62,10 @@ public:
     void set_caption_callback(CaptionCallback cb);
 
     // Tap on the screen: start listening, end the utterance while listening,
-    // or barge in while speaking.
+    // or barge in while thinking / speaking.
     void touch();
+    // Same handling as a detected wake word (development console).
+    void simulate_wake_word();
 
     UiState ui_state() const
     {
@@ -84,6 +91,7 @@ private:
     void tick();
     void set_ui(UiState s);
 
+    void connect();
     void handle_connected();
     void handle_disconnected();
     void handle_text(const std::string &text);
@@ -92,12 +100,14 @@ private:
     void handle_tool_call(const hdp::ServerMessage &m);
     void send(const std::string &text);
 
-    void start_listen(const char *trigger, const char *abort_reason);
-    void end_uplink_by_server();
-    void end_uplink_by_device(const char *why);
-    void uplink_done();
-    void stop_speaking_locally();
-    void speech_finished();
+    void on_wake_word();
+    void start_listen(const char *trigger, const char *wake_word, const char *abort_reason);
+    void end_uplink(bool by_device, const char *why);
+    void abort_uplink();
+    void uplink_done(uint16_t stream_id, bool last_sent);
+    void stop_playback();
+    void speech_finished(uint32_t generation);
+    void to_idle();
 
     // Downlink player thread
     struct DownlinkFrame {
@@ -107,17 +117,19 @@ private:
     };
     void handle_binary(const uint8_t *data, size_t len);
     void player_loop();
-    void player_flush();
-    void player_segment_end(uint16_t segment);
-    void player_tts_stop();
+    // player_mutex_ held
+    void player_reset_locked();
+    void player_check_segment_locked(uint16_t segment);
 
     // Turn statistics
+    void log_uplink_stats();
     void log_turn_stats();
 
-    std::unique_ptr<HdpClient> client_;
+    std::shared_ptr<HdpClient> client_;  // written by the worker under uplink_mutex_
     StateCallback state_cb_;
     CaptionCallback caption_cb_;
     std::atomic<UiState> ui_{UiState::Offline};
+    std::string wake_word_ = "computer";
 
     // worker
     std::mutex work_mutex_;
@@ -126,56 +138,57 @@ private:
     std::thread worker_;
     std::thread player_;
     std::atomic<bool> running_{false};
+    bool url_rejected_ = false;
 
     // session (worker)
     std::atomic<bool> session_ready_{false};
-    std::string session_id_;
-    uint32_t downlink_rate_ = 24000;
-    int volume_ = 100;
+    std::string session_id_;  // kept across reconnects for hello.resume
     int64_t listen_deadline_us_ = 0;
     int64_t thinking_deadline_us_ = 0;
     int64_t uplink_done_deadline_us_ = 0;
+    bool server_idle_ = false;  // last server avatar state was idle
 
     // uplink (worker + encoder thread)
     std::mutex uplink_mutex_;
     bool uplink_active_ = false;
     bool uplink_end_pending_ = false;
+    bool uplink_end_by_device_ = false;
     uint16_t stream_id_ = 0;
     uint32_t uplink_seq_ = 0;
-    std::vector<uint8_t> uplink_buf_;
-    std::atomic<bool> vad_speech_{false};
-    int64_t listen_start_us_ = 0;
 
-    // downlink (ws thread + worker + player thread)
-    std::atomic<bool> accept_downlink_{false};
+    // downlink (worker + player thread), player_mutex_
     std::mutex player_mutex_;
     std::condition_variable player_cv_;
+    bool accept_downlink_ = false;
     std::deque<DownlinkFrame> dl_queue_;
     std::set<uint16_t> dl_segments_ended_;
-    std::map<uint16_t, int64_t> dl_segment_play_end_;  // fully fed segments: estimated end of playback
+    std::set<uint16_t> dl_segments_reported_;
+    std::map<uint16_t, int64_t> dl_segment_play_end_;
     std::vector<std::pair<uint16_t, int64_t>> dl_played_due_;
     bool dl_primed_ = false;
-    bool dl_stop_after_drain_ = false;
+    bool dl_stop_pending_ = false;
     uint32_t dl_generation_ = 0;
     int64_t dl_play_end_us_ = 0;
+    std::atomic<int64_t> dl_frame_us_{60 * 1000};
 
-    // stats
+    // stats, stats_mutex_
     struct TurnStats {
         int64_t listen_start_us = 0;
-        int64_t uplink_end_us = 0;
+        int64_t uplink_end_us = 0;  // listen.stop received / device end
         int64_t tts_start_us = 0;
         int64_t first_rx_us = 0;
         int64_t first_fed_us = 0;
+        int64_t play_end_us = 0;
         int64_t last_frame_us = 0;
         uint32_t up_frames = 0;
         uint32_t up_bytes = 0;
         uint32_t up_send_fail = 0;
         int64_t up_gap_max_us = 0;
-        int64_t up_gap_sum_us = 0;
         int64_t up_send_max_us = 0;
         uint32_t dl_frames = 0;
         uint32_t dl_dropped = 0;
         uint32_t dl_underruns = 0;
+        uint32_t dl_feed_fail = 0;
         const char *uplink_end = "";
     };
     std::mutex stats_mutex_;
