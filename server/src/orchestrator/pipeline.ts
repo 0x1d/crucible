@@ -68,7 +68,7 @@ export async function createSpeechPipeline(log: Logger): Promise<Pipeline> {
   const env = process.env;
   const persona = await loadPersona(env.HOMUNCULUS_PERSONA ?? "claudia");
   const voice = env.HOMUNCULUS_TTS_VOICE ?? persona.tts.voice;
-  const stt = createStt(log);
+  const stt = createStt(log, persona.language);
   const tts = createTts(persona.tts.provider, log);
   const model = env.HOMUNCULUS_MODEL ?? "claude-opus-5-5";
   const effort = (env.HOMUNCULUS_EFFORT ?? "low") as EffortLevel;

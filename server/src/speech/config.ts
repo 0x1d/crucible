@@ -12,7 +12,8 @@ const env = process.env;
 
 const num = (v: string | undefined, d: number) => (v === undefined || v === "" ? d : Number(v));
 
-export function createStt(log: Logger): SttProvider {
+/** STT provider; `language` (persona) is whisper's default `-l`. */
+export function createStt(log: Logger, language = "en"): SttProvider {
   const provider = env.HOMUNCULUS_STT ?? "whisper-cpp";
   if (provider !== "whisper-cpp") throw new Error(`unknown STT provider ${provider}`);
   const model = env.HOMUNCULUS_WHISPER_MODEL ?? "base.en";
@@ -22,6 +23,7 @@ export function createStt(log: Logger): SttProvider {
     bin: env.HOMUNCULUS_WHISPER_BIN,
     threads: num(env.HOMUNCULUS_WHISPER_THREADS, 4),
     partialIntervalMs: num(env.HOMUNCULUS_STT_PARTIAL_MS, 1000),
+    language,
     log,
   });
 }
