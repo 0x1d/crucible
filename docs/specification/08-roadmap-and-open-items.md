@@ -61,7 +61,7 @@ gantt
 | Phase | Exit criteria | Status |
 | --- | --- | --- |
 | 0 — Spikes | Display + touch + audio running on upstream Brookesia board def; measured AFE CPU load; Claude SDK partial streaming + interrupt verified | **Done 2026-11-07** (§8.6) |
-| 1 — Voice MVP | Wake word → answer by voice with web search; barge-in works; latency measured per stage | In progress (§8.7) |
+| 1 — Voice MVP | Wake word → answer by voice with web search; barge-in works; latency measured per stage | **Met on hardware 2026-11-08**; in-person checks pending (§8.7) |
 | 2 — Avatar | All states and emotes rendered ≥ 20 fps; lip-sync; agent drives emotions | Open |
 | 3 — Agent features | Backend switchable (Claude / OpenCode); device tools; confirmation flow; Wi-Fi provisioning + pairing; OTA | Open |
 | 4 — Multi-device | Second board with different display shape runs the same firmware and server unchanged | Open |
@@ -114,5 +114,22 @@ Product decisions taken on resolved open items. Decided 2026-11-07.
 | D-12 | **Orchestrator timeouts** | Uplink gap 2.5 s, utterance cap 22.5 s, final transcript 20 s, agent idle 90 s, speech idle 20 s, interrupt wait 8 s, whisper request 15 s (§5.2). |
 | D-13 | **Uplink stream id latched on First flag or seq 0** | Frames of other streams dropped. Firmware sets the First flag on seq 0. |
 | D-14 | **One live conversation per device id** | A newer connection closes the older with WebSocket close code 4000 `replaced` (§4.1). |
+| D-15 | **Brookesia agent never sleeps** | Wake word from AudioEncoder `AFEEventHappened`; `afe_wake_start/end_timeout_ms` = 0 (no WakeEnd → no automatic Sleep). |
+| D-16 | **Brookesia chat mode RealTime; uplink gated by HomunculusAgent** | |
+| D-17 | **Agent thread stacks in PSRAM, 8 KB each** | Internal RAM is the scarce resource (min 50 KB during turns). Measured use: worker 4.0 KB, player 2.1 KB. |
+| D-18 | **Device answers `confirm.request` with `approved:false`** | Until a confirmation UI exists (Phase 3). |
+| D-19 | **Kokoro runs in a child process** | In-process inference stalled the event loop up to 219 ms (> 180 ms downlink prebuffer → device underruns, delayed aborts); child process: max 4 ms. Worker thread rejected: onnxruntime-node aborts with sessions on main thread (Silero) and a worker. |
 
-After hardening (D-10 first segment 3–8 words), ms after end of speech, first downlink: "capital" 1924, "joke" 3016, "tokyo" 3371; second round capital / joke / weather (WebSearch) 3927 / 3688 / 4592. Agent time to first sentence (0.7–2.8 s after transcript) is the dominant stage.
+p1d hardware measurements (1.75C, LAN, speech pipeline):
+
+| Question | Trigger | End of speech → first frame fed (device) | `listen.stop` → first frame fed |
+| --- | --- | --- | --- |
+| Capital of Australia | wake word | 2792 ms | 2185 ms |
+| Vienna weather (WebSearch) | touch | 2951 ms | 2463 ms |
+| Time in Tokyo | touch | 3412 ms | 2873 ms |
+
+- Device feeds first frame 65–69 ms after server send.
+- CPU avg/max: idle core0 57/62 %, core1 51/60 %; listening 61/68 %, 56/68 %; speaking 62/69 %, 65/69 %. Internal heap min 50 KB (77 KB idle connected).
+- Before D-19: 2 downlink underruns per turn between segments; one late abort → 79 stale frames dropped.
+
+Pending (needs a person): physical tap barge-in while speaking; in-person "Computer" while speaking (AEC); stop latency after barge-in; wake-word false-trigger rate over a long quiet period.

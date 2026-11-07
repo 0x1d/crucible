@@ -252,7 +252,7 @@ export interface TtsProvider {
 
 | Candidate | Type | Notes |
 | --- | --- | --- |
-| Kokoro (82M) | Local | High quality for size, runs on CPU, several voices/languages |
+| Kokoro (82M) | Local | High quality for size, runs on CPU, several voices/languages; runs in a child process (D-19) |
 | Piper | Local | Very fast on CPU (incl. Raspberry Pi), many languages, more robotic |
 | ElevenLabs / Cartesia | Cloud streaming | Lowest latency + most expressive; paid |
 | OpenAI TTS | Cloud | Simple, streaming, steerable voice style |
