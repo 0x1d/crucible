@@ -66,5 +66,4 @@ These are worth reviewing for practical display/audio tricks on this exact hardw
 | Weather (web) | 26642 ms | 26643 ms | 28747 ms | WebSearch → WebFetch → WebSearch; no text before tools |
 
 - Partial streaming (`includePartialMessages`) delivers `text_delta` events; `server_tool_use`/`tool_use` block starts give tool events.
-- Warm time-to-first-sentence ≈ 2.1–2.2 s exceeds the §5.5 agent budget (400–800 ms TTFT); web-tool turns ≈ 27 s before any text (R-03: filler phrase / earcon needed).
-
+- Warm time-to-first-sentence ≈ 2.1–2.2 s exceeds the §5.5 agent budget (400–800 ms TTFT); web-tool turns ≈ 27 s before any text (R-03: filler phrase / earcon needed).- Rerun with D-09 voice rule (announce before web tools): weather turn first text 2257 ms, first sentence 3199 ms ("Let me look that up for you."), total 27726 ms.

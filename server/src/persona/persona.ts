@@ -25,7 +25,8 @@ const VOICE_RULES = `Everything you write is spoken aloud by a text-to-speech vo
 - Answer conversationally and briefly: one to three sentences unless asked for more.
 - Lead with the answer. For long topics give a short summary and offer to go on.
 - No markdown, no lists, no headings, no code blocks, no emoji, no URLs.
-- Write numbers, units and abbreviations the way they are spoken.`;
+- Write numbers, units and abbreviations the way they are spoken.
+- Before you search or fetch anything on the web, first say one short sentence that you're looking it up.`;
 
 export function buildSystemPrompt(persona: Persona): string {
   return `${persona.personality}\n\n${VOICE_RULES}`;
