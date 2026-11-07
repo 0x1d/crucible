@@ -100,6 +100,7 @@ HomunculusAgent::HomunculusAgent(): esp_brookesia::agent::Base(
 bool HomunculusAgent::on_activate()
 {
     ESP_LOGI(TAG, "activate");
+    trigger_general_event(esp_brookesia::agent::GeneralEvent::Activated);
     return true;
 }
 
@@ -109,6 +110,7 @@ bool HomunculusAgent::on_startup()
     running_ = true;
     worker_ = std::thread(&HomunculusAgent::worker_loop, this);
     player_ = std::thread(&HomunculusAgent::player_loop, this);
+    trigger_general_event(esp_brookesia::agent::GeneralEvent::Started);
     return true;
 }
 
@@ -128,12 +130,14 @@ void HomunculusAgent::on_shutdown()
     if (player_.joinable()) player_.join();
     if (client_) client_->stop();
     client_.reset();
+    trigger_general_event(esp_brookesia::agent::GeneralEvent::Stopped);
 }
 
 bool HomunculusAgent::on_sleep()
 {
     ESP_LOGI(TAG, "sleep");
     post([this] { set_ui(UiState::Offline); });
+    trigger_general_event(esp_brookesia::agent::GeneralEvent::Slept);
     return true;
 }
 
@@ -141,6 +145,7 @@ bool HomunculusAgent::on_wakeup()
 {
     ESP_LOGI(TAG, "wakeup");
     post([this] { start_listen("wake_word", nullptr); });
+    trigger_general_event(esp_brookesia::agent::GeneralEvent::Awake);
     return true;
 }
 

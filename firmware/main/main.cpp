@@ -23,7 +23,6 @@
 #include "homunculus/wifi.hpp"
 
 using namespace esp_brookesia;
-using AudioPlaybackHelper = service::helper::AudioPlayback;
 
 namespace {
 
@@ -187,21 +186,15 @@ extern "C" void app_main(void)
     auto &service_manager = service::ServiceManager::get_instance();
     BROOKESIA_CHECK_FALSE_EXIT(service_manager.start(), "Failed to start ServiceManager");
 
-    // Set playback volume once for the whole run.
-    auto vol = AudioPlaybackHelper::call_function_sync(AudioPlaybackHelper::FunctionId::SetVolume, 100.0);
-    BROOKESIA_LOGI("[audio] volume 100 %%: %1%", vol ? "ok" : vol.error());
+    // Start the AgentManager service so its functions can be called.
+    auto agent_manager_binding = service_manager.bind("AgentManager");
+    BROOKESIA_CHECK_FALSE_EXIT(agent_manager_binding.is_valid(), "Failed to bind AgentManager");
 
     init_display();
 
-    // Wire display state feedback and start the touch forwarding thread.
+    // Wire display state feedback before activation so boot states are visible.
     auto &agent = homunculus::HomunculusAgent::get_instance();
     agent.set_state_callback([](homunculus::UiState s) { show_ui_state(s); });
-
-    auto pthread_cfg = esp_pthread_get_default_config();
-    pthread_cfg.stack_size = 6 * 1024;
-    pthread_cfg.thread_name = "touch";
-    esp_pthread_set_cfg(&pthread_cfg);
-    std::thread touch(touch_task);
 
     // Start Wi-Fi; the agent's worker thread opens the HDP connection once connected.
     BROOKESIA_CHECK_FALSE_EXIT(homunculus::wifi::start(), "Failed to start Wi-Fi");
@@ -216,13 +209,27 @@ extern "C" void app_main(void)
         ESP_LOGE("Homunculus", "SetTargetAgent failed: %s", target_result.error_message.c_str());
     }
 
+    // Activate selects the target agent; Start moves it through Activated -> Started.
     boost::json::object activate_params;
     activate_params["Action"] = "Activate";
     auto activate_result = agent_manager.call_function_sync("TriggerGeneralAction", activate_params, 1000);
     BROOKESIA_CHECK_FALSE_EXIT(activate_result.success, "Failed to activate HomunculusAgent: %s",
                                activate_result.error_message.c_str());
 
+    boost::json::object start_params;
+    start_params["Action"] = "Start";
+    auto start_result = agent_manager.call_function_sync("TriggerGeneralAction", start_params, 1000);
+    BROOKESIA_CHECK_FALSE_EXIT(start_result.success, "Failed to start HomunculusAgent: %s",
+                               start_result.error_message.c_str());
+
     print_heap("agent active");
+
+    // Start the touch forwarding thread only after all hard requirements succeed.
+    auto pthread_cfg = esp_pthread_get_default_config();
+    pthread_cfg.stack_size = 6 * 1024;
+    pthread_cfg.thread_name = "touch";
+    esp_pthread_set_cfg(&pthread_cfg);
+    std::thread touch(touch_task);
 
     // Idle forever; agent threads handle all interaction.
     while (true) {
