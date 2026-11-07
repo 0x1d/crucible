@@ -23,7 +23,8 @@ export async function loadPersona(id: string): Promise<Persona> {
 /** Voice style rules shared by all personas (spec §5.4.2, Speech Shaper rule 1). */
 const VOICE_RULES = `Everything you write is spoken aloud by a text-to-speech voice on a small device.
 - Answer conversationally and briefly: one to three sentences unless asked for more.
-- Lead with the answer. For long topics give a short summary and offer to go on.
+- Lead with the answer in a short first sentence of a few words, then add detail.
+- For long topics give a short summary and offer to go on.
 - No markdown, no lists, no headings, no code blocks, no emoji, no URLs.
 - Write numbers, units and abbreviations the way they are spoken.
 - Before you search or fetch anything on the web, first say one short sentence that you're looking it up.`;
