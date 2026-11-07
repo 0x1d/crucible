@@ -78,3 +78,10 @@ These are worth reviewing for practical display/audio tricks on this exact hardw
 - Custom server requirements: (a) POST OTA stub returning `{"websocket":{"url":"wss://<host>/ws","token":"<t>","version":1}}` without `activation`/`mqtt`; (b) WebSocket endpoint implementing XiaoZhi hello/listen/stt/tts/llm/abort/mcp + Opus frames.
 - Upstream board definition (1.75C): `CONFIG_ESPTOOLPY_FLASHSIZE_16MB`, octal PSRAM, recorder 32-bit / 2 ch / 16 kHz, `MIC_LAYOUT="RMNN"`, gain 36 dB; ES7210 `adc_channel_mask` `0111`; I2S0 48 kHz 16-bit.
 
+### p0a — Brookesia 0.8 on the 1.75C (2026-11-07)
+
+- `examples/agent/chatbot` (Brookesia master `cec3a3b`, XiaoZhi 0.8.2, Emote 0.8.2) built with ESP-IDF 6.0.2 + idf-component-manager 3.1.2 for `esp32_s3_touch_amoled_1_75c`; flashed and boots.
+- Running: service manager, Emote service + assets, Wi-Fi SoftAP provisioning (`ESP-AP-<mac>`, open, `192.168.4.1:80`, QR code on screen).
+- One `Failed to read touch data` (`ESP_ERR_INVALID_RESPONSE`) at boot; not repeated in 45 s.
+- Image uses the board default flash size (16 MB).
+
