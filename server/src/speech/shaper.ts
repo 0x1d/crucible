@@ -12,8 +12,9 @@ export interface ShaperOptions {
 
 const defaults: ShaperOptions = { firstMinWords: 4, firstMaxWords: 12 };
 
+// Bare "am", "pm", "no" are ordinary words at sentence ends ("I am.", "No."), so only dotted forms count.
 const ABBREVIATIONS = new Set(
-  ["mr", "mrs", "ms", "dr", "prof", "st", "sr", "jr", "vs", "etc", "e.g", "i.e", "approx", "no", "mt", "ft", "u.s", "u.k", "p.m", "a.m", "pm", "am"],
+  ["mr", "mrs", "ms", "dr", "prof", "st", "sr", "jr", "vs", "etc", "e.g", "i.e", "approx", "mt", "ft", "u.s", "u.k", "p.m", "a.m"],
 );
 
 /** Sentence end: terminal punctuation (+ closing quotes/brackets) followed by whitespace, or a newline. */
