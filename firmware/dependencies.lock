@@ -908,6 +908,6 @@ direct_dependencies:
 - espressif/esp_websocket_client
 - idf
 - waveshare/esp_lcd_touch_cst9217
-manifest_hash: 455ee556efc8afcffff98efd8134f984f1a1fbe0d02366d60f405f6f1055bdc9
+manifest_hash: 24019e063da7bc2448fee68338381ce5f5f27bab3fc5949e8bfa993733774296
 target: esp32s3
 version: 3.0.0
