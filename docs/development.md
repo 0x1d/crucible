@@ -55,12 +55,42 @@ idf.py -p /dev/ttyACM0 flash monitor
 
 ## Server
 
+pnpm workspace at the repository root: `protocol`, `server`, `tools/simulator`.
+
 ```bash
-cd server
 pnpm install
 pnpm typecheck
-pnpm spike:claude
+pnpm test
 ```
+
+```bash
+pnpm --filter homunculus-server dev
+```
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `HOMUNCULUS_PORT` | `8443` | Listen port |
+| `HOMUNCULUS_HOST` | `0.0.0.0` | Listen address |
+| `HOMUNCULUS_DEVICE_TOKENS` | unset → `dev` (plain ws only) | Comma-separated device bearer tokens |
+| `HOMUNCULUS_TLS_CERT`, `HOMUNCULUS_TLS_KEY` | unset | PEM paths; enables `wss://` |
+| `HOMUNCULUS_LOG_LEVEL` | `info` | `debug` logs every HDP message |
+| `HOMUNCULUS_LOG` | text | `json` for JSON lines |
+
+Claude SDK spike: `pnpm --filter homunculus-server spike:claude`.
+
+After editing `protocol/src/messages.ts`: `pnpm --filter @homunculus/protocol gen:schema`.
+
+## Device simulator
+
+```bash
+pnpm --filter @homunculus/simulator sim --out /tmp/replies talk question.wav
+```
+
+```bash
+pnpm --filter @homunculus/simulator sim --play
+```
+
+Interactive commands: `talk <file> [manual]`, `ptt` (default mic, Enter ends), `abort`, `event <name> [json]`, `yes`/`no`, `quit`. `--help` lists options. Audio input via ffmpeg (any format; mic via PulseAudio/PipeWire), playback via `aplay` (override with `--player` or `HDP_SIM_PLAYER`).
 
 Claude auth: `ANTHROPIC_API_KEY` if set, otherwise the logged-in Claude subscription.
 

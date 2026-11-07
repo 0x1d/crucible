@@ -16,7 +16,9 @@ HDP is a WebSocket sub-protocol carrying **binary audio frames** and **JSON cont
 | Sub-protocol | `Sec-WebSocket-Protocol: hdp.v1` |
 | Auth | `Authorization: Bearer <device-token>` |
 | Headers | `X-Device-Id: <MAC>`, `X-Device-Model: ws-s3-amoled-175c`, `X-Firmware: <semver>` |
-| Keep-alive | WebSocket ping every 20 s; server closes after 60 s silence |
+| Keep-alive | WebSocket ping frames (not JSON messages) from the device every 20 s; server closes after 60 s without any frame, ping or pong |
+| Upgrade rejection | HTTP 404 wrong path, 400 missing `hdp.v1` sub-protocol or `X-Device-Id`, 401 bad token |
+| Handshake | First text frame must be `hello` within 10 s, else `error{hello_required}` + close 1008 |
 | Reconnect | Exponential backoff 1 s → 60 s with jitter; session resumes via `session_id` |
 | Text frames | UTF-8 JSON, one message per frame |
 | Binary frames | Audio, see §4.3 |
@@ -52,6 +54,11 @@ All multi-byte integers big-endian.
 | 10 | n | `payload` | One Opus packet (60 ms) |
 
 10-byte header overhead per 60 ms frame ≈ 1.3 kbit/s.
+
+- Uplink: Opus 16 kHz mono 60 ms (only accepted `hello.capabilities.audio.input`).
+- Downlink rate: first of server preference `[24000, 16000]` contained in `hello.capabilities.audio.output.sample_rates`.
+- Downlink pacing: real time, 3 frames (180 ms) ahead.
+- Auto mode: the device streams until the server sends `listen{stop}`; a frame with flag bit1 (last) also ends the utterance.
 
 ## 4.4 Capability descriptor (device `hello`)
 
@@ -102,7 +109,7 @@ Server response:
 | `listen` | `state: start\|stop`, `mode: auto\|manual\|realtime`, `trigger: wake_word\|touch\|button\|motion\|follow_up`, `wake_word?` | Begin/end an utterance. `auto` = server endpointing; `manual` = push-to-talk |
 | `abort` | `reason: barge_in\|user_cancel\|wake_word` | Interrupt current turn / playback |
 | `tts.played` | `segment_id` | Segment fully played (for spoken-so-far tracking) |
-| `tool.result` | JSON-RPC 2.0 response | Result of a device tool call |
+| `tool.result` | `payload`: JSON-RPC 2.0 response | Result of a device tool call |
 | `confirm.result` | `request_id`, `approved: bool` | User answer to a confirmation request |
 | `event` | `name: battery_low\|picked_up\|shake\|...`, `data` | Asynchronous device events |
 | `goodbye` | `reason` | Graceful disconnect |
@@ -116,11 +123,15 @@ Server response:
 | `agent.status` | `phase: thinking\|tool\|responding\|done\|error`, `tool?`, `detail?` | Agent progress (drives avatar "working" sub-states) |
 | `tts` | `state: start\|segment_start\|segment_end\|stop`, `segment_id?`, `text?` | Speech output framing; `text` for captions |
 | `avatar` | `state?`, `emote?`, `intensity?: 0–1`, `duration_ms?`, `gaze?` | Avatar control (see [06-avatar.md](06-avatar.md)) |
-| `tool.call` | JSON-RPC 2.0 request (`method: tools/call`) | Invoke a device tool |
+| `tool.call` | `payload`: JSON-RPC 2.0 request (`method: tools/call`, `params: {name, arguments}`) | Invoke a device tool |
 | `confirm.request` | `request_id`, `title`, `detail`, `timeout_ms` | Ask user to approve a risky agent action |
-| `notify` | `text`, `level` | Proactive notification (timer done, reminder) |
-| `config` | partial config | Runtime config update |
-| `error` | `code`, `message` | Protocol / server errors |
+| `notify` | `text`, `level: info\|warning\|alert` | Proactive notification (timer done, reminder) |
+| `config` | `config`: partial session config | Runtime config update |
+| `error` | `code: unsupported_version\|unauthorized\|hello_required\|bad_message\|busy\|internal`, `message` | Protocol / server errors |
+
+Avatar `state` values: `idle`, `listening`, `thinking`, `working`, `speaking`, `confirming`, `sleeping`, `offline`, `error` (spec 06 §6.4). `gaze`: `{x, y}`, each −1…1.
+
+Invalid messages after the handshake: `error{bad_message}`, connection stays open.
 
 ## 4.6 Turn example
 
@@ -145,8 +156,18 @@ S→D  {"type":"tts","state":"stop"}
 
 For an early spike, the server may additionally expose a **XiaoZhi-compatible endpoint** (hello with `audio_params`, `listen`/`stt`/`tts`/`llm{emotion}`/`abort`/`mcp`, binary protocol v3). This allows testing the server against unmodified `brookesia_agent_xiaozhi` or xiaozhi-esp32 firmware before the Homunculus agent component exists. Whether `brookesia_agent_xiaozhi` accepts a custom server URL without the XiaoZhi OTA activation flow must be verified (open item OI-04).
 
-## 4.8 Versioning rules
+## 4.8 Schemas and test vectors
 
-- `hello.version` is the HDP major version; servers must reject unknown majors with `error{code:"unsupported_version"}`.
+| Artifact | Path |
+| --- | --- |
+| TypeBox definitions (source of truth) | `protocol/src/messages.ts` |
+| JSON Schema (draft 2020-12, generated, `$defs` `device.<type>` / `server.<type>`) | `protocol/schemas/hdp.v1.schema.json` |
+| Binary frame codec | `protocol/src/frame.ts` |
+| Frame test vectors (hex) | `protocol/vectors/frames.json` |
+| Message test vectors (valid / invalid / unknown per direction) | `protocol/vectors/messages.json` |
+
+## 4.9 Versioning rules
+
+- `hello.version` is the HDP major version; servers must reject unknown majors with `error{code:"unsupported_version"}` (checked before schema validation) and close 1008.
 - Unknown message types and unknown fields must be ignored (forward compatibility).
 - New capabilities are additive within a major version.
