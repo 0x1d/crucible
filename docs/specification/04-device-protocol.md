@@ -125,7 +125,7 @@ Server response:
 ## 4.6 Turn example
 
 ```text
-D→S  {"type":"listen","state":"start","mode":"auto","trigger":"wake_word","wake_word":"hi esp"}
+D→S  {"type":"listen","state":"start","mode":"auto","trigger":"wake_word","wake_word":"computer"}
 D→S  [bin 0x01 stream=7 seq=0 flags=first] ... [seq=n]
 S→D  {"type":"stt","text":"what's the weather in","final":false}
 S→D  {"type":"listen","state":"stop"}

@@ -98,7 +98,7 @@ Incoming server messages are dispatched to `feed_audio_decoder_data()` (Opus dow
 | Uplink codec | Opus, 16 kHz mono, 60 ms frames, VBR ~ 16–24 kbit/s, complexity 3–5 |
 | Downlink codec | Opus, 24 kHz mono (server-selected), 60 ms frames |
 | Playback | ES8311 at 24 kHz (or resample to 16 kHz to keep a single I²S clock — to be measured) |
-| Wake word | WakeNet9 stock model initially (e.g. "Hi ESP" / "Hi Jason"); custom "Homunculus" model as later work |
+| Wake word | WakeNet9 stock model `wn9_computer_tts` ("Computer", see D-03); custom model optional later |
 
 Open item: Brookesia's board config uses one mic + reference (`RMNN`). Enabling MIC2 for two-mic beamforming / DOA (`MMR` layout) must be evaluated for CPU headroom; DOA would let the avatar look towards the speaker.
 

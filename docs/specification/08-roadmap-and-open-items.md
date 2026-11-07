@@ -75,6 +75,8 @@ gantt
 | R-05 | Prompt injection via web content leading to side effects | Security | Permission policy, on-device confirmation, default-deny host tools |
 | R-06 | Small speaker + enclosure resonance degrade AEC | Barge-in false triggers | AEC tuning, ES8311 output gain limits, VAD thresholds during playback |
 | R-07 | Flash size ambiguity (16 vs 32 MB) | Partition errors | `esptool flash_id` check; 16 MB layout as baseline |
+| R-08 | CPU-only STT on the development laptop (Whisper is not natively streaming) exceeds the latency budget | Slow turns during early phases | Small/turbo model with whisper.cpp; measure per stage; move STT to a GPU host later (D-01) |
+| R-09 | "Computer" is a common word and may false-trigger during normal conversation or TV | Unwanted activations | Tune WakeNet threshold; optional server-side verification; custom "Hey Claudia" model as fallback (D-03) |
 
 ## 8.4 Open items
 
@@ -84,8 +86,20 @@ gantt
 | OI-02 | Two-mic AFE (beamforming/DOA) feasibility and CPU cost on S3 | Phase 0 measurement |
 | OI-03 | Brookesia version: stay on v0.7 or go directly to v0.8 (IDF 6.2 for S3 on master) | Decide after Phase 0 bring-up |
 | OI-04 | Can `brookesia_agent_xiaozhi` target a custom server without XiaoZhi OTA/activation? (would enable a protocol-compatible early spike) | Code review of `agent_xiaozhi.cpp` |
-| OI-05 | STT/TTS default providers (local vs cloud) and target languages | Product decision |
-| OI-06 | Custom wake word "Homunculus" (WakeNet custom model via Espressif) vs stock wake word | Product decision |
-| OI-07 | Persona definition: name, voice, personality, default emotional range | Product decision |
-| OI-08 | Server hosting: LAN-only vs remote access (tunnel / reverse proxy) | Product decision |
+| OI-05 | STT/TTS default providers (local vs cloud) and target languages | **Decided** → D-01, D-02 |
+| OI-06 | Custom wake word "Homunculus" (WakeNet custom model via Espressif) vs stock wake word | **Decided** → D-03 |
+| OI-07 | Persona definition: name, voice, personality, default emotional range | **Decided** → D-04 (default emotional range still to be detailed in Phase 2) |
+| OI-08 | Server hosting: LAN-only vs remote access (tunnel / reverse proxy) | **Decided** → D-05 |
 | OI-09 | Memory: rely on backend session memory, or add long-term memory MCP server | Phase 3 |
+
+## 8.5 Decisions
+
+Product decisions taken on resolved open items. Decided 2026-11-07.
+
+| ID | Decision | Notes |
+| --- | --- | --- |
+| D-01 | **STT: local Whisper** (whisper.cpp, CPU) | Server starts on a development laptop without a GPU. Move to faster-whisper on a GPU host later; provider stays configurable (§5.4.1). |
+| D-02 | **TTS: local Kokoro**, provider configurable; **language: English** | Default voice a British female Kokoro voice (e.g. `bf_emma`; final pick by listening test). Piper remains the configured fallback. German is planned later. |
+| D-03 | **Wake word: "Computer"** (stock WakeNet9 model `wn9_computer_tts`) | No custom model for now. A custom "Hey Claudia" (Espressif TTS-trained model or microWakeWord) remains an option if false triggers are a problem (R-09). |
+| D-04 | **Persona: "Claudia"**: female, British voice, dark British humour | Exactly one persona for now, but personas must be **data, not code**: a persona definition (name, system prompt / personality, TTS provider + voice, language, emotional range, wake word) is loaded by the server and referenced from the device profile (§5.7), so more personas can be added later without code changes. The wake word is the only device-side persona attribute (model on device). |
+| D-05 | **Hosting: LAN only** | Remote access (tunnel / reverse proxy) is deferred. Keep the server URL configurable, not hard-wired to mDNS, so remote access can be added later. |

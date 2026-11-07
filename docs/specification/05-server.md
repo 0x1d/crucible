@@ -190,6 +190,8 @@ export interface SttStream {
 | Deepgram / AssemblyAI / ElevenLabs Scribe | Cloud streaming | Lowest effort, true streaming, endpointing built in |
 | OpenAI transcription API | Cloud | Simple, batch or streaming |
 
+Initial selection (D-01): whisper.cpp on CPU, English. faster-whisper on a GPU host later.
+
 ### 5.4.2 Speech-out
 
 ```mermaid
@@ -222,6 +224,14 @@ export interface TtsProvider {
 | OpenAI TTS | Cloud | Simple, streaming, steerable voice style |
 
 Provider selection is configuration-driven; a profile may combine local STT with cloud TTS, etc.
+
+Initial selection (D-02): Kokoro with a British female voice, English; Piper as fallback.
+
+### 5.4.3 Persona
+
+A persona is a configuration record, not code (D-04). It holds the name, personality / system-prompt text, TTS provider and voice, language, default emotional range for the avatar, and the wake word. The server loads persona definitions from configuration and each device profile references one. Only the wake word lives on the device (as a WakeNet model), so changing it requires a device-side model change.
+
+The initial and only persona is **Claudia**: female, British voice, dark British humour.
 
 ## 5.5 Latency budget (target, simple question)
 
