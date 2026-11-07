@@ -5,6 +5,7 @@ import { WhisperCppProvider } from "./stt/whisper-cpp.js";
 import { KokoroTtsProvider } from "./tts/kokoro.js";
 import { PiperTtsProvider } from "./tts/piper.js";
 import type { SttProvider, TtsProvider, VadModel } from "./types.js";
+import type { ShaperOptions } from "./shaper.js";
 import type { EndpointerOptions } from "./vad/endpointer.js";
 import { SileroVad } from "./vad/silero.js";
 
@@ -43,6 +44,26 @@ export function createTts(personaProvider: string, log: Logger): TtsProvider {
 
 export function createVad(): Promise<VadModel> {
   return SileroVad.load(`${modelDir}/silero/silero_vad.onnx`);
+}
+
+/** First-segment length (spec §5.4.2 rule 3); undefined values keep the shaper defaults. */
+export function shaperOptions(): Partial<ShaperOptions> {
+  const o: Partial<ShaperOptions> = {};
+  if (env.HOMUNCULUS_FIRST_MIN_WORDS) o.firstMinWords = Number(env.HOMUNCULUS_FIRST_MIN_WORDS);
+  if (env.HOMUNCULUS_FIRST_MAX_WORDS) o.firstMaxWords = Number(env.HOMUNCULUS_FIRST_MAX_WORDS);
+  return o;
+}
+
+/** Orchestrator timeouts (ms), see ConversationTimeouts. */
+export function conversationTimeouts(): Record<string, number> {
+  const pick: Record<string, string | undefined> = {
+    uplinkGapMs: env.HOMUNCULUS_UPLINK_GAP_MS,
+    sttFinalMs: env.HOMUNCULUS_STT_TIMEOUT_MS,
+    agentIdleMs: env.HOMUNCULUS_AGENT_IDLE_TIMEOUT_MS,
+    speechIdleMs: env.HOMUNCULUS_SPEECH_IDLE_TIMEOUT_MS,
+    interruptWaitMs: env.HOMUNCULUS_INTERRUPT_WAIT_MS,
+  };
+  return Object.fromEntries(Object.entries(pick).flatMap(([k, v]) => (v ? [[k, Number(v)]] : [])));
 }
 
 export function endpointerOptions(): Partial<EndpointerOptions> {

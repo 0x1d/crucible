@@ -8,7 +8,7 @@ import { ClaudeAgentBackend } from "../inference/claude/backend.js";
 import type { AgentBackend } from "../inference/types.js";
 import type { Logger } from "../log.js";
 import { buildSystemPrompt, loadPersona, type Persona } from "../persona/persona.js";
-import { createStt, createTts, createVad, endpointerOptions } from "../speech/config.js";
+import { conversationTimeouts, createStt, createTts, createVad, endpointerOptions, shaperOptions } from "../speech/config.js";
 import type { SttProvider, TtsProvider, VadModel } from "../speech/types.js";
 import { Conversation, type ConversationTimeouts } from "./conversation.js";
 
@@ -82,6 +82,7 @@ export function createPipeline(d: PipelineDeps): Pipeline {
           resumeSessionId: prevClosed.then(() => agentSessions.get(hdpSession)),
           openAgent: (resumeSessionId) => d.backend.openSession({ systemPrompt, resumeSessionId, cwd }),
           endpointer: endpointerOptions(),
+          shaper: shaperOptions(),
           timeouts: d.timeouts,
         });
         const entry: Entry = { conn, conv, hdpSession };
@@ -133,6 +134,7 @@ export async function createSpeechPipeline(log: Logger): Promise<Pipeline> {
     vad,
     backend,
     sandboxRoot,
+    timeouts: conversationTimeouts(),
     log,
   });
 }
