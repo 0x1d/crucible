@@ -51,6 +51,33 @@
 
         firmwareTools = with pkgs; [ picocom ];
 
+        # esp-idf-nix pins idf-component-manager 3.0.x, which fails on manifest
+        # conditions that reference Kconfig symbols invisible on the selected
+        # board (MissingKconfigError in brookesia_hal_adaptor). 3.1.x handles
+        # them. Shadow it via PYTHONPATH; other deps come from the IDF env.
+        wheel =
+          pname: version: hash:
+          pkgs.python3Packages.buildPythonPackage {
+            inherit pname version;
+            format = "wheel";
+            src = pkgs.fetchPypi {
+              inherit pname version hash;
+              format = "wheel";
+              dist = "py3";
+              python = "py3";
+            };
+            dontCheckRuntimeDeps = true;
+          };
+        idfComponentManager = [
+          (wheel "idf_component_manager" "3.1.2" "sha256-QkSUSTtHth6g92ZtMBinHe7Ld/IRhryLZ2GwtvmOj5A=")
+          (wheel "pathvalidate" "3.3.1" "sha256-UmO6q2kfjhr5YJL6UTfuF99b371s/x/KxNbvS8Lhc18=")
+        ];
+        firmwareShellHook = ''
+          export PYTHONPATH=${
+            pkgs.lib.concatMapStringsSep ":" (w: "${w}/lib/python3.13/site-packages") idfComponentManager
+          }''${PYTHONPATH:+:$PYTHONPATH}
+        '';
+
         # inputsFrom merges packages and shellHook but not plain env attributes.
         espIdfShell = espIdf.devShells.full;
         espIdfEnv = {
@@ -86,7 +113,7 @@
               name = "homunculus";
               inputsFrom = [ espIdfShell ];
               packages = commonTools ++ firmwareTools ++ serverTools;
-              inherit shellHook;
+              shellHook = shellHook + firmwareShellHook;
             }
           );
 
@@ -96,7 +123,7 @@
               name = "homunculus-firmware";
               inputsFrom = [ espIdfShell ];
               packages = commonTools ++ firmwareTools;
-              inherit shellHook;
+              shellHook = shellHook + firmwareShellHook;
             }
           );
 
