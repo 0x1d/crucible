@@ -188,7 +188,8 @@ void print_heap(const char *label)
 // (FreeRTOS run-time stats, esp_timer time base).
 class CpuLoad {
 public:
-    void sample(int load_out[2])
+    // Also fills `stacks` with "name:min_free_bytes" for the Homunculus threads.
+    void sample(int load_out[2], std::string &stacks)
     {
         const UBaseType_t n = uxTaskGetNumberOfTasks() + 4;
         std::vector<TaskStatus_t> tasks(n);
@@ -197,6 +198,11 @@ public:
         const int64_t now = esp_timer_get_time();
         configRUN_TIME_COUNTER_TYPE idle[2] = {0, 0};
         for (UBaseType_t i = 0; i < got; i++) {
+            const std::string name = tasks[i].pcTaskName;
+            if (name == "hom_worker" || name == "hom_player" || name == "hdp_ws" || name == "touch" ||
+                    name == "console") {
+                stacks += " " + name + ":" + std::to_string(tasks[i].usStackHighWaterMark);
+            }
             for (int core = 0; core < 2; core++) {
                 if (tasks[i].xHandle == xTaskGetIdleTaskHandleForCore(core)) {
                     idle[core] = tasks[i].ulRunTimeCounter;
@@ -224,12 +230,15 @@ void print_system_stats()
 {
     std::lock_guard lock(g_stats_mutex);
     int load[2];
-    g_cpu_load.sample(load);
+    std::string stacks;
+    g_cpu_load.sample(load, stacks);
     BROOKESIA_LOGI(
-        "[stats] ui %1%, cpu core0 %2% %%, core1 %3% %%, internal free %4% KB (min %5% KB), PSRAM free %6% KB",
+        "[stats] ui %1%, cpu core0 %2% %%, core1 %3% %%, internal free %4% KB (min %5% KB), PSRAM free %6% KB, "
+        "stack min free%7%",
         homunculus::to_string(homunculus::HomunculusAgent::get_instance().ui_state()), load[0], load[1],
         heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024,
-        heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL) / 1024, heap_caps_get_free_size(MALLOC_CAP_SPIRAM) / 1024
+        heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL) / 1024, heap_caps_get_free_size(MALLOC_CAP_SPIRAM) / 1024,
+        stacks
     );
 }
 
