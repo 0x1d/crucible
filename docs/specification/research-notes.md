@@ -122,3 +122,44 @@ Wake word / VAD observations (same bench, 2026-11-07):
 
 - Default player volume 75 % is too quiet on the 1.75C speaker; 100 % (`AudioPlayback` `SetVolume`) is adequate.
 
+### p1d — HomunculusAgent end to end on the 1.75C (2026-11-07/08)
+
+Firmware `ea037fb`+ (RealTime chat mode, Opus uplink VBR 24 kbit/s, Wi-Fi power save off); server `main.ts` on the LAN (192.168.1.15:8443, `ws://`, token `dev`), whisper.cpp base.en, Claude, Kokoro bf_emma. Test audio: Kokoro `am_michael` WAVs (`"Computer." + question`), loudness-normalised to −10 LUFS, played from the laptop speaker ≈ 0.5 m from the device.
+
+| Test | Result |
+| --- | --- |
+| Loopback pipeline (`HOMUNCULUS_PIPELINE=loopback`) | Uplink 251 frames / 15 s (max_length), echo played 15.06 s, play end 15.2 s after `listen.stop`; uplink frame gap max 77–80 ms, send max 6–19 ms, 0 send failures |
+| Wake word "Computer", device idle | 10/10 detected; `listen.start` 4–6 ms after `WakeStart` |
+| Wake word at laptop default volume (not normalised) | 0/3 |
+| Wake word while the device speaks (barge-in) | 3 detections in 8 plays; each → `abort{wake_word}` + `listen.start` |
+| Tap (touch panel) and console tap | Start / end utterance, barge-in while speaking (`abort{barge_in}`); human taps and speech ("Thank you.") answered |
+| `tts.played` | Exactly one per fully played segment; none for flushed segments |
+| Server killed mid-utterance | `listen` → Offline 5 ms after the WebSocket error, uplink stopped; reconnect backoff 0.95 / 1.5 / 3.6 / 6.9 / 12 s |
+| Wi-Fi disconnect mid-utterance (console `d`) | Uplink aborted after 33 frames, Offline; Wi-Fi back after 2.3 s, session resumed (`resumed=true`) |
+| HDP reconnect (console `r`) | `hello.resume` → `resumed=true`, Idle 138 ms after the request |
+| No speech / empty transcript | Server `listen{stop}` + `avatar{idle}` → Idle |
+
+Per-turn timings (device: ms after `listen.stop` received; server: ms after end of speech):
+
+| Question | Server endpoint | Server first downlink | Device first frame fed | End of speech → first frame fed | Underruns |
+| --- | --- | --- | --- | --- | --- |
+| "What is the capital of Australia?" (wake word) | 607 | 2724 | 2185 | 2792 | 2 |
+| "What's the weather in Vienna tomorrow?" (tap, WebSearch) | 488 | 2882 | 2463 | 2951 | 2 |
+| "What time is it in Tokyo?" (tap) | 539 | 3347 | 2873 | 3412 | 2 |
+
+- Device first frame fed − server first downlink: 65–69 ms (Wi-Fi + worker + jitter prefill).
+- Underruns occur between segments. Server log: the Kokoro synthesis of a segment (synth_ms up to 4776 ms) coincides with a stall of all server I/O: pacer frames, received `tts.played` and `abort` are processed when synthesis ends. Measured: device `abort` sent 23:07:09.42, server processed it 23:07:11.36 (synthesis end), 79 stale downlink frames dropped by the device, the next utterance was transcribed as "I".
+
+CPU load per core (100 − idle task share, 5 s windows) and heap, server pipeline:
+
+| UI state | Core 0 avg / max | Core 1 avg / max |
+| --- | --- | --- |
+| Idle (AFE + WakeNet + Opus encoder running) | 57 / 62 % | 51 / 60 % |
+| Listening | 61 / 68 % | 56 / 68 % |
+| Thinking | 61 / 61 % | 55 / 56 % |
+| Speaking | 62 / 69 % | 65 / 69 % |
+
+- Internal heap: 242 KB free at boot, 98 KB after agent start, 77 KB with Wi-Fi + HDP session, minimum 50 KB during turns. PSRAM free ≈ 4.07 MB.
+- Thread stacks (8 KB each): worker uses 4.0 KB, player 2.1 KB (the 3 KB pthread default overflows the worker).
+- The encoder runs continuously (wake word needs the AFE); Opus encoding is not paused while idle.
+

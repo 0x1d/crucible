@@ -53,6 +53,26 @@ idf.py -p /dev/ttyACM0 flash monitor
 
 `gen-bmgr-config` generates `components/gen_bmgr_codes/` (git-ignored) from the Brookesia board definition; run it once per checkout or board change. Component versions are locked in `firmware/dependencies.lock`.
 
+Per-machine settings go into the git-ignored `firmware/sdkconfig.local` (appended to `SDKCONFIG_DEFAULTS` if present):
+
+```text
+CONFIG_HOMUNCULUS_WIFI_SSID="..."
+CONFIG_HOMUNCULUS_WIFI_PASSWORD="..."
+CONFIG_HOMUNCULUS_SERVER_URL="ws://<server-lan-ip>:8443/hdp"
+```
+
+Defaults only fill keys missing from `sdkconfig`: after editing, delete the keys from `sdkconfig` or run `idf.py menuconfig`, then `idf.py reconfigure`.
+
+HDP codec host test (protocol vectors, needs `managed_components`):
+
+```bash
+firmware/components/homunculus_agent/test/host/run.sh
+```
+
+Development console (`CONFIG_HOMUNCULUS_DEV_CONSOLE`, USB-Serial-JTAG, e.g. in `idf.py monitor`): `t` tap, `w` wake word, `s` CPU / heap / stack stats, `r` HDP reconnect (session resume), `d` Wi-Fi disconnect. Serial capture without resetting the board: open `/dev/ttyACM0` with DTR and RTS deasserted (pyserial `dtr=False`, `rts=False` before `open()`).
+
+Device log lines: `hom_agent: uplink: ...` (per utterance), `hom_agent: turn: after listen.stop: tts_start, first_rx, first_fed, play_end` (ms), `[stats] ui, cpu core0/core1 %, internal free (min), stack min free` every `CONFIG_HOMUNCULUS_SYSTEM_STATS_INTERVAL_S`.
+
 ## Server
 
 pnpm workspace at the repository root: `protocol`, `server`, `tools/simulator`.

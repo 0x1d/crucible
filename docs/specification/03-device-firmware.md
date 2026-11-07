@@ -88,6 +88,59 @@ A custom agent registered with `brookesia_agent_manager`, modelled on `brookesia
 
 Incoming server messages are dispatched to `feed_audio_decoder_data()` (Opus downlink), `set_emote()`, `set_agent_speaking_text()` / `set_user_speaking_text()` (captions), and the device tool registry.
 
+### 3.2.1.1 Phase 1 implementation (`firmware/components/homunculus_agent`)
+
+Brookesia `agent_manager` 0.8 integration:
+
+| Item | Implementation |
+| --- | --- |
+| Lifecycle | `app_main`: `SetTargetAgent`, `SetChatMode{RealTime}`, `TriggerGeneralAction{Activate}`, poll `GetGeneralState` until `Activated`, `TriggerGeneralAction{Start}`, poll until `Started`. Triggering an action while a transition runs makes `StateMachine::trigger_general_action()` read the front of an empty queue. |
+| Chat mode | `RealTime` (also `CONFIG_BROOKESIA_AGENT_MANAGER_DEFAULT_CHAT_MODE_REAL_TIME`): Brookesia does not gate encoder data / decoder writes on the speaking / listening flags; the agent gates the uplink itself. |
+| Wake word | `AudioEncoder` `AFEEventHappened` event subscription (`WakeStart`). Brookesia forwards `WakeStart` to `on_wakeup()` only when the agent is `Slept`. |
+| Sleep | Not used. Encoder `afe_wake_start_timeout_ms` = `afe_wake_end_timeout_ms` = 0: no `WakeEnd`, so Brookesia never triggers `Sleep` (in `Slept` it drops encoder data and decoder writes). `on_sleep()` / `on_wakeup()` only acknowledge the state change. |
+| Barge-in | `support_general_functions = {InterruptSpeaking}`; `set_speaking(true)` at `tts{start}`, `false` at end of playback / abort; `set_listening()` around the uplink. AFE `WakeStart` while speaking → `on_interrupt_speaking()`. `reset_interrupted_speaking()` at `tts{start}` (Brookesia drops decoder writes while interrupted). |
+| Uplink encoder | Opus 16 kHz mono 60 ms, VBR 24 kbit/s (`EncoderExtraConfigOpus`; without it the encoder opens with bitrate 0 and fails), AFE on. |
+| Downlink decoder | Opus 24 kHz mono 60 ms. Negotiated `frame_ms` is used for play-time accounting; Opus streams decode at any output rate. |
+
+Turn handling:
+
+| Event | Device action |
+| --- | --- |
+| Wake word / tap (Idle) | `listen{start, auto, trigger}` sent, then uplink enabled; stream id incremented; seq 0 flagged first |
+| Wake word / tap (Thinking, Speaking) | `abort{wake_word \| barge_in}`, local playback flushed, new `listen{start}` |
+| Wake word (Listening) | Ignored |
+| Tap (Listening) | Next encoder frame flagged last; `listen{stop}` if no frame within 100 ms |
+| Server `listen{stop}` | Next encoder frame flagged last (fallback 200 ms) → Thinking |
+| `HOMUNCULUS_MAX_UTTERANCE_MS` | Same as tap while listening |
+| `avatar{state: idle}` / `agent.status{done \| error}` / `error` while Thinking | Idle |
+| No `tts{start}` within `HOMUNCULUS_THINKING_TIMEOUT_MS` | Idle |
+| `tts{start}` while listening (uplink not ending) | Ignored |
+| `confirm.request` | `confirm.result{approved: false}` (no confirmation UI) |
+| `tool.call` | JSON-RPC error −32601 |
+| Disconnect / Wi-Fi loss | Uplink stopped, deadlines cleared, playback flushed, Offline; Wi-Fi loss also closes the WebSocket |
+| Reconnect | `hello.resume.session_id` = last session id; backoff reset on server `hello` |
+| Non-`hello` first server message | Logged and ignored |
+
+Downlink player: frames are queued (max 64, oldest dropped); playback starts after `HOMUNCULUS_JITTER_PREFILL_FRAMES` frames or when the stream is complete (last-flagged frame, `tts{stop}`), and re-prefills after an underrun. Estimated play end per fed frame: `max(now, play_end) + frame_ms`. `tts.played` is sent once per segment at the play end of its last frame; Speaking ends at the play end after `tts{stop}`.
+
+Threads: worker (`hom_worker`, 8 KB stack in PSRAM, prio 6, core 0) owns turn state, HDP messages and the display callback; player (`hom_player`, 8 KB PSRAM, prio 7, core 0) feeds `feed_audio_decoder_data()`; the Brookesia encoder thread sends uplink frames (send outside the uplink lock); the WebSocket task (`hdp_ws`, 8 KB, prio 10, core 0) posts to the worker. Measured stack high-water marks: worker 4.2 KB free, player 6.1 KB free.
+
+Kconfig (`Homunculus agent` menu):
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `HOMUNCULUS_WIFI_SSID`, `HOMUNCULUS_WIFI_PASSWORD` | empty | Station credentials (only in `firmware/sdkconfig.local`) |
+| `HOMUNCULUS_SERVER_URL` | `ws://192.168.1.10:8443/hdp` | HDP endpoint |
+| `HOMUNCULUS_DEVICE_TOKEN` | `dev` | Bearer token |
+| `HOMUNCULUS_ALLOW_PLAIN_WS` | y | `ws://` URLs rejected when disabled |
+| `HOMUNCULUS_JITTER_PREFILL_FRAMES` | 3 | Frames queued before playback starts |
+| `HOMUNCULUS_MAX_UTTERANCE_MS` | 15000 | Device-side utterance limit |
+| `HOMUNCULUS_THINKING_TIMEOUT_MS` | 90000 | Thinking → Idle without `tts{start}` |
+| `HOMUNCULUS_DEVICE_ENDPOINT`, `_MIN_MS` | n, 1200 | Reserved (device-side VAD endpointing, not implemented) |
+| `HOMUNCULUS_TURN_STATS` | y | Per-turn uplink / latency log |
+| `HOMUNCULUS_SYSTEM_STATS_INTERVAL_S` | 5 | Per-core CPU load, heap, thread stack log interval (0 = off) |
+| `HOMUNCULUS_DEV_CONSOLE` | y | USB-Serial-JTAG single-key console (`t` tap, `w` wake word, `s` stats, `r` HDP reconnect, `d` Wi-Fi disconnect) |
+
 ### 3.2.2 Task and core layout
 
 | Task | Core | Priority | Stack | Notes |
