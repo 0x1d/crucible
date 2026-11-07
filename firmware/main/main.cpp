@@ -13,6 +13,7 @@
 #include "driver/usb_serial_jtag_vfs.h"
 #include "esp_heap_caps.h"
 #include "esp_timer.h"
+#include "esp_wifi.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
@@ -240,7 +241,7 @@ void console_task()
     if (usb_serial_jtag_driver_install(&cfg) == ESP_OK) {
         usb_serial_jtag_vfs_use_driver();
     }
-    BROOKESIA_LOGI("[console] keys: t = touch, w = wake word, s = stats");
+    BROOKESIA_LOGI("[console] keys: t = touch, w = wake word, s = stats, r = HDP reconnect, d = Wi-Fi disconnect");
     auto &agent = homunculus::HomunculusAgent::get_instance();
     while (true) {
         uint8_t c = 0;
@@ -258,6 +259,14 @@ void console_task()
             break;
         case 's':
             print_system_stats();
+            break;
+        case 'r':
+            BROOKESIA_LOGI("[console] HDP reconnect");
+            agent.reconnect();
+            break;
+        case 'd':
+            BROOKESIA_LOGI("[console] Wi-Fi disconnect (auto-reconnects)");
+            esp_wifi_disconnect();
             break;
         default:
             break;

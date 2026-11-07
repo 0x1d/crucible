@@ -84,6 +84,7 @@ menu "Homunculus agent"
         default y
         help
             Single-key commands read from the USB-Serial-JTAG console:
-            t = touch, w = wake word, s = system stats. Development builds only.
+            t = touch, w = wake word, s = system stats, r = HDP reconnect,
+            d = Wi-Fi disconnect. Development builds only.
 
 endmenu

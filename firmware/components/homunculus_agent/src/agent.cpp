@@ -328,6 +328,14 @@ void HomunculusAgent::simulate_wake_word()
     post([this] { on_wake_word(); });
 }
 
+void HomunculusAgent::reconnect()
+{
+    post([this] {
+        ESP_LOGW(TAG, "reconnect requested");
+        drop_connection();
+    });
+}
+
 // ---------------------------------------------------------------------------
 // Worker thread
 
@@ -370,15 +378,7 @@ void HomunculusAgent::tick()
     // Drop the connection so the next session starts with a fresh hello.
     if (client_ && !wifi::is_connected()) {
         ESP_LOGW(TAG, "wifi lost");
-        std::shared_ptr<HdpClient> client;
-        {
-            std::lock_guard lock(uplink_mutex_);
-            uplink_active_ = false;
-            uplink_end_pending_ = false;
-            client = std::move(client_);
-        }
-        handle_disconnected();
-        client->stop();
+        drop_connection();
     }
 
     if (session_ready_) {
@@ -476,6 +476,17 @@ void HomunculusAgent::connect()
     }
     std::lock_guard lock(uplink_mutex_);
     client_ = std::move(client);
+}
+
+void HomunculusAgent::drop_connection()
+{
+    handle_disconnected();
+    std::shared_ptr<HdpClient> client;
+    {
+        std::lock_guard lock(uplink_mutex_);
+        client = std::move(client_);
+    }
+    if (client) client->stop();
 }
 
 void HomunculusAgent::handle_connected()
@@ -736,10 +747,16 @@ void HomunculusAgent::end_uplink(bool by_device, const char *why)
 
 void HomunculusAgent::abort_uplink()
 {
+    bool was_active;
     {
         std::lock_guard lock(uplink_mutex_);
+        was_active = uplink_active_;
         uplink_active_ = false;
         uplink_end_pending_ = false;
+    }
+    if (was_active) {
+        std::lock_guard lock(stats_mutex_);
+        ESP_LOGW(TAG, "uplink aborted after %u frames", static_cast<unsigned>(stats_.up_frames));
     }
     set_listening(false);
 }

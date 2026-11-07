@@ -66,6 +66,8 @@ public:
     void touch();
     // Same handling as a detected wake word (development console).
     void simulate_wake_word();
+    // Closes the HDP connection; the worker reconnects and resumes the session (development console).
+    void reconnect();
 
     UiState ui_state() const
     {
@@ -92,6 +94,7 @@ private:
     void set_ui(UiState s);
 
     void connect();
+    void drop_connection();
     void handle_connected();
     void handle_disconnected();
     void handle_text(const std::string &text);
