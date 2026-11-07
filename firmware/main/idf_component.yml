@@ -9,3 +9,7 @@ dependencies:
     version: "0.8.*"
   espressif/brookesia_hal_boards:
     version: "0.8.*"
+  espressif/brookesia_agent_manager:
+    version: "0.8.*"
+  espressif/esp_websocket_client:
+    version: "^1.5"
