@@ -5,6 +5,21 @@ dependencies:
       path: managed_components/espressif__brookesia_hal_boards/boards/waveshare/esp32_s3_touch_amoled_1_75c/components/brookesia_hal_custom
       type: local
     version: 0.1.0
+  espressif/brookesia_agent_manager:
+    component_hash: 2e24f02bcbc9f4a827f44385a4a122139f2e847b026ce72e607a9bd4fd15033c
+    dependencies:
+    - name: espressif/brookesia_service_helper
+      registry_url: https://components.espressif.com
+      require: private
+      version: 0.8.*
+    - name: espressif/brookesia_service_sntp
+      registry_url: https://components.espressif.com
+      require: private
+      version: 0.8.*
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 0.8.2
   espressif/brookesia_hal_adaptor:
     component_hash: 7545b7e93d4b71b989485a46738d40b006dc582b3b9cf85c99117d72c2680a0c
     dependencies:
@@ -175,6 +190,17 @@ dependencies:
       registry_url: https://components.espressif.com
       type: service
     version: 0.8.2
+  espressif/brookesia_service_sntp:
+    component_hash: 74ceac32a9e5e9f159cbf6a00069b944d9a08e42d826e5d3558feed712ab14d3
+    dependencies:
+    - name: espressif/brookesia_service_storage
+      registry_url: https://components.espressif.com
+      require: private
+      version: 0.8.*
+    source:
+      registry_url: https://components.espressif.com
+      type: service
+    version: 0.8.3
   espressif/brookesia_service_storage:
     component_hash: 2746c32429841b24b25df6d5469a6fcb190f66917b092c574b796d83e229bcfe
     dependencies:
@@ -643,6 +669,16 @@ dependencies:
       registry_url: https://components.espressif.com
       type: service
     version: 0.5.7
+  espressif/esp_websocket_client:
+    component_hash: dc00233af846f3a744ada283a300e0d586040aadc3ee67361645ecdce4523672
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=5.0'
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 1.8.0
   espressif/gmf_ai_audio:
     component_hash: 73a3a73ce506c8d35324a557bda12270f676471c42d5159a55dfe30a436133da
     dependencies:
@@ -863,13 +899,15 @@ dependencies:
     version: 1.0.4
 direct_dependencies:
 - brookesia_hal_custom
+- espressif/brookesia_agent_manager
 - espressif/brookesia_hal_adaptor
 - espressif/brookesia_hal_boards
 - espressif/brookesia_service_audio
 - espressif/brookesia_service_storage
 - espressif/esp_lcd_co5300
+- espressif/esp_websocket_client
 - idf
 - waveshare/esp_lcd_touch_cst9217
-manifest_hash: 3453634ecd64f66ec55908d3c4da717b8eadaa8a47cff47e3d85f3842663d6a0
+manifest_hash: 455ee556efc8afcffff98efd8134f984f1a1fbe0d02366d60f405f6f1055bdc9
 target: esp32s3
 version: 3.0.0
