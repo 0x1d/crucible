@@ -1,16 +1,20 @@
 {
   description = "Homunculus - physical AI companion on ESP32 devices";
 
+  nixConfig = {
+    extra-substituters = [ "https://esp-idf-nix.cachix.org" ];
+    extra-trusted-public-keys = [
+      "esp-idf-nix.cachix.org-1:6qHkAxmub00GqSujpkTqbL3XZvT6d4g8/13FcL+wrpQ="
+    ];
+  };
+
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
     flake-utils.url = "github:numtide/flake-utils";
 
-    # ESP-IDF + Espressif toolchains (default ESP-IDF v5.5.x).
-    esp-dev = {
-      url = "github:mirrexagon/nixpkgs-esp-dev";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-utils.follows = "flake-utils";
-    };
+    # ESP-IDF + Espressif toolchains. Keeps its own locked nixpkgs so the
+    # esp-idf-nix binary cache applies.
+    esp-idf-nix.url = "github:Cbeck527/esp-idf-nix";
 
     # Lets shell.nix / default.nix expose this flake to classic `nix-shell`.
     flake-compat = {
@@ -24,18 +28,18 @@
       self,
       nixpkgs,
       flake-utils,
-      esp-dev,
+      esp-idf-nix,
       ...
     }:
     flake-utils.lib.eachSystem [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" ] (
       system:
       let
-        pkgs = import nixpkgs {
+        pkgs = nixpkgs.legacyPackages.${system};
+
+        # ESP-Brookesia 0.8 requires ESP-IDF >= 6.0, <= 6.2 on ESP32-S3.
+        espIdf = esp-idf-nix.lib.mkEspIdfEnv {
           inherit system;
-          overlays = [ esp-dev.overlays.default ];
-          # esptool depends on python-ecdsa, which nixpkgs marks insecure.
-          # See https://github.com/mirrexagon/nixpkgs-esp-dev/issues/109
-          config.permittedInsecurePackages = [ "python3.13-ecdsa-0.19.1" ];
+          version = "6.0.2";
         };
 
         commonTools = with pkgs; [
@@ -45,33 +49,18 @@
           nixfmt-rfc-style
         ];
 
-        # ESP32-S3 is Xtensa; esp-idf-xtensa covers ESP32 / S2 / S3.
-        # Switch to esp-idf-full once RISC-V boards (C6, P4) are supported.
-        firmwareTools = with pkgs; [
-          esp-idf-xtensa
-          picocom
-        ];
+        firmwareTools = with pkgs; [ picocom ];
 
-        # nixpkgs-esp-dev bundles idf-component-manager 2.2.2, which cannot resolve
-        # Kconfig-conditional dependencies (esp_board_manager, used by Brookesia
-        # v0.7). Shadow it with a newer release via PYTHONPATH; its runtime deps
-        # come from the ESP-IDF Python environment.
-        idfComponentManager = pkgs.python3Packages.buildPythonPackage rec {
-          pname = "idf_component_manager";
-          version = "2.4.9";
-          format = "wheel";
-          src = pkgs.fetchPypi {
-            inherit pname version format;
-            dist = "py3";
-            python = "py3";
-            hash = "sha256-DHfnsH0fIMkP2X1+gJQNVdSPBW4alARFK/nURpr/IzI=";
-          };
-          dontCheckRuntimeDeps = true;
+        # inputsFrom merges packages and shellHook but not plain env attributes.
+        espIdfShell = espIdf.devShells.full;
+        espIdfEnv = {
+          inherit (espIdfShell)
+            ESP_IDF_VERSION
+            ESP_ROM_ELF_DIR
+            IDF_PATH
+            OPENOCD_SCRIPTS
+            ;
         };
-
-        firmwareShellHook = ''
-          export PYTHONPATH=${idfComponentManager}/${pkgs.python3.sitePackages}''${PYTHONPATH:+:$PYTHONPATH}
-        '';
 
         serverTools = with pkgs; [
           nodejs_22
@@ -91,17 +80,25 @@
       in
       {
         devShells = {
-          default = pkgs.mkShell {
-            name = "homunculus";
-            packages = commonTools ++ firmwareTools ++ serverTools;
-            shellHook = shellHook + firmwareShellHook;
-          };
+          default = pkgs.mkShell (
+            espIdfEnv
+            // {
+              name = "homunculus";
+              inputsFrom = [ espIdfShell ];
+              packages = commonTools ++ firmwareTools ++ serverTools;
+              inherit shellHook;
+            }
+          );
 
-          firmware = pkgs.mkShell {
-            name = "homunculus-firmware";
-            packages = commonTools ++ firmwareTools;
-            shellHook = shellHook + firmwareShellHook;
-          };
+          firmware = pkgs.mkShell (
+            espIdfEnv
+            // {
+              name = "homunculus-firmware";
+              inputsFrom = [ espIdfShell ];
+              packages = commonTools ++ firmwareTools;
+              inherit shellHook;
+            }
+          );
 
           server = pkgs.mkShell {
             name = "homunculus-server";
