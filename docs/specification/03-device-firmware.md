@@ -10,17 +10,28 @@
 
 | Layer | Choice |
 | --- | --- |
-| SDK | ESP-IDF v5.5.x (initial) → v6.x when moving to Brookesia v0.8 |
-| Application framework | ESP-Brookesia, componentised (`release/v0.7` initially, tracking `master`/v0.8) |
+| SDK | ESP-IDF 6.x (Brookesia 0.8 requires ≥ 6.0, ≤ 6.2) |
+| Application framework | ESP-Brookesia 0.8.x, components from the ESP Component Registry (D-07) |
 | GUI | LVGL 9.x via `esp_lvgl_adapter` |
 | Audio | Brookesia audio service (ESP-GMF, ESP-SR AFE, `esp_audio_codec` Opus) |
 | Language | C++17 (Brookesia API), C for drivers |
 
 ### Why upstream Brookesia rather than the vendored example
 
-The vendor example `03_esp-brookesia` vendors `brookesia_core` **0.6.0-beta2** (end of maintenance) with the AI framework disabled; its agent is hard-wired to Coze. Upstream ESP-Brookesia (v0.7/v0.8) is componentised, already contains a **board definition for the 1.75C** (`hal/brookesia_hal_boards/boards/waveshare/esp32_s3_touch_amoled_1_75c`), and provides an `agent_manager` with a pluggable agent base class, an audio service with AFE + Opus, and the `expression_emote` service. Homunculus uses the vendor example only as a **hardware bring-up reference** (display init, touch mirroring, LVGL stack size) and builds on upstream components.
+- Vendor example `03_esp-brookesia`: vendored `brookesia_core` 0.6.0-beta2 (end of maintenance), AI framework disabled, agent hard-wired to Coze. Used only as a hardware bring-up reference (display init, touch mirroring, LVGL stack size).
+- Upstream ESP-Brookesia: componentised; board definition `hal/brookesia_hal_boards/boards/waveshare/esp32_s3_touch_amoled_1_75c`; `agent_manager` with pluggable `agent::Base`; audio service with AFE + Opus; `expression_emote`; `brookesia_mcp_utils` (0.8).
+- Version policy: latest released Brookesia 0.8.x and a matching ESP-IDF 6.x (D-07).
 
-Version policy: start on `release/v0.7` (IDF 5.5, matches vendor-tested IDF); evaluate migration to v0.8 once it is released stable, since v0.8 adds `brookesia_mcp_utils`, JSON UI and the unified service framework.
+Component versions (ESP Component Registry, 2026-11-07):
+
+| Component | Version |
+| --- | --- |
+| `espressif/brookesia_hal_boards` | 0.8.1 |
+| `espressif/brookesia_hal_adaptor` | 0.8.5 |
+| `espressif/brookesia_service_device` | 0.8.3 |
+| `espressif/brookesia_service_audio` | 0.8.2 |
+| `espressif/brookesia_agent_manager` | 0.8.2 |
+| `espressif/brookesia_expression_emote` | 0.8.2 |
 
 ## 3.2 Firmware architecture
 

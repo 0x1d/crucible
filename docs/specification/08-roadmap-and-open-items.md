@@ -69,12 +69,12 @@ gantt
 | ID | Risk | Impact | Mitigation |
 | --- | --- | --- | --- |
 | R-01 | ESP32-S3 CPU/RAM insufficient for AFE + Opus + Wi-Fi + 30 fps avatar simultaneously | Choppy audio or animation | Measure in Phase 0; dirty-rect rendering; lower fps while listening; single-mic AFE mode |
-| R-02 | Brookesia v0.8 API churn (master in active development; S3 requires IDF 6.2 on master) | Rework | Start on `release/v0.7`; isolate Brookesia behind thin adapters |
+| R-02 | Brookesia 0.8 API churn (master in active development) | Rework | Pin component versions; isolate Brookesia behind thin adapters |
 | R-03 | End-to-end latency > 2.5 s with agent harness overhead | Poor UX | Prewarm, fast model profile, immediate acknowledgement emote/earcon, filler phrases |
 | R-04 | Agent harness outputs are long / markdown-heavy | Unnatural speech | Persona system prompt + Speech Shaper + summary-first rule |
 | R-05 | Prompt injection via web content leading to side effects | Security | Permission policy, on-device confirmation, default-deny host tools |
 | R-06 | Small speaker + enclosure resonance degrade AEC | Barge-in false triggers | AEC tuning, ES8311 output gain limits, VAD thresholds during playback |
-| R-07 | Flash size ambiguity (16 vs 32 MB) | Partition errors | `esptool flash_id` check; 16 MB layout as baseline |
+| R-07 | Flash size differs between units or batches (schematic: 16 MB part) | Partition errors | `esptool flash_id` per unit; upstream board definition sets 16 MB, Homunculus overrides to 32 MB (D-06) |
 | R-08 | CPU-only STT on the development laptop (Whisper is not natively streaming) exceeds the latency budget | Slow turns during early phases | Small/turbo model with whisper.cpp; measure per stage; move STT to a GPU host later (D-01) |
 | R-09 | "Computer" is a common word and may false-trigger during normal conversation or TV | Unwanted activations | Tune WakeNet threshold; optional server-side verification; custom "Hey Claudia" model as fallback (D-03) |
 
@@ -82,9 +82,9 @@ gantt
 
 | ID | Question | Owner / next step |
 | --- | --- | --- |
-| OI-01 | Actual flash size on shipping 1.75C units (schematic: 16 MB part; vendor: 32 MB) | Read `flash_id` on hardware |
+| OI-01 | Actual flash size on shipping 1.75C units (schematic: 16 MB part; vendor: 32 MB) | **Decided** → D-06 |
 | OI-02 | Two-mic AFE (beamforming/DOA) feasibility and CPU cost on S3 | Phase 0 measurement |
-| OI-03 | Brookesia version: stay on v0.7 or go directly to v0.8 (IDF 6.2 for S3 on master) | Decide after Phase 0 bring-up |
+| OI-03 | Brookesia version: stay on v0.7 or go directly to v0.8 | **Decided** → D-07 |
 | OI-04 | Can `brookesia_agent_xiaozhi` target a custom server without XiaoZhi OTA/activation? (would enable a protocol-compatible early spike) | Code review of `agent_xiaozhi.cpp` |
 | OI-05 | STT/TTS default providers (local vs cloud) and target languages | **Decided** → D-01, D-02 |
 | OI-06 | Custom wake word "Homunculus" (WakeNet custom model via Espressif) vs stock wake word | **Decided** → D-03 |
@@ -103,3 +103,5 @@ Product decisions taken on resolved open items. Decided 2026-11-07.
 | D-03 | **Wake word: "Computer"** (stock WakeNet9 model `wn9_computer_tts`) | No custom model for now. A custom "Hey Claudia" (Espressif TTS-trained model or microWakeWord) remains an option if false triggers are a problem (R-09). |
 | D-04 | **Persona: "Claudia"**: female, British voice, dark British humour | Exactly one persona for now, but personas must be **data, not code**: a persona definition (name, system prompt / personality, TTS provider + voice, language, emotional range, wake word) is loaded by the server and referenced from the device profile (§5.7), so more personas can be added later without code changes. The wake word is the only device-side persona attribute (model on device). |
 | D-05 | **Hosting: LAN only** | Remote access (tunnel / reverse proxy) is deferred. Keep the server URL configurable, not hard-wired to mDNS, so remote access can be added later. |
+| D-06 | **Flash: 32 MB** | Measured 2026-11-07 (`esptool flash_id`): ESP32-S3 (QFN56) rev v0.2, 8 MB embedded PSRAM, flash GigaDevice JEDEC `c8`/`4019`, 32 MB. Upstream board definition sets 16 MB; Homunculus overrides flash size and partition table. |
+| D-07 | **ESP-Brookesia 0.8.x + ESP-IDF 6.x** | Latest released versions. Brookesia 0.8 requires IDF ≥ 6.0, ≤ 6.2 on ESP32-S3. Component versions pinned in §3.1. |

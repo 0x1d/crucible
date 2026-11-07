@@ -21,7 +21,7 @@ The ESP32-S3-Touch-AMOLED-1.75C combines an ESP32-S3R8 SoC with a 1.75" 466 × 4
 | SoC | ESP32-S3R8 — Xtensa LX7 dual-core @ up to 240 MHz, vector (PIE) extensions for DSP/NN |
 | On-chip memory | 512 KB SRAM, 384 KB ROM, 16 KB RTC SRAM |
 | PSRAM | 8 MB Octal PSRAM, stacked in package (OPI, 80 MHz) |
-| Flash | 32 MB external NOR flash per vendor spec, QIO 80 MHz (schematic U2 is labelled XM25QH128DHIQT = 16 MB — see caveats) |
+| Flash | 32 MB external NOR flash, QIO 80 MHz (measured: GigaDevice, JEDEC `c8`/`4019`; schematic U2 is labelled XM25QH128DHIQT = 16 MB — see caveats) |
 | Wireless | 2.4 GHz Wi-Fi 802.11 b/g/n, Bluetooth 5 LE; onboard PCB antenna |
 | Display | 1.75" AMOLED, 466 × 466 px, 16.7 M colours (RGB565 used by BSP), round active area |
 | Display driver | CO5300, QSPI interface (SPI2_HOST), tearing-effect (TE) line on GPIO13 |
@@ -66,7 +66,7 @@ The ESP32-S3-Touch-AMOLED-1.75C combines an ESP32-S3R8 SoC with a 1.75" 466 × 4
 
 ## 5. Known caveats
 
-- **Flash size mismatch**: the product page and the vendor examples use 32 MB (`CONFIG_ESPTOOLPY_FLASHSIZE_32MB`), but the schematic labels the flash as XM25QH128DHIQT (128 Mbit = 16 MB) and upstream ESP-Brookesia's board definition configures 16 MB. **Verify on each unit** with `esptool.py flash_id` before fixing the partition table; design the Homunculus partition layout to fit in 16 MB and treat the upper 16 MB as optional asset storage.
+- **Flash size mismatch**: product page and vendor examples: 32 MB (`CONFIG_ESPTOOLPY_FLASHSIZE_32MB`). Schematic: XM25QH128DHIQT (128 Mbit = 16 MB). Upstream ESP-Brookesia board definition: 16 MB. Measured 2026-11-07 on one unit: GigaDevice `c8`/`4019`, 32 MB. Check each unit with `esptool.py flash_id`.
 - **Mic layout in Brookesia**: the Brookesia board config records only one microphone plus reference (`MIC_LAYOUT="RMNN"`, 2 channels). Using both microphones for beam-forming requires a 3-channel layout ("MMR"-style) and AFE re-tuning — to be evaluated.
 - **Display + touch reset**: LCD reset is GPIO1, touch reset GPIO2; the BSP comment states the touch reset is "shared with LCD reset" in one code path — keep reset sequencing as done in the BSP.
 - **Touch mirroring**: touch coordinates must be mirrored on both axes (`mirror_x = mirror_y = 1`).

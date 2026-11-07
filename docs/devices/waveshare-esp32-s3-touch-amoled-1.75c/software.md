@@ -56,8 +56,8 @@ ESP-Brookesia is Espressif's HMI/AIoT platform. Two generations are relevant:
 | Generation | Where | IDF | Status | Notes |
 | --- | --- | --- | --- | --- |
 | `brookesia_core` 0.6.0-beta2 | Vendored in vendor example 03 | ≥ 5.3 | End of maintenance | Monolithic: `systems/phone`, `systems/speaker` (EchoEar "AI buddy"), `ai_framework/agent` (Coze, GMF audio, AFE), `ai_framework/expression` (emoji/icon anim players) |
-| `release/v0.7` | [espressif/esp-brookesia](https://github.com/espressif/esp-brookesia) | 5.5 – 6.0 | Stable (bugfix only) | Componentised via IDF Component Manager; **board definition for this device included** |
-| `master` (v0.8.x) | same | 6.0 – 6.2 | Active development | HAL boards, service framework, agent manager, emote expression, MCP utils, multi-runtime |
+| `release/v0.7` | [espressif/esp-brookesia](https://github.com/espressif/esp-brookesia) | 5.5 – 6.0 | Bug and security fixes only | Componentised via IDF Component Manager; **board definition for this device included** |
+| `master` / 0.8.x | same | 6.0 – 6.2 | Active development; 0.8.x published on the component registry | HAL boards, service framework, agent manager, emote expression, MCP utils, multi-runtime; **board definition for this device included** |
 
 ### 4.1 Upstream board definition
 

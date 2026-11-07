@@ -26,4 +26,4 @@
 
 ## 7.3 Authentication
 
-The Claude Agent SDK backend authenticates with an Anthropic API key. Use of claude.ai subscription login for third-party products built on the Agent SDK is not permitted; product naming must follow Anthropic's branding guidelines (e.g. "Homunculus, powered by Claude" — not "Claude Code").
+The Claude Agent SDK backend authenticates with `ANTHROPIC_API_KEY` if set, otherwise with the host's logged-in Claude subscription. Subscription login: personal use only; offering claude.ai login in a distributed third-party product built on the Agent SDK is not permitted; product naming must follow Anthropic's branding guidelines (e.g. "Homunculus, powered by Claude" — not "Claude Code").

@@ -191,7 +191,7 @@ flowchart LR
 | ID | Decision | Rationale | Alternatives considered |
 | --- | --- | --- | --- |
 | AD-01 | Device is a thin real-time terminal; all AI on server | MCU resources; provider flexibility | On-device STT (ESP-SR MultiNet: command words only — insufficient) |
-| AD-02 | ESP-IDF + ESP-Brookesia (componentised, v0.7 → v0.8) as firmware base | Official board definition exists for the reference device; agent manager, AFE, emote and HAL are reusable | Vendored brookesia_core 0.6 (end of maintenance); xiaozhi-esp32 fork (no 1.75C board, different architecture) |
+| AD-02 | ESP-IDF 6.x + ESP-Brookesia 0.8.x (componentised) as firmware base | Official board definition exists for the reference device; agent manager, AFE, emote and HAL are reusable | Vendored brookesia_core 0.6 (end of maintenance); xiaozhi-esp32 fork (no 1.75C board, different architecture) |
 | AD-03 | WebSocket (WSS) transport, Opus audio, JSON control | Proven by XiaoZhi ecosystem; works through NAT/proxies; one connection | MQTT + UDP (more moving parts), WebRTC (heavy on MCU) |
 | AD-04 | Cascaded pipeline STT → agent → TTS | Agent SDK harnesses are text-based; needed for tools and provider choice | Speech-to-speech realtime models (no agent harness/tools parity) — possible future backend |
 | AD-05 | Server in TypeScript (Node.js ≥ 22) | Both Claude Agent SDK and OpenCode SDK are first-class in TypeScript | Python (Claude SDK yes, OpenCode SDK no) |

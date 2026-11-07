@@ -137,7 +137,7 @@ The orchestrator only consumes `AgentEvent`s; backends map their native streams 
 | Working directory | Per-device sandbox directory (`cwd`) for file-producing tools |
 | Settings | `settingSources: []` to avoid loading the host user's Claude Code settings implicitly |
 | Model | Configurable per profile (e.g. `claude-sonnet-5-5` for quality, `claude-haiku-4-5` for latency) |
-| Auth | Anthropic API key (`ANTHROPIC_API_KEY`) — claude.ai subscription login is not permitted for third-party products |
+| Auth | `ANTHROPIC_API_KEY` if set; otherwise the host's logged-in Claude subscription (personal use only — Anthropic does not permit offering claude.ai login in third-party products) |
 | Latency | `startup()` / `prewarm()` to keep a warm process per active device |
 
 ### 5.3.3 OpenCode SDK backend

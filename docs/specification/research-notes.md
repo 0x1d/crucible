@@ -5,9 +5,10 @@ Background findings collected on 2026-11-07 that inform the specification.
 ## R1. ESP-Brookesia
 
 - Repository: <https://github.com/espressif/esp-brookesia>; docs: <https://docs.espressif.com/projects/esp-brookesia/en/latest/>.
-- Version matrix: `master` (v0.8, ESP32-S3 on IDF 6.2 per README; other chips IDF 6.0–6.2), `release/v0.7` (IDF 5.5–6.0, stable), `release/v0.6` (IDF 5.3–5.5, end of maintenance).
+- Version matrix (getting-started guide, 2026-11-07): `master` / 0.8.x (ESP32-S31: IDF 6.2; other chips incl. ESP32-S3: IDF ≥ 6.0, ≤ 6.2; 0.8.x published on the component registry), `release/v0.7` (IDF ≥ 5.5, ≤ 6.0, bug and security fixes only), `release/v0.6` (IDF 5.3–5.5, end of maintenance).
 - Layers: HAL (`brookesia_hal_interface`, `_adaptor`, `_boards`, Linux/WASM simulation), Services (50+, incl. audio, display, Wi-Fi, SNTP, HTTP, storage), Agents (`brookesia_agent_manager`, `_coze`, `_openai`, `_xiaozhi`), Expression (`brookesia_expression_emote` on `espressif2022/esp_emote_expression`), GUI (`brookesia_gui_interface` JSON UI, `brookesia_gui_lvgl`), Runtimes (ELF, JS, Lua, WASM), System (`brookesia_system_core`, `_super`), Utils (`brookesia_lib_utils`, `brookesia_mcp_utils`).
-- **Board support for the ESP32-S3-Touch-AMOLED-1.75C exists upstream** (`hal/brookesia_hal_boards/boards/waveshare/esp32_s3_touch_amoled_1_75c`, on `master` and `release/v0.7`).
+- **Board support for the ESP32-S3-Touch-AMOLED-1.75C exists upstream** (`hal/brookesia_hal_boards/boards/waveshare/esp32_s3_touch_amoled_1_75c`, on `master` and `release/v0.7`). Verified on hardware 2026-11-07 with `release/v0.7` `examples/service/device` (IDF 5.5.2): ES8311, ES7210, CO5300 and 8 MB PSRAM initialise.
+- `esp_board_manager` uses Kconfig-conditional dependencies; requires idf-component-manager ≥ 2.4 (2.2.2 fails with `MissingKconfigError`).
 - `agent_manager` `agent::Base` virtual hooks: `on_activate`, `on_startup`, `on_shutdown`, `on_sleep`, `on_wakeup`, `on_manual_start_listening`, `on_manual_stop_listening`, `on_suspend`, `on_resume`, `on_interrupt_speaking`, `on_encoder_data_ready`, `set_info`, `reset_data`. Helpers for agents: `feed_audio_decoder_data`, `set_emote`, `set_agent_speaking_text`, `set_user_speaking_text`, `trigger_general_event`. Audio config: encoder/decoder dynamic configs (XiaoZhi agent uses Opus/G.711/PCM over WebSocket).
 - Example `examples/agent/chatbot` shows emote wiring for every agent event (listening, speaking, text, emote, battery).
 - The vendor example `03_esp-brookesia` vendors `brookesia_core` 0.6.0-beta2 whose agent (`ai_framework/agent`) is Coze-specific and uses ESP-GMF + AFE (`AFE_TYPE_SR`, `AFE_MODE_HIGH_PERF`, VAD mode 3, AEC, WakeNet, AGC; PSRAM-heavy allocation). Its `Expression` class (emoji → emotion + icon animation players) is the predecessor of the emote service.
@@ -49,3 +50,21 @@ Background findings collected on 2026-11-07 that inform the specification.
 - Codex Island for Waveshare 1.75C — <https://github.com/WildBeast114514/codex-island-waveshare>
 
 These are worth reviewing for practical display/audio tricks on this exact hardware before implementing the avatar engine.
+
+## Phase 0 measurements
+
+### p0c — Claude Agent SDK streaming spike (2026-11-07)
+
+`server/src/spikes/claude-streaming.ts`; `@anthropic-ai/claude-agent-sdk` 0.3.319; `claude-opus-5-5`, effort `low`; tools `WebSearch`, `WebFetch`; auth: Claude subscription login; one streaming-input `query()` per session.
+
+| Turn | First text | First sentence | Total | Notes |
+| --- | --- | --- | --- | --- |
+| Cold (process start) | 1941 ms | 3333 ms | 3359 ms | |
+| Warm | 1816 ms | 2196 ms | 5988 ms | |
+| Long answer, interrupted at 3000 ms | 1926 ms | 2926 ms | 3013 ms | `Query.interrupt()` → turn ended 13 ms later; result reported, session reusable |
+| After interrupt (with heard-so-far) | 1698 ms | 2095 ms | 6064 ms | Agent correctly recalled the interrupted content |
+| Weather (web) | 26642 ms | 26643 ms | 28747 ms | WebSearch → WebFetch → WebSearch; no text before tools |
+
+- Partial streaming (`includePartialMessages`) delivers `text_delta` events; `server_tool_use`/`tool_use` block starts give tool events.
+- Warm time-to-first-sentence ≈ 2.1–2.2 s exceeds the §5.5 agent budget (400–800 ms TTFT); web-tool turns ≈ 27 s before any text (R-03: filler phrase / earcon needed).
+
