@@ -42,6 +42,28 @@ The reference device enumerates as `/dev/ttyACM0` (native USB-Serial/JTAG). Your
 users.users.<name>.extraGroups = [ "dialout" ];
 ```
 
+## Firmware
+
+```bash
+cd firmware
+idf.py gen-bmgr-config -b esp32_s3_touch_amoled_1_75c
+idf.py build
+idf.py -p /dev/ttyACM0 flash monitor
+```
+
+`gen-bmgr-config` generates `components/gen_bmgr_codes/` (git-ignored) from the Brookesia board definition; run it once per checkout or board change. Component versions are locked in `firmware/dependencies.lock`.
+
+## Server
+
+```bash
+cd server
+pnpm install
+pnpm typecheck
+pnpm spike:claude
+```
+
+Claude auth: `ANTHROPIC_API_KEY` if set, otherwise the logged-in Claude subscription.
+
 ## Git LFS
 
 Binary assets (`*.pdf`, `*.png`, `*.jpg`, `*.webp`, `*.bin`, `*.zip`) are stored in Git LFS. The dev shells provide `git-lfs` and run `git lfs install --local` on entry; outside a shell, git operations on this repository need `git-lfs` on the PATH.

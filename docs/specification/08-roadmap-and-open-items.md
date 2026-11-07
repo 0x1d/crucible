@@ -56,13 +56,13 @@ gantt
     Second board (e.g. AMOLED 1.8 / ESP32-S3-BOX-3) :p4a, after p3c, 14d
 ```
 
-| Phase | Exit criteria |
-| --- | --- |
-| 0 — Spikes | Display + touch + audio running on upstream Brookesia board def; measured AFE CPU load; Claude SDK partial streaming + interrupt verified |
-| 1 — Voice MVP | Wake word → answer by voice with web search; barge-in works; latency measured per stage |
-| 2 — Avatar | All states and emotes rendered ≥ 20 fps; lip-sync; agent drives emotions |
-| 3 — Agent features | Backend switchable (Claude / OpenCode); device tools; confirmation flow; Wi-Fi provisioning + pairing; OTA |
-| 4 — Multi-device | Second board with different display shape runs the same firmware and server unchanged |
+| Phase | Exit criteria | Status |
+| --- | --- | --- |
+| 0 — Spikes | Display + touch + audio running on upstream Brookesia board def; measured AFE CPU load; Claude SDK partial streaming + interrupt verified | **Done 2026-11-07** (§8.6) |
+| 1 — Voice MVP | Wake word → answer by voice with web search; barge-in works; latency measured per stage | Open |
+| 2 — Avatar | All states and emotes rendered ≥ 20 fps; lip-sync; agent drives emotions | Open |
+| 3 — Agent features | Backend switchable (Claude / OpenCode); device tools; confirmation flow; Wi-Fi provisioning + pairing; OTA | Open |
+| 4 — Multi-device | Second board with different display shape runs the same firmware and server unchanged | Open |
 
 ## 8.3 Risks
 
@@ -107,3 +107,18 @@ Product decisions taken on resolved open items. Decided 2026-11-07.
 | D-07 | **ESP-Brookesia 0.8.x + ESP-IDF 6.x** | Latest released versions. Brookesia 0.8 requires IDF ≥ 6.0, ≤ 6.2 on ESP32-S3. Component versions pinned in §3.1. |
 | D-08 | **Latency target (interim): ≤ 3 s to first spoken sentence** | Replaces the §5.5 budget until Phase 1 measurements. |
 | D-09 | **Web lookups are announced** | Persona voice rule: one short sentence ("Let me look that up") before any web search/fetch. Measured: first sentence 3.2 s instead of 26.6 s. Orchestrator filler (§5.5) remains the fallback. |
+
+## 8.6 Phase 0 results
+
+| Spike | Exit criterion | Result | Evidence |
+| --- | --- | --- | --- |
+| p0a | Display + touch + audio on upstream Brookesia board definition | CO5300 466×466, CST9217 (interrupt mode), ES8311 + ES7210 running on Brookesia 0.8.x / ESP-IDF 6.0.2, 32 MB flash | `firmware/`, research notes p0a |
+| p0b | AFE CPU load measured | Full duplex (AFE + Opus enc + Opus dec/playback): core 0 54 %, core 1 42 %; internal heap min 178 KB | research notes p0a/p0b |
+| p0c | Claude SDK partial streaming + interrupt | `text_delta` streaming; interrupt → turn end 13 ms; session reusable | `server/src/spikes/`, research notes p0c |
+
+Carried into Phase 1:
+
+- Barge-in while speaking: wake word or touch, not VAD (R-06).
+- Wake word false triggers observed (R-09).
+- OI-02 two-mic AFE not measured.
+
