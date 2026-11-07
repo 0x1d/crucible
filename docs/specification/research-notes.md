@@ -67,3 +67,14 @@ These are worth reviewing for practical display/audio tricks on this exact hardw
 
 - Partial streaming (`includePartialMessages`) delivers `text_delta` events; `server_tool_use`/`tool_use` block starts give tool events.
 - Warm time-to-first-sentence ≈ 2.1–2.2 s exceeds the §5.5 agent budget (400–800 ms TTFT); web-tool turns ≈ 27 s before any text (R-03: filler phrase / earcon needed).- Rerun with D-09 voice rule (announce before web tools): weather turn first text 2257 ms, first sentence 3199 ms ("Let me look that up for you."), total 27726 ms.
+
+### OI-04 — `brookesia_agent_xiaozhi` with a custom server (Brookesia master `cec3a3b`, `espressif/esp_xiaozhi` 0.1.3~1)
+
+- Endpoint source: build-time `CONFIG_XIAOZHI_OTA_URL` (default `https://api.tenclass.net/xiaozhi/ota/`). No runtime/NVS override.
+- Every boot: `XiaoZhi::on_activate()` → `esp_xiaozhi_chat_get_info()` POSTs board JSON (headers `Client-Id`, `Device-Id`, `User-Agent`) to the OTA URL; retries every 15 s until it succeeds. HTTP status not checked; non-empty JSON parsed. `Activated` fires when the response has no `activation.code`/`activation.challenge`. Not bypassable by config.
+- Response `websocket{url,token,version}` / `mqtt{...}` stored in NVS. Transport: MQTT+UDP if `mqtt` present, else WebSocket.
+- WebSocket headers: `Authorization: Bearer <token>` (omitted if empty), `Protocol-Version`, `Device-Id` (MAC), `Client-Id` (UUID). TLS via CA bundle; `ws://` accepted. Reconnect every 5 s.
+- Client hello: `{"type":"hello","version":1,"transport":"websocket","features":{"mcp":true},"audio_params":{"format":"opus","sample_rate":16000,"channels":1,"frame_duration":60}}`. Server hello must contain `transport`; `session_id`, `audio_params` optional.
+- Custom server requirements: (a) POST OTA stub returning `{"websocket":{"url":"wss://<host>/ws","token":"<t>","version":1}}` without `activation`/`mqtt`; (b) WebSocket endpoint implementing XiaoZhi hello/listen/stt/tts/llm/abort/mcp + Opus frames.
+- Upstream board definition (1.75C): `CONFIG_ESPTOOLPY_FLASHSIZE_16MB`, octal PSRAM, recorder 32-bit / 2 ch / 16 kHz, `MIC_LAYOUT="RMNN"`, gain 36 dB; ES7210 `adc_channel_mask` `0111`; I2S0 48 kHz 16-bit.
+
