@@ -5,6 +5,7 @@ import { WhisperCppProvider } from "./stt/whisper-cpp.js";
 import { KokoroTtsProvider } from "./tts/kokoro.js";
 import { PiperTtsProvider } from "./tts/piper.js";
 import type { SttProvider, TtsProvider, VadModel } from "./types.js";
+import type { ShaperOptions } from "./shaper.js";
 import type { EndpointerOptions } from "./vad/endpointer.js";
 import { SileroVad } from "./vad/silero.js";
 
@@ -12,7 +13,8 @@ const env = process.env;
 
 const num = (v: string | undefined, d: number) => (v === undefined || v === "" ? d : Number(v));
 
-export function createStt(log: Logger): SttProvider {
+/** STT provider; `language` (persona) is whisper's default `-l`. */
+export function createStt(log: Logger, language = "en"): SttProvider {
   const provider = env.HOMUNCULUS_STT ?? "whisper-cpp";
   if (provider !== "whisper-cpp") throw new Error(`unknown STT provider ${provider}`);
   const model = env.HOMUNCULUS_WHISPER_MODEL ?? "base.en";
@@ -22,6 +24,7 @@ export function createStt(log: Logger): SttProvider {
     bin: env.HOMUNCULUS_WHISPER_BIN,
     threads: num(env.HOMUNCULUS_WHISPER_THREADS, 4),
     partialIntervalMs: num(env.HOMUNCULUS_STT_PARTIAL_MS, 1000),
+    language,
     log,
   });
 }
@@ -41,6 +44,26 @@ export function createTts(personaProvider: string, log: Logger): TtsProvider {
 
 export function createVad(): Promise<VadModel> {
   return SileroVad.load(`${modelDir}/silero/silero_vad.onnx`);
+}
+
+/** First-segment length (spec §5.4.2 rule 3); undefined values keep the shaper defaults. */
+export function shaperOptions(): Partial<ShaperOptions> {
+  const o: Partial<ShaperOptions> = {};
+  if (env.HOMUNCULUS_FIRST_MIN_WORDS) o.firstMinWords = Number(env.HOMUNCULUS_FIRST_MIN_WORDS);
+  if (env.HOMUNCULUS_FIRST_MAX_WORDS) o.firstMaxWords = Number(env.HOMUNCULUS_FIRST_MAX_WORDS);
+  return o;
+}
+
+/** Orchestrator timeouts (ms), see ConversationTimeouts. */
+export function conversationTimeouts(): Record<string, number> {
+  const pick: Record<string, string | undefined> = {
+    uplinkGapMs: env.HOMUNCULUS_UPLINK_GAP_MS,
+    sttFinalMs: env.HOMUNCULUS_STT_TIMEOUT_MS,
+    agentIdleMs: env.HOMUNCULUS_AGENT_IDLE_TIMEOUT_MS,
+    speechIdleMs: env.HOMUNCULUS_SPEECH_IDLE_TIMEOUT_MS,
+    interruptWaitMs: env.HOMUNCULUS_INTERRUPT_WAIT_MS,
+  };
+  return Object.fromEntries(Object.entries(pick).flatMap(([k, v]) => (v ? [[k, Number(v)]] : [])));
 }
 
 export function endpointerOptions(): Partial<EndpointerOptions> {

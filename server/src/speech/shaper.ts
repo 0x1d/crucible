@@ -10,10 +10,12 @@ export interface ShaperOptions {
   firstMaxWords: number;
 }
 
-const defaults: ShaperOptions = { firstMinWords: 4, firstMaxWords: 12 };
+// Kokoro fp32 synthesis ≈ 60 ms + 18 ms per token (~5 tokens per word, i7-1165G7): 8 words ≈ 0.9 s.
+const defaults: ShaperOptions = { firstMinWords: 3, firstMaxWords: 8 };
 
+// Bare "am", "pm", "no" are ordinary words at sentence ends ("I am.", "No."), so only dotted forms count.
 const ABBREVIATIONS = new Set(
-  ["mr", "mrs", "ms", "dr", "prof", "st", "sr", "jr", "vs", "etc", "e.g", "i.e", "approx", "no", "mt", "ft", "u.s", "u.k", "p.m", "a.m", "pm", "am"],
+  ["mr", "mrs", "ms", "dr", "prof", "st", "sr", "jr", "vs", "etc", "e.g", "i.e", "approx", "mt", "ft", "u.s", "u.k", "p.m", "a.m"],
 );
 
 /** Sentence end: terminal punctuation (+ closing quotes/brackets) followed by whitespace, or a newline. */

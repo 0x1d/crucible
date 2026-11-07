@@ -21,7 +21,7 @@ export interface ClaudeBackendOptions {
   effort: EffortLevel;
   /** Built-in tools the agent may use without asking. */
   tools: string[];
-  /** Working directory for file-producing tools (per-device sandbox). */
+  /** Default working directory; SessionContext.cwd overrides it per session. */
   cwd: string;
 }
 
@@ -79,9 +79,11 @@ class ClaudeAgentSession implements AgentSession {
   private _sessionId: string | undefined;
   private interrupted = false;
   private busy = false;
+  private ended = false;
 
   constructor(opts: ClaudeBackendOptions, ctx: SessionContext) {
-    mkdirSync(opts.cwd, { recursive: true });
+    const cwd = ctx.cwd ?? opts.cwd;
+    mkdirSync(cwd, { recursive: true });
     this.q = query({
       prompt: this.input,
       options: {
@@ -94,7 +96,7 @@ class ClaudeAgentSession implements AgentSession {
         // Don't inherit the host user's Claude Code settings, CLAUDE.md or plugins.
         settingSources: [],
         includePartialMessages: true,
-        cwd: opts.cwd,
+        cwd,
         ...(ctx.resumeSessionId ? { resume: ctx.resumeSessionId } : {}),
       },
     });
@@ -105,6 +107,10 @@ class ClaudeAgentSession implements AgentSession {
   }
 
   async *send(input: AgentInput, signal?: AbortSignal): AsyncIterable<AgentEvent> {
+    if (this.ended) {
+      yield { type: "error", message: "agent process ended", retryable: true, fatal: true };
+      return;
+    }
     if (this.busy) throw new Error("turn already in progress");
     this.busy = true;
     this.interrupted = false;
@@ -115,9 +121,17 @@ class ClaudeAgentSession implements AgentSession {
       yield { type: "status", phase: "thinking" };
       let responding = false;
       while (true) {
-        const next = await this.q.next();
+        let next: IteratorResult<SDKMessage, void>;
+        try {
+          next = await this.q.next();
+        } catch (e) {
+          this.ended = true;
+          yield { type: "error", message: `agent process failed: ${(e as Error).message}`, retryable: true, fatal: true };
+          return;
+        }
         if (next.done) {
-          yield { type: "error", message: "agent process ended", retryable: true };
+          this.ended = true;
+          yield { type: "error", message: "agent process ended", retryable: true, fatal: true };
           return;
         }
         const msg = next.value;
@@ -160,6 +174,7 @@ class ClaudeAgentSession implements AgentSession {
   }
 
   async close(): Promise<void> {
+    this.ended = true;
     this.input.close();
     this.q.close();
   }

@@ -16,6 +16,8 @@ export interface WhisperCppOptions {
   threads?: number;
   /** Interval of new audio between partial transcriptions; 0 disables partials. */
   partialIntervalMs?: number;
+  /** Default spoken language (`-l`); a stream's `language` overrides it per request. */
+  language?: string;
   log: Logger;
 }
 
@@ -78,7 +80,7 @@ export class WhisperCppProvider implements SttProvider {
     }
     const port = await freePort();
     const args = ["-m", this.opts.modelPath, "--host", "127.0.0.1", "--port", String(port)];
-    args.push("-t", String(this.opts.threads ?? 4), "-l", "en", "-nt", "-sns");
+    args.push("-t", String(this.opts.threads ?? 4), "-l", this.opts.language ?? "en", "-nt", "-sns");
     const t0 = performance.now();
     const proc = spawn(this.opts.bin ?? "whisper-server", args, { stdio: ["ignore", "pipe", "pipe"] });
     this.proc = proc;
@@ -114,7 +116,7 @@ export class WhisperCppProvider implements SttProvider {
   }
 
   /** Transcribes one buffer; returns cleaned text and the request duration. */
-  async transcribe(pcm: Int16Array, signal?: AbortSignal): Promise<{ text: string; ms: number }> {
+  async transcribe(pcm: Int16Array, signal?: AbortSignal, language?: string): Promise<{ text: string; ms: number }> {
     const url = await this.endpoint();
     const form = new FormData();
     form.append("file", new Blob([new Uint8Array(wav(pcm, RATE))], { type: "audio/wav" }), "audio.wav");
@@ -122,6 +124,7 @@ export class WhisperCppProvider implements SttProvider {
     form.append("temperature", "0.0");
     form.append("audio_ctx", String(audioCtx(pcm.length)));
     form.append("no_timestamps", "true");
+    if (language) form.append("language", language);
     const t0 = performance.now();
     const res = await fetch(`${url}/inference`, {
       method: "POST",
@@ -134,8 +137,8 @@ export class WhisperCppProvider implements SttProvider {
     return { text: cleanTranscript(body.text ?? ""), ms: Math.round(performance.now() - t0) };
   }
 
-  open(_opts: { language?: string; sampleRate: 16000 }): SttStream {
-    return new WhisperStream(this, this.opts.partialIntervalMs ?? 1000, this.log);
+  open(opts: { language?: string; sampleRate: 16000 }): SttStream {
+    return new WhisperStream(this, this.opts.partialIntervalMs ?? 1000, this.log, opts.language ?? this.opts.language);
   }
 
   async close(): Promise<void> {
@@ -152,6 +155,8 @@ class WhisperStream implements SttStream {
   private speaking = false;
   private ended = false;
   private readonly abort = new AbortController();
+  /** Partials are aborted at end(): the final must not wait for a stale partial. */
+  private readonly partialAbort = new AbortController();
   private readonly queue: SttResult[] = [];
   private wake: (() => void) | undefined;
   private done = false;
@@ -161,6 +166,7 @@ class WhisperStream implements SttStream {
     private readonly provider: WhisperCppProvider,
     private readonly partialIntervalMs: number,
     private readonly log: Logger,
+    private readonly language: string | undefined,
   ) {}
 
   write(pcm: Int16Array): void {
@@ -173,7 +179,7 @@ class WhisperStream implements SttStream {
       this.lastPartialAt = this.samples;
       const pcmSoFar = concat(this.chunks);
       this.inflight = this.provider
-        .transcribe(pcmSoFar, this.abort.signal)
+        .transcribe(pcmSoFar, AbortSignal.any([this.abort.signal, this.partialAbort.signal]), this.language)
         .then(({ text, ms }) => {
           this.log.debug("stt_partial", { ms, audio_ms: Math.round((pcmSoFar.length / RATE) * 1000), text });
           if (text && text !== this.lastPartial && !this.ended) {
@@ -195,12 +201,13 @@ class WhisperStream implements SttStream {
   end(): void {
     if (this.ended) return;
     this.ended = true;
+    this.partialAbort.abort();
     void (async () => {
       try {
         await this.inflight;
         if (this.abort.signal.aborted) return;
         const pcm = concat(this.chunks);
-        const { text, ms } = pcm.length ? await this.provider.transcribe(pcm, this.abort.signal) : { text: "", ms: 0 };
+        const { text, ms } = pcm.length ? await this.provider.transcribe(pcm, this.abort.signal, this.language) : { text: "", ms: 0 };
         this.log.info("stt_final", { ms, audio_ms: Math.round((pcm.length / RATE) * 1000), ctx: audioCtx(pcm.length) });
         this.emit({ text, final: true });
       } catch (e) {

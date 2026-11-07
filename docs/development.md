@@ -75,6 +75,35 @@ pnpm --filter homunculus-server dev
 | `HOMUNCULUS_TLS_CERT`, `HOMUNCULUS_TLS_KEY` | unset | PEM paths; enables `wss://` |
 | `HOMUNCULUS_LOG_LEVEL` | `info` | `debug` logs every HDP message |
 | `HOMUNCULUS_LOG` | text | `json` for JSON lines |
+| `HOMUNCULUS_PIPELINE` | `speech` | `speech` or `loopback` (echo) |
+| `HOMUNCULUS_PERSONA` | `claudia` | Persona file `server/personas/<id>.json` |
+| `HOMUNCULUS_MODEL`, `HOMUNCULUS_EFFORT` | `claude-opus-5-5`, `low` | Agent model and effort |
+| `HOMUNCULUS_MODEL_DIR` | `server/models` | Model cache (`pnpm --filter homunculus-server exec tsx scripts/fetch-models.ts`) |
+| `HOMUNCULUS_OFFLINE` | unset | `1`: no Hugging Face downloads |
+| `HOMUNCULUS_WHISPER_MODEL` | `base.en` | ggml model name or path |
+| `HOMUNCULUS_WHISPER_URL`, `HOMUNCULUS_WHISPER_BIN` | unset, `whisper-server` | Use a running whisper-server / binary path |
+| `HOMUNCULUS_WHISPER_THREADS` | `4` | whisper-server threads |
+| `HOMUNCULUS_STT_PARTIAL_MS` | `1000` | Audio between partial transcriptions; `0` disables |
+| `HOMUNCULUS_TTS`, `HOMUNCULUS_TTS_VOICE` | persona | `kokoro` or `piper`; voice |
+| `HOMUNCULUS_KOKORO_DTYPE` | `fp32` | Kokoro ONNX weights (`q8` is slower on x86, spec §5.4.2) |
+| `HOMUNCULUS_PIPER_BIN` | `piper` | Piper binary |
+| `HOMUNCULUS_VAD_HANGOVER_MS`, `HOMUNCULUS_VAD_THRESHOLD` | `600`, `0.5` | Endpointing |
+| `HOMUNCULUS_FIRST_MIN_WORDS`, `HOMUNCULUS_FIRST_MAX_WORDS` | `3`, `8` | First speech segment length (spec §5.4.2) |
+| `HOMUNCULUS_UPLINK_GAP_MS` | `2500` | Uplink silence (no frames) that ends an utterance |
+| `HOMUNCULUS_STT_TIMEOUT_MS` | `20000` | Max wait for the final transcript |
+| `HOMUNCULUS_AGENT_IDLE_TIMEOUT_MS` | `90000` | Max time between agent events |
+| `HOMUNCULUS_SPEECH_IDLE_TIMEOUT_MS` | `20000` | Max time without TTS/downlink progress |
+| `HOMUNCULUS_INTERRUPT_WAIT_MS` | `8000` | Max wait for an interrupted agent stream before the session is reopened |
+
+Per-device agent sandbox: `server/.data/sandbox/devices/<sanitised-device-id>-<hash>/`.
+
+Kokoro benchmark (synthesis time and whisper WER per dtype; writes `server/.data/bench-tts/*.wav`):
+
+```bash
+pnpm --filter homunculus-server exec tsx scripts/bench-tts.ts fp32,q8 3 bf_emma
+```
+
+Server tests (`server/test/*.test.ts`, node:test): orchestrator FSM, speech output, endpointer, Opus framing, whisper stream, gateway and pipeline run against fakes (`server/test/fakes.ts`); `speech-models.test.ts` uses the real models and is skipped when they are missing.
 
 Claude SDK spike: `pnpm --filter homunculus-server spike:claude`.
 
