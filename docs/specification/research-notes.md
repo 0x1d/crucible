@@ -111,3 +111,14 @@ Heap: internal free 254 KB at boot, 178 KB minimum during C; PSRAM free 5.2 MB a
 
 Shutdown errors (harmless for the bench): `esp_gmf_pipeline_destroy: Got NULL Pointer`, `i2s_channel_disable: channel has not been enabled yet`.
 
+Wake word / VAD observations (same bench, 2026-11-07):
+
+| Run | Condition | Result |
+| --- | --- | --- |
+| 1 | Nobody near the device | 1 `WakeStart` false trigger (R-09) |
+| 2 | User said "Computer" 3× (no visual feedback) | 3 `WakeStart`, all genuine |
+| 3 | User said "Computer" 1× | 1 `WakeStart` 4.8 s into phase B |
+| 3 | Phase C playback at volume 100 %, user silent | 5 `VAD_Start` in 19.6 s: playback leaks into VAD despite AEC (R-06) |
+
+- Default player volume 75 % is too quiet on the 1.75C speaker; 100 % (`AudioPlayback` `SetVolume`) is adequate.
+

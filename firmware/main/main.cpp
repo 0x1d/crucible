@@ -26,6 +26,7 @@
 
 using namespace esp_brookesia;
 using AudioHelper = service::helper::Audio;
+using AudioPlaybackHelper = service::helper::AudioPlayback;
 using AudioEncoderHelper = service::helper::AudioEncoder<0>;
 using AudioDecoderHelper = service::helper::AudioDecoder<0>;
 using lib_utils::ThreadProfiler;
@@ -73,26 +74,26 @@ bool configure_audio_processor()
 hal::InterfaceHandle<hal::display::PanelIface> g_panel;
 hal::InterfaceHandle<hal::display::BacklightIface> g_backlight;
 
-void draw_colour_bars()
+std::mutex g_draw_mutex;
+
+// Paints the whole panel; colour_at(band) returns the RGB colour of vertical band 0..4.
+template<typename F>
+bool paint(F colour_at)
 {
-    g_panel = hal::acquire_first_interface<hal::display::PanelIface>();
     auto &panel = g_panel;
     if (!panel) {
-        BROOKESIA_LOGE("[display] no panel interface");
-        return;
+        return false;
     }
     const auto &info = panel->get_info();
     const uint32_t w = info.h_res, h = info.v_res;
     const uint32_t bytes_pp = info.get_pixel_bits() / 8;
-    BROOKESIA_LOGI("[display] %1%x%2%, %3% bits per pixel", w, h, info.get_pixel_bits());
 
-    // RGB565 / RGB888 bars: red, green, blue, white, black. Drawn in row bands
-    // so the line buffer stays small.
-    const uint8_t colours[5][3] = {{255, 0, 0}, {0, 255, 0}, {0, 0, 255}, {255, 255, 255}, {0, 0, 0}};
+    // Drawn in row bands so the line buffer stays small.
+    std::lock_guard lock(g_draw_mutex);
     constexpr uint32_t BAND = 16;
     std::vector<uint8_t> buf(w * BAND * bytes_pp);
     for (uint32_t x = 0; x < w; x++) {
-        const auto *c = colours[std::min<uint32_t>(x * 5 / w, 4)];
+        const uint8_t *c = colour_at(x * 5 / w);
         for (uint32_t y = 0; y < BAND; y++) {
             uint8_t *p = &buf[(y * w + x) * bytes_pp];
             if (bytes_pp == 2) {
@@ -110,7 +111,38 @@ void draw_colour_bars()
     for (uint32_t y = 0; y < h; y += BAND) {
         ok &= panel->draw_bitmap(0, y, w, std::min(y + BAND, h), buf.data());
     }
-    BROOKESIA_LOGI("[display] colour bars drawn: %1%", ok ? "ok" : "FAILED");
+    return ok;
+}
+
+constexpr uint8_t BARS[5][3] = {{255, 0, 0}, {0, 255, 0}, {0, 0, 255}, {255, 255, 255}, {0, 0, 0}};
+constexpr uint8_t GREEN[3] = {0, 160, 0};
+constexpr uint8_t BLUE[3] = {0, 60, 220};
+
+void show_bars()
+{
+    bool ok = paint([](uint32_t band) {
+        return BARS[std::min<uint32_t>(band, 4)];
+    });
+    BROOKESIA_LOGI("[display] colour bars: %1%", ok ? "ok" : "FAILED");
+}
+
+void show_colour(const uint8_t *c)
+{
+    paint([c](uint32_t) {
+        return c;
+    });
+}
+
+void init_display()
+{
+    g_panel = hal::acquire_first_interface<hal::display::PanelIface>();
+    if (!g_panel) {
+        BROOKESIA_LOGE("[display] no panel interface");
+        return;
+    }
+    const auto &info = g_panel->get_info();
+    BROOKESIA_LOGI("[display] %1%x%2%, %3% bits per pixel", info.h_res, info.v_res, info.get_pixel_bits());
+    show_bars();
 
     g_backlight = hal::acquire_first_interface<hal::display::BacklightIface>();
     if (g_backlight) {
@@ -294,9 +326,14 @@ extern "C" void app_main(void)
     BROOKESIA_CHECK_FALSE_EXIT(service_manager.start(), "Failed to start ServiceManager");
     auto encoder_binding = service_manager.bind(AudioEncoderHelper::get_name().data());
     auto decoder_binding = service_manager.bind(AudioDecoderHelper::get_name().data());
-    BROOKESIA_CHECK_FALSE_EXIT(encoder_binding.is_valid() && decoder_binding.is_valid(), "Failed to bind audio");
+    auto playback_binding = service_manager.bind(AudioPlaybackHelper::get_name().data());
+    BROOKESIA_CHECK_FALSE_EXIT(encoder_binding.is_valid() && decoder_binding.is_valid() && playback_binding.is_valid(),
+                               "Failed to bind audio");
+    // Default output volume (75 %) is too quiet on the 1.75C speaker.
+    auto vol = AudioPlaybackHelper::call_function_sync(AudioPlaybackHelper::FunctionId::SetVolume, 100.0);
+    BROOKESIA_LOGI("[audio] volume 100 %%: %1%", vol ? "ok" : vol.error());
 
-    draw_colour_bars();
+    init_display();
     auto pthread_cfg = esp_pthread_get_default_config();
     pthread_cfg.stack_size = 6 * 1024;
     pthread_cfg.thread_name = "touch";
@@ -311,6 +348,16 @@ extern "C" void app_main(void)
     [&](const std::string & name, const std::string & event) {
         BROOKESIA_LOGI("[afe] event %1%: %2%", name, event);
         afe_events++;
+        // Visual feedback: green = woken, blue = speech, bars = idle.
+        const uint8_t *colour = nullptr;
+        if (event == "WakeStart" || event == "VAD_End") {
+            colour = GREEN;
+        } else if (event == "VAD_Start") {
+            colour = BLUE;
+        }
+        std::thread([colour] {
+            colour ? show_colour(colour) : show_bars();
+        }).detach();
     });
     auto words = AudioEncoderHelper::call_function_sync<boost::json::array>(
                      AudioEncoderHelper::FunctionId::GetAFEWakeWords

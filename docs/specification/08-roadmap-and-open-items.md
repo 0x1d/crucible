@@ -73,7 +73,7 @@ gantt
 | R-03 | End-to-end latency > 2.5 s with agent harness overhead | Poor UX | Prewarm, fast model profile, immediate acknowledgement emote/earcon, filler phrases |
 | R-04 | Agent harness outputs are long / markdown-heavy | Unnatural speech | Persona system prompt + Speech Shaper + summary-first rule |
 | R-05 | Prompt injection via web content leading to side effects | Security | Permission policy, on-device confirmation, default-deny host tools |
-| R-06 | Small speaker + enclosure resonance degrade AEC | Barge-in false triggers | AEC tuning, ES8311 output gain limits, VAD thresholds during playback |
+| R-06 | Small speaker + enclosure resonance degrade AEC | Barge-in false triggers (measured: 5 VAD starts in 19.6 s of playback at 100 % volume) | AEC tuning, ES8311 output gain limits, VAD thresholds during playback; barge-in via wake word or touch instead of VAD while speaking |
 | R-07 | Flash size differs between units or batches (schematic: 16 MB part) | Partition errors | `esptool flash_id` per unit; upstream board definition sets 16 MB, Homunculus overrides to 32 MB (D-06) |
 | R-08 | CPU-only STT on the development laptop (Whisper is not natively streaming) exceeds the latency budget | Slow turns during early phases | Small/turbo model with whisper.cpp; measure per stage; move STT to a GPU host later (D-01) |
 | R-09 | "Computer" is a common word and may false-trigger during normal conversation or TV | Unwanted activations | Tune WakeNet threshold; optional server-side verification; custom "Hey Claudia" model as fallback (D-03) |
