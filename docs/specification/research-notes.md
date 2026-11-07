@@ -85,3 +85,29 @@ These are worth reviewing for practical display/audio tricks on this exact hardw
 - One `Failed to read touch data` (`ESP_ERR_INVALID_RESPONSE`) at boot; not repeated in 45 s.
 - Image uses the board default flash size (16 MB).
 
+### p0a/p0b — Homunculus bench firmware (2026-11-07)
+
+`firmware/` (`main/main.cpp`): Brookesia 0.8 registry components, ESP-IDF 6.0.2, 32 MB flash, WakeNet `wn9_computer_tts`, 240 MHz dual core.
+
+| Item | Result |
+| --- | --- |
+| Display | CO5300 466×466 RGB565 via HAL `PanelIface`; colour bars drawn |
+| Touch | CST9217, 5 points, interrupt mode; 3/3 taps, 0 read errors. Polling without INT → `ESP_ERR_INVALID_RESPONSE` on every read |
+| Wake word | `["Computer"]` loaded; events `WakeStart`, `VAD_Start`, `VAD_End`, `WakeEnd` |
+| Opus uplink | 16 kHz mono, 60 ms, VBR 24 kbit/s target → 332 frames / 20 s, 22 kbit/s measured |
+| Full duplex | AFE + Opus encode while decoding/playing 20 s of Opus; playback drained |
+
+CPU load per core (100 − idle task share):
+
+| Phase | Core 0 | Core 1 |
+| --- | --- | --- |
+| A: idle (services up, display static) | 14 % | 10 % |
+| B: AFE (AEC/NS/VAD/WakeNet, 1 mic + ref) + Opus encode | 48 % | 30 % |
+| C: B + Opus decode + playback | 52 % | 40 % |
+
+Main tasks in C (share of both cores): `audio_recorder_` 11 % (core 0), `afe_feed` 8 % (core 1), `afe_fetch` 5 % (core 0).
+
+Heap: internal free 254 KB at boot, 178 KB minimum during C; PSRAM free 5.2 MB at boot, 4.2 MB minimum.
+
+Shutdown errors (harmless for the bench): `esp_gmf_pipeline_destroy: Got NULL Pointer`, `i2s_channel_disable: channel has not been enabled yet`.
+

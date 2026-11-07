@@ -83,7 +83,7 @@ gantt
 | ID | Question | Owner / next step |
 | --- | --- | --- |
 | OI-01 | Actual flash size on shipping 1.75C units (schematic: 16 MB part; vendor: 32 MB) | **Decided** → D-06 |
-| OI-02 | Two-mic AFE (beamforming/DOA) feasibility and CPU cost on S3 | Phase 0 measurement |
+| OI-02 | Two-mic AFE (beamforming/DOA) feasibility and CPU cost on S3 | Single-mic AFE measured (research notes, p0b); two-mic layout not yet measured |
 | OI-03 | Brookesia version: stay on v0.7 or go directly to v0.8 | **Decided** → D-07 |
 | OI-04 | Can `brookesia_agent_xiaozhi` target a custom server without XiaoZhi OTA/activation? (would enable a protocol-compatible early spike) | **Answered**: yes, via `CONFIG_XIAOZHI_OTA_URL` + a server-side OTA stub (research notes) |
 | OI-05 | STT/TTS default providers (local vs cloud) and target languages | **Decided** → D-01, D-02 |
