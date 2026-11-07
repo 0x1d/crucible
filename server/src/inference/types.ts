@@ -17,6 +17,8 @@ export interface SessionContext {
   systemPrompt: string;
   /** Backend-native session id to resume. */
   resumeSessionId?: string;
+  /** Working directory for file-producing tools (per-device sandbox). */
+  cwd?: string;
 }
 
 export interface AgentSession {
@@ -45,4 +47,5 @@ export type AgentEvent =
   | { type: "tool.end"; name: string; ok: boolean }
   | { type: "permission.request"; id: string; tool: string; summary: string }
   | { type: "done"; usage?: Usage; interrupted?: boolean }
-  | { type: "error"; message: string; retryable: boolean };
+  /** `fatal`: the session is unusable (process ended); the caller opens a new one. */
+  | { type: "error"; message: string; retryable: boolean; fatal?: boolean };
