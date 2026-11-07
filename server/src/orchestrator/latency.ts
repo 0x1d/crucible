@@ -1,5 +1,9 @@
 // Per-turn stage timestamps (spec §5.8: structured logs per turn for latency budget tracking).
 
+/**
+ * `filler`: orchestrator filler enqueued. `first_audio`: first downlink frame of any segment
+ * (filler included). `first_sentence`, `tts_first_chunk`, `first_downlink`: answer segments only.
+ */
 export const STAGES = [
   "listen_start",
   "speech_start",
@@ -7,8 +11,10 @@ export const STAGES = [
   "endpoint",
   "stt_final",
   "agent_first_token",
+  "filler",
   "first_sentence",
   "tts_first_chunk",
+  "first_audio",
   "first_downlink",
   "agent_done",
   "turn_end",

@@ -19,29 +19,35 @@ export interface SpeechOutputDeps {
   framer: OpusFramer;
   pacer: Pacer<PacedItem>;
   nextSegmentId(): number;
-  /** Called right before the first frame of a segment is sent. */
-  onSegmentStart(id: number, text: string, first: boolean): void;
+  /** Called right before the first frame of a segment is sent; `first`: first segment of the turn. */
+  onSegmentStart(id: number, text: string, first: boolean, filler: boolean): void;
   /** Called right after the last frame of a segment is sent. */
   onSegmentEnd(id: number): void;
-  onFirstChunk(): void;
+  /** Called for every synthesised PCM chunk. */
+  onChunk(filler: boolean): void;
   log: Logger;
 }
 
 interface Segment {
   id: number;
   text: string;
+  /** Orchestrator-generated (filler, apology): not part of the agent's answer. */
+  filler: boolean;
   started: boolean;
   played: boolean;
+}
+
+export interface EnqueueOptions {
+  filler?: boolean;
 }
 
 export class SpeechOutput {
   readonly segments: Segment[] = [];
   /** performance.now() of the last enqueued segment. */
   lastEnqueuedAt: number | undefined;
-  private queue: string[] = [];
+  private queue: Array<{ text: string; filler: boolean }> = [];
   private running: Promise<void> | undefined;
   private readonly abort = new AbortController();
-  private firstChunk = false;
   private playedWaiter: { id: number; resolve: () => void } | undefined;
 
   constructor(private readonly d: SpeechOutputDeps) {}
@@ -54,9 +60,14 @@ export class SpeechOutput {
     return this.abort.signal.aborted;
   }
 
-  enqueue(text: string): void {
+  /** Synthesising, or frames still queued in the pacer. */
+  get active(): boolean {
+    return this.running !== undefined || this.d.pacer.pending > 0;
+  }
+
+  enqueue(text: string, opts: EnqueueOptions = {}): void {
     if (this.cancelled) return;
-    this.queue.push(text);
+    this.queue.push({ text, filler: opts.filler ?? false });
     this.lastEnqueuedAt = performance.now();
     this.running ??= this.loop();
   }
@@ -84,15 +95,20 @@ export class SpeechOutput {
   }
 
   played(id: number): void {
-    const s = this.segments.find((x) => x.id === id);
-    if (s) s.played = true;
+    // Playback is in order: a played segment implies every earlier segment was played.
+    const i = this.segments.findIndex((x) => x.id === id);
+    for (let j = 0; j <= i; j++) (this.segments[j] as Segment).played = true;
     if (this.playedWaiter?.id === id) this.playedWaiter.resolve();
   }
 
-  /** Text the user has heard: played segments plus the one playing (spec §5.3.1 heardSoFar). */
+  /**
+   * Answer text the user has heard (spec §5.3.1 heardSoFar): segments confirmed by tts.played
+   * plus the one playing (the first started, unconfirmed segment). Filler/apology excluded.
+   */
   heardText(): string {
+    const playing = this.segments.find((s) => s.started && !s.played);
     return this.segments
-      .filter((s) => s.played || s.started)
+      .filter((s) => !s.filler && (s.played || s === playing))
       .map((s) => s.text)
       .join(" ");
   }
@@ -105,19 +121,19 @@ export class SpeechOutput {
   }
 
   private async loop(): Promise<void> {
-    for (let text = this.queue.shift(); text !== undefined && !this.cancelled; text = this.queue.shift()) {
+    for (let item = this.queue.shift(); item !== undefined && !this.cancelled; item = this.queue.shift()) {
       try {
-        await this.speak(text);
+        await this.speak(item.text, item.filler);
       } catch (e) {
-        this.d.log.error("tts_failed", { error: (e as Error).message, text });
+        this.d.log.error("tts_failed", { error: (e as Error).message, text: item.text });
       }
     }
     // Cleared synchronously with the empty-queue check, so a concurrent enqueue starts a new loop.
     this.running = undefined;
   }
 
-  private async speak(text: string): Promise<void> {
-    const seg: Segment = { id: this.d.nextSegmentId(), text, started: false, played: false };
+  private async speak(text: string, filler: boolean): Promise<void> {
+    const seg: Segment = { id: this.d.nextSegmentId(), text, filler, started: false, played: false };
     const first = this.segments.length === 0;
     const t0 = performance.now();
     let seq = 0;
@@ -134,7 +150,7 @@ export class SpeechOutput {
         before: isFirst
           ? () => {
               seg.started = true;
-              this.d.onSegmentStart(seg.id, seg.text, first);
+              this.d.onSegmentStart(seg.id, seg.text, first, filler);
             }
           : undefined,
         after: last ? () => this.d.onSegmentEnd(seg.id) : undefined,
@@ -154,10 +170,7 @@ export class SpeechOutput {
       signal: this.abort.signal,
     })) {
       if (this.cancelled) return;
-      if (!this.firstChunk) {
-        this.firstChunk = true;
-        this.d.onFirstChunk();
-      }
+      this.d.onChunk(filler);
       samples += pcm.length;
       send(framer.push(pcm));
     }
