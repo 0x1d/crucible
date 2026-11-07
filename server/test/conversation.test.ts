@@ -381,3 +381,15 @@ test("filler does not count as the answer's first sentence; avatar working after
   assert.ok(av.slice(i).includes("working"), `avatar ${av.join(",")}`);
   assert.equal(av.at(-1), "idle");
 });
+
+test("announcement then tool: avatar speaking → working while the tool runs → speaking", async () => {
+  const t = setup({
+    finals: ["weather"],
+    scripts: [[text("Let me look that up."), { type: "tool.start", name: "WebSearch" }, { wait: 500 }, text("Sunny."), done]],
+  });
+  t.ask();
+  await t.idle(2);
+  assert.deepEqual(t.tts.texts, ["Let me look that up.", "Sunny."]);
+  const av = t.link.avatar().slice(3); // after idle, listening, thinking
+  assert.deepEqual(av, ["working", "speaking", "working", "speaking", "idle"]);
+});

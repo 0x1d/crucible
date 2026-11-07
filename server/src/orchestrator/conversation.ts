@@ -6,7 +6,7 @@ import { Pacer } from "../gateway/pacer.js";
 import type { AgentEvent, AgentSession, Usage } from "../inference/types.js";
 import type { Logger } from "../log.js";
 import { OpusDecoder, OpusFramer, type OpusRate } from "../speech/audio.js";
-import { SpeechShaper } from "../speech/shaper.js";
+import { SpeechShaper, type ShaperOptions } from "../speech/shaper.js";
 import type { SttProvider, SttStream, TtsProvider, VadModel } from "../speech/types.js";
 import { defaultEndpointerOptions, VadSegmenter, type EndpointerOptions, type VadEvent } from "../speech/vad/endpointer.js";
 import { TurnTimer } from "./latency.js";
@@ -59,6 +59,7 @@ export interface ConversationDeps {
   /** Backend session id resumed by the first open. */
   resumeSessionId?: string | Promise<string | undefined>;
   endpointer?: Partial<EndpointerOptions>;
+  shaper?: Partial<ShaperOptions>;
   /** Filler phrase when a tool starts and nothing was said for this long (spec §5.5); 0 disables. */
   fillerAfterMs?: number;
   fillerText?: string;
@@ -140,9 +141,10 @@ export class Conversation {
   private readonly pacer: Pacer<PacedItem>;
   private readonly log: Logger;
   private readonly opts: Required<
-    Omit<ConversationDeps, "endpointer" | "openAgent" | "resumeSessionId" | "stt" | "tts" | "vad" | "timeouts">
+    Omit<ConversationDeps, "endpointer" | "openAgent" | "resumeSessionId" | "stt" | "tts" | "vad" | "timeouts" | "shaper">
   > & {
     endpointer: EndpointerOptions;
+    shaper: Partial<ShaperOptions>;
     timeouts: ConversationTimeouts;
   };
 
@@ -165,6 +167,7 @@ export class Conversation {
       voice: deps.voice,
       language: deps.language,
       endpointer: { ...defaultEndpointerOptions, ...deps.endpointer },
+      shaper: deps.shaper ?? {},
       fillerAfterMs: deps.fillerAfterMs ?? 1500,
       fillerText: deps.fillerText ?? "One moment.",
       apologyText: deps.apologyText ?? "Sorry, something went wrong on my end.",
@@ -467,7 +470,7 @@ export class Conversation {
       reply: "",
       timer,
       abort: new AbortController(),
-      shaper: new SpeechShaper(),
+      shaper: new SpeechShaper(this.opts.shaper),
       tools: [],
       aborted: false,
       filler: false,
@@ -649,15 +652,16 @@ export class Conversation {
 
   /** Avatar "working" during tool use; while speaking, once the queued speech has played out. */
   private toolAvatar(turn: Turn): void {
-    if (this.state !== "speaking") {
-      this.sendAvatar("working");
-      return;
-    }
-    if (turn.working) return;
+    const already = turn.working;
     turn.working = true;
-    void turn.speech.finish().then(() => {
-      if (this.turn === turn && turn.working && !turn.aborted && !turn.agentEnded) this.sendAvatar("working");
-    });
+    const working = () => {
+      if (this.turn === turn && turn.working && !turn.aborted && !turn.agentEnded && this.avatarState !== "working") {
+        this.sendAvatar("working");
+      }
+    };
+    if (this.state !== "speaking") working();
+    // Speech queued or playing (e.g. a D-09 announcement): "working" once it has played out.
+    if (turn.speech.active && !already) void turn.speech.finish().then(working);
   }
 
   /** Orchestrator filler when a tool starts and nothing was said recently (spec §5.5). */
