@@ -98,7 +98,6 @@ private:
     void uplink_done();
     void stop_speaking_locally();
     void speech_finished();
-    void on_afe_event(const std::string &event);
 
     // Downlink player thread
     struct DownlinkFrame {
@@ -111,7 +110,6 @@ private:
     void player_flush();
     void player_segment_end(uint16_t segment);
     void player_tts_stop();
-    void reopen_decoder_stream(uint32_t sample_rate);
 
     // Turn statistics
     void log_turn_stats();
@@ -133,8 +131,6 @@ private:
     std::atomic<bool> session_ready_{false};
     std::string session_id_;
     uint32_t downlink_rate_ = 24000;
-    uint32_t decoder_rate_ = 24000;
-    std::string decoder_source_;
     int volume_ = 100;
     int64_t listen_deadline_us_ = 0;
     int64_t thinking_deadline_us_ = 0;

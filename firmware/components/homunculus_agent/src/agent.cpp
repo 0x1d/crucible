@@ -1,12 +1,13 @@
 // HomunculusAgent implementation (spec 03 §3.2): Brookesia agent_manager agent + HDP/1 client.
-// Audio integration uses the same Brookesia helper APIs as the Phase 0 bench (firmware/main/main.cpp).
+// The base agent::Base class owns the audio encoder/decoder dataflow operations; this file
+// maps them onto HDP/1 (spec 04): uplink Opus frames are sent via WebSocket, downlink Opus
+// frames are fed back through Base::feed_audio_decoder_data().
 #include "homunculus/agent.hpp"
 
 #include <cmath>
+#include <chrono>
 #include <cstdio>
 #include <cstring>
-#include <chrono>
-#include <variant>
 #include "esp_log.h"
 #include "esp_random.h"
 #include "esp_timer.h"
@@ -16,6 +17,7 @@
 #include "brookesia/service_manager.hpp"
 #include "brookesia/service_audio/service_audio.hpp"
 #include "brookesia/service_helper/media/audio.hpp"
+#include "brookesia/lib_utils/plugin.hpp"
 #include "hdp_client.hpp"
 #include "homunculus/hdp.hpp"
 #include "homunculus/wifi.hpp"
@@ -30,8 +32,7 @@ using AudioPlaybackHelper = esp_brookesia::service::helper::AudioPlayback;
 namespace {
 
 constexpr const char *TAG = "hom_agent";
-constexpr const char *SOURCE_NAME = "Homunculus";
-constexpr const char *OUTPUT_NAME = "Speaker0";
+constexpr int64_t FRAME_US = 60 * 1000;  // 60 ms Opus frame (server pacer rate)
 
 const char *ui_to_string(UiState s)
 {
@@ -108,11 +109,6 @@ bool HomunculusAgent::on_startup()
     running_ = true;
     worker_ = std::thread(&HomunculusAgent::worker_loop, this);
     player_ = std::thread(&HomunculusAgent::player_loop, this);
-
-    afe_connection_ = AudioEncoderHelper::subscribe_event(
-        AudioEncoderHelper::EventId::AFEEventHappened,
-        [this](const std::string &name, const std::string &event) { on_afe_event(event); });
-
     return true;
 }
 
@@ -144,7 +140,7 @@ bool HomunculusAgent::on_sleep()
 bool HomunculusAgent::on_wakeup()
 {
     ESP_LOGI(TAG, "wakeup");
-    post([this] { set_ui(UiState::Idle); });
+    post([this] { start_listen("wake_word", nullptr); });
     return true;
 }
 
@@ -158,10 +154,19 @@ bool HomunculusAgent::on_interrupt_speaking()
 bool HomunculusAgent::on_encoder_data_ready(const uint8_t *data, size_t data_size)
 {
     std::lock_guard lock(uplink_mutex_);
-    if (!uplink_active_) return true;
-    if (!data || data_size == 0) return true;
+    if (!uplink_active_ || !data || data_size == 0) return true;
 
-    auto frame = hdp::encode_frame(hdp::FRAME_OPUS_UPLINK, 0, stream_id_, uplink_seq_++, data, data_size);
+    uint8_t flags = 0;
+    if (uplink_end_pending_) {
+        flags |= hdp::FLAG_LAST;
+        uplink_end_pending_ = false;
+        uplink_active_ = false;
+        stats_.uplink_end_us = esp_timer_get_time();
+        // Hand off finalisation to worker thread.
+        post([this] { uplink_done(); });
+    }
+
+    auto frame = hdp::encode_frame(hdp::FRAME_OPUS_UPLINK, flags, stream_id_, uplink_seq_++, data, data_size);
     if (frame.empty()) {
         ESP_LOGW(TAG, "uplink frame too large");
         return false;
@@ -272,14 +277,17 @@ void HomunculusAgent::tick()
         if (uplink_active_ && listen_deadline_us_ > 0 && now > listen_deadline_us_) {
             end_uplink_by_device("max_length");
         }
+        if (uplink_end_pending_ && uplink_done_deadline_us_ > 0 && now > uplink_done_deadline_us_) {
+            // No encoder frame arrived to carry the last-flag; finalize anyway.
+            std::lock_guard lock(uplink_mutex_);
+            uplink_end_pending_ = false;
+            uplink_active_ = false;
+            post([this] { uplink_done(); });
+        }
         if (ui_ == UiState::Thinking && thinking_deadline_us_ > 0 && now > thinking_deadline_us_) {
             ESP_LOGW(TAG, "thinking timeout");
             stop_speaking_locally();
             set_ui(UiState::Idle);
-        }
-        if (uplink_done_deadline_us_ > 0 && now > uplink_done_deadline_us_) {
-            uplink_done_deadline_us_ = 0;
-            uplink_done();
         }
     }
 
@@ -287,9 +295,8 @@ void HomunculusAgent::tick()
     std::vector<uint16_t> played;
     {
         std::lock_guard lock(player_mutex_);
-        const int64_t now_us = esp_timer_get_time();
         for (auto it = dl_played_due_.begin(); it != dl_played_due_.end();) {
-            if (now_us >= it->second) {
+            if (now >= it->second) {
                 played.push_back(it->first);
                 it = dl_played_due_.erase(it);
             } else {
@@ -353,7 +360,6 @@ void HomunculusAgent::handle_disconnected()
 void HomunculusAgent::handle_text(const std::string &text)
 {
     if (!session_ready_) {
-        // First message after connect must be hello.
         auto m = hdp::parse_server_message(text);
         if (m.type != hdp::ServerType::Hello) {
             ESP_LOGW(TAG, "expected hello, got %s", hdp::to_string(m.type));
@@ -381,11 +387,13 @@ void HomunculusAgent::handle_text(const std::string &text)
         if (caption_cb_) caption_cb_(false, m.text, m.final);
         break;
     case hdp::ServerType::AgentStatus:
-        if (m.phase == "thinking" && ui_ != UiState::Speaking) set_ui(UiState::Thinking);
-        else if (m.phase == "tool" && ui_ != UiState::Speaking) set_ui(UiState::Thinking);
-        else if (m.phase == "responding" && ui_ != UiState::Speaking) set_ui(UiState::Thinking);
-        else if (m.phase == "done" && ui_ == UiState::Thinking) set_ui(UiState::Idle);
-        else if (m.phase == "error") set_ui(UiState::Idle);
+        if (m.phase == "thinking" || m.phase == "tool" || m.phase == "responding") {
+            if (ui_ != UiState::Speaking) set_ui(UiState::Thinking);
+        } else if (m.phase == "done" && ui_ == UiState::Thinking) {
+            set_ui(UiState::Idle);
+        } else if (m.phase == "error") {
+            set_ui(UiState::Idle);
+        }
         break;
     case hdp::ServerType::Tts:
         handle_tts(m);
@@ -426,7 +434,11 @@ void HomunculusAgent::handle_hello(const hdp::ServerMessage &m)
 void HomunculusAgent::handle_tts(const hdp::ServerMessage &m)
 {
     if (m.state == "start") {
-        reopen_decoder_stream(downlink_rate_);
+        {
+            std::lock_guard lock(player_mutex_);
+            accept_downlink_ = true;
+            dl_generation_++;
+        }
         set_ui(UiState::Speaking);
         return;
     }
@@ -447,8 +459,7 @@ void HomunculusAgent::handle_tts(const hdp::ServerMessage &m)
 void HomunculusAgent::handle_tool_call(const hdp::ServerMessage &m)
 {
     ESP_LOGI(TAG, "tool.call %s", m.tool_name.c_str());
-    // Phase 3 device bridge: echo back a not-implemented error for now.
-    boost::json::object err{{"code", -32601}, {"message", "device tool not implemented"}};
+    // Phase 3 device bridge: report not-implemented for now.
     send(hdp::make_tool_error(m.rpc_id, -32601, "device tool not implemented"));
 }
 
@@ -473,27 +484,6 @@ void HomunculusAgent::start_listen(const char *trigger, const char *abort_reason
         stop_speaking_locally();
     }
 
-    // Start Brookesia audio encoder (AFE + Opus encode).
-    AudioHelper::EncoderDynamicConfig config{
-        .type = AudioHelper::CodecFormat::OPUS,
-        .general = {
-            .channels = 1,
-            .sample_bits = 16,
-            .sample_rate = 16000,
-            .frame_duration = 60,
-        },
-        .extra = AudioHelper::EncoderExtraConfigOpus{.enable_vbr = true, .bitrate = 24000},
-        .enable_afe = true,
-    };
-    auto r = AudioEncoderHelper::call_function_sync(
-        AudioEncoderHelper::FunctionId::Start, BROOKESIA_DESCRIBE_TO_JSON(config).as_object(),
-        esp_brookesia::service::helper::Timeout(1000));
-    if (!r) {
-        ESP_LOGE(TAG, "encoder start failed: %s", r.error().c_str());
-        return;
-    }
-    set_encoder_paused(false);
-
     {
         std::lock_guard lock(uplink_mutex_);
         uplink_active_ = true;
@@ -501,16 +491,13 @@ void HomunculusAgent::start_listen(const char *trigger, const char *abort_reason
         stream_id_++;
         uplink_seq_ = 0;
         uplink_buf_.clear();
-        vad_speech_ = false;
         listen_start_us_ = esp_timer_get_time();
     }
 
-    const int64_t now = esp_timer_get_time();
     stats_ = TurnStats{};
-    stats_.listen_start_us = now;
-    listen_deadline_us_ = now + static_cast<int64_t>(CONFIG_HOMUNCULUS_MAX_UTTERANCE_MS) * 1000;
+    stats_.listen_start_us = esp_timer_get_time();
+    listen_deadline_us_ = stats_.listen_start_us + static_cast<int64_t>(CONFIG_HOMUNCULUS_MAX_UTTERANCE_MS) * 1000;
     thinking_deadline_us_ = 0;
-    uplink_done_deadline_us_ = 0;
 
     send(hdp::make_listen_start("auto", trigger, ""));
     set_ui(UiState::Listening);
@@ -521,7 +508,7 @@ void HomunculusAgent::end_uplink_by_server()
     std::lock_guard lock(uplink_mutex_);
     if (!uplink_active_) return;
     uplink_end_pending_ = true;
-    uplink_done_deadline_us_ = esp_timer_get_time() + 200 * 1000;  // 200 ms to flush last frame
+    uplink_done_deadline_us_ = esp_timer_get_time() + 200 * 1000;
 }
 
 void HomunculusAgent::end_uplink_by_device(const char *why)
@@ -539,16 +526,8 @@ void HomunculusAgent::uplink_done()
 {
     {
         std::lock_guard lock(uplink_mutex_);
-        if (!uplink_active_) return;
-        uplink_active_ = false;
+        if (uplink_active_ || uplink_end_pending_) return;
     }
-
-    auto r = AudioEncoderHelper::call_function_sync(AudioEncoderHelper::FunctionId::Stop,
-                                                    esp_brookesia::service::helper::Timeout(1000));
-    if (!r) {
-        ESP_LOGW(TAG, "encoder stop failed: %s", r.error().c_str());
-    }
-    set_encoder_paused(true);
     set_ui(UiState::Thinking);
     thinking_deadline_us_ = esp_timer_get_time() + static_cast<int64_t>(CONFIG_HOMUNCULUS_THINKING_TIMEOUT_MS) * 1000;
     log_turn_stats();
@@ -556,41 +535,21 @@ void HomunculusAgent::uplink_done()
 
 void HomunculusAgent::stop_speaking_locally()
 {
-    player_flush();
     {
         std::lock_guard lock(player_mutex_);
-        accept_downlink_ = false;
-        dl_stop_after_drain_ = false;
+        dl_queue_.clear();
         dl_segments_ended_.clear();
         dl_segment_play_end_.clear();
         dl_played_due_.clear();
-        dl_primed_ = false;
+        accept_downlink_ = false;
         dl_generation_++;
     }
+    set_ui(UiState::Idle);
 }
 
 void HomunculusAgent::speech_finished()
 {
     set_ui(UiState::Idle);
-}
-
-void HomunculusAgent::on_afe_event(const std::string &event)
-{
-    if (event == "VAD_Start") {
-        vad_speech_ = true;
-    } else if (event == "VAD_End") {
-        vad_speech_ = false;
-#if CONFIG_HOMUNCULUS_DEVICE_ENDPOINT
-        if (uplink_active_ && !uplink_end_pending_) {
-            const int64_t elapsed = (esp_timer_get_time() - listen_start_us_) / 1000;
-            if (elapsed >= CONFIG_HOMUNCULUS_DEVICE_ENDPOINT_MIN_MS) {
-                end_uplink_by_device("vad");
-            }
-        }
-#endif
-    } else if (event == "WakeStart") {
-        post([this] { start_listen("wake_word", "barge_in"); });
-    }
 }
 
 // ---------------------------------------------------------------------------
@@ -634,46 +593,40 @@ void HomunculusAgent::player_loop()
 
         if (!running_) break;
 
-        if (!accept_downlink_ && dl_queue_.empty()) continue;
-
-        auto *decoder = esp_brookesia::service::AudioDecoder::get_instance(0);
-        if (!decoder) {
-            lock.unlock();
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            continue;
-        }
-
-        // Prefill jitter buffer before starting playback.
-        if (!dl_primed_ && dl_queue_.size() < CONFIG_HOMUNCULUS_JITTER_PREFILL_FRAMES) continue;
-        dl_primed_ = true;
+        std::deque<DownlinkFrame> q;
+        q.swap(dl_queue_);
+        const uint32_t gen = dl_generation_;
+        const bool stop_after_drain = dl_stop_after_drain_;
+        dl_stop_after_drain_ = false;
+        lock.unlock();
 
         if (stats_.tts_start_us == 0) stats_.tts_start_us = esp_timer_get_time();
         if (stats_.first_rx_us == 0) stats_.first_rx_us = esp_timer_get_time();
 
-        std::deque<DownlinkFrame> q;
-        q.swap(dl_queue_);
-        const uint32_t gen = dl_generation_;
-        lock.unlock();
-
         for (auto &df : q) {
             if (gen != dl_generation_) break;  // generation bumped by barge-in
-            auto w = decoder->write_stream(decoder_source_, OUTPUT_NAME,
-                                           esp_brookesia::service::RawBuffer(df.data.data(), df.data.size()), 1000);
-            if (w != esp_brookesia::service::AudioWriteResult::Written) {
-                ESP_LOGW(TAG, "decoder write failed");
+
+            // Feed the base-class playback operation. Base::feed_audio_decoder_data()
+            // is synchronous and handles decoding + speaker output.
+            if (!feed_audio_decoder_data(df.data.data(), df.data.size())) {
                 stats_.dl_underruns++;
             } else {
                 stats_.dl_frames++;
                 if (stats_.first_fed_us == 0) stats_.first_fed_us = esp_timer_get_time();
             }
+
+            // Each HDP frame carries one 60 ms Opus frame from the server pacer.
+            {
+                std::lock_guard lock(player_mutex_);
+                dl_segment_play_end_[df.segment] += FRAME_US;
+            }
+
             if (df.flags & hdp::FLAG_LAST) {
                 player_segment_end(df.segment);
             }
         }
 
-        lock.lock();
-        if (dl_stop_after_drain_ && dl_queue_.empty()) {
-            dl_stop_after_drain_ = false;
+        if (stop_after_drain && q.empty()) {
             speech_finished();
         }
     }
@@ -682,29 +635,16 @@ void HomunculusAgent::player_loop()
 
 void HomunculusAgent::player_flush()
 {
-    {
-        std::lock_guard lock(player_mutex_);
-        dl_queue_.clear();
-    }
-    auto *decoder = esp_brookesia::service::AudioDecoder::get_instance(0);
-    if (decoder && !decoder_source_.empty()) {
-        (void)decoder->close_stream(decoder_source_, OUTPUT_NAME);
-    }
+    std::lock_guard lock(player_mutex_);
+    dl_queue_.clear();
 }
 
 void HomunculusAgent::player_segment_end(uint16_t segment)
 {
     std::lock_guard lock(player_mutex_);
     dl_segments_ended_.insert(segment);
-    // Estimate playback end and schedule tts.played. Very rough: assume 16 kbit/s Opus -> ~8 kbit/s PCM.
-    // Real implementation should use decoder stream position / playback callback.
-    constexpr int64_t US_PER_BYTE = 250;  // ~32 kbps raw 16 kHz mono
-    int64_t play_end = esp_timer_get_time();
-    for (const auto &df : dl_queue_) {
-        if (df.segment == segment) play_end += df.data.size() * US_PER_BYTE;
-    }
-    dl_segment_play_end_[segment] = play_end;
-    dl_played_due_.push_back({segment, play_end});
+    const int64_t due = esp_timer_get_time() + dl_segment_play_end_[segment];
+    dl_played_due_.push_back({segment, due});
 }
 
 void HomunculusAgent::player_tts_stop()
@@ -712,54 +652,6 @@ void HomunculusAgent::player_tts_stop()
     std::lock_guard lock(player_mutex_);
     dl_stop_after_drain_ = true;
     player_cv_.notify_one();
-}
-
-void HomunculusAgent::reopen_decoder_stream(uint32_t sample_rate)
-{
-    player_flush();
-    auto *decoder = esp_brookesia::service::AudioDecoder::get_instance(0);
-    if (!decoder) {
-        ESP_LOGE(TAG, "no audio decoder");
-        return;
-    }
-    using AudioHelper = esp_brookesia::service::helper::Audio;
-    (void)decoder->unregister_source(SOURCE_NAME);
-    auto source = decoder->register_source(esp_brookesia::service::AudioSourceInfo{
-        .name = SOURCE_NAME,
-        .role = "agent",
-        .preferred_outputs = {OUTPUT_NAME},
-    });
-    if (!source) {
-        ESP_LOGE(TAG, "register_source: %s", source.error().c_str());
-        return;
-    }
-    decoder_source_ = source.value();
-    (void)decoder->request_output(decoder_source_, OUTPUT_NAME);
-    (void)decoder->set_active_source(OUTPUT_NAME, SOURCE_NAME);
-
-    decoder_rate_ = sample_rate ? sample_rate : 24000;
-    auto opened = decoder->open_stream(
-        decoder_source_, OUTPUT_NAME,
-        esp_brookesia::service::AudioStreamConfig{
-            .type = AudioHelper::CodecFormat::OPUS,
-            .general = {
-                .channels = 1,
-                .sample_bits = 16,
-                .sample_rate = decoder_rate_,
-                .frame_duration = 60,
-            },
-        });
-    if (!opened) {
-        ESP_LOGE(TAG, "open_stream: %s", opened.error().c_str());
-        return;
-    }
-
-    {
-        std::lock_guard lock(player_mutex_);
-        accept_downlink_ = true;
-        dl_primed_ = false;
-        dl_generation_++;
-    }
 }
 
 // ---------------------------------------------------------------------------
@@ -785,11 +677,20 @@ void HomunculusAgent::log_turn_stats()
 
 }  // namespace homunculus
 
-// Static symbol references for forced linking (see CMakeLists.txt).
-extern "C" void homunculus_agent_symbol()
-{
-}
-extern "C" void homunculus_agent_service_symbol()
-{
-}
+// Register the agent with both the agent_manager registry (so the Manager can select it)
+// and the service_manager registry (so ServiceManager starts its worker thread).
+BROOKESIA_PLUGIN_REGISTER_SINGLETON_WITH_SYMBOL(
+    esp_brookesia::agent::Base,
+    homunculus::HomunculusAgent,
+    homunculus::HomunculusAgent::NAME,
+    homunculus::HomunculusAgent::get_instance(),
+    homunculus_agent_symbol
+)
 
+BROOKESIA_PLUGIN_REGISTER_SINGLETON_WITH_SYMBOL(
+    esp_brookesia::service::ServiceBase,
+    homunculus::HomunculusAgent,
+    homunculus::HomunculusAgent::NAME,
+    homunculus::HomunculusAgent::get_instance(),
+    homunculus_agent_service_symbol
+)

@@ -5,6 +5,7 @@ dependencies.lock
 !firmware/dependencies.lock
 sdkconfig
 sdkconfig.old
+sdkconfig.local
 node_modules/
 dist/
 .env
