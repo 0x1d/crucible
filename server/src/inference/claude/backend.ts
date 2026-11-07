@@ -164,9 +164,12 @@ class ClaudeAgentSession implements AgentSession {
 function toUserMessage(input: AgentInput): SDKUserMessage {
   let text: string;
   if (input.kind === "utterance") {
-    text = input.heardSoFar
-      ? `(The user interrupted your previous answer; they only heard: "${input.heardSoFar}")\n\n${input.text}`
-      : input.text;
+    if (input.heardSoFar === undefined) text = input.text;
+    else if (input.heardSoFar === "") {
+      text = `(The user interrupted your previous answer before hearing any of it.)\n\n${input.text}`;
+    } else {
+      text = `(The user interrupted your previous answer; they only heard: "${input.heardSoFar}")\n\n${input.text}`;
+    }
   } else {
     text = `[device event: ${input.name}] ${JSON.stringify(input.data)}`;
   }

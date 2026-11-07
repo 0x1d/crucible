@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { startGateway } from "./gateway/server.js";
 import { createLogger } from "./log.js";
 import { attachLoopback } from "./orchestrator/loopback.js";
+import { createSpeechPipeline } from "./orchestrator/pipeline.js";
 
 const env = process.env;
 const log = createLogger();
@@ -19,19 +20,24 @@ if (deviceTokens.length === 0) {
   log.warn("dev_token", { note: "HOMUNCULUS_DEVICE_TOKENS unset; accepting token 'dev' (plain ws)" });
 }
 
+// HOMUNCULUS_PIPELINE: "speech" (default, spec §5.2) or "loopback" (echo, p1a).
+const mode = env.HOMUNCULUS_PIPELINE ?? "speech";
+if (mode !== "speech" && mode !== "loopback") throw new Error(`unknown HOMUNCULUS_PIPELINE ${mode}`);
+const pipeline = mode === "speech" ? await createSpeechPipeline(log) : undefined;
+
 const gateway = await startGateway({
   host: env.HOMUNCULUS_HOST ?? "0.0.0.0",
   port: Number(env.HOMUNCULUS_PORT ?? 8443),
   tls,
   deviceTokens,
   config: { follow_up_window_ms: 6000, captions: true, language: "en" },
-  onConnection: attachLoopback,
+  onConnection: pipeline ? (c) => pipeline.attach(c) : attachLoopback,
   log,
 });
 
 for (const sig of ["SIGINT", "SIGTERM"] as const) {
   process.once(sig, () => {
     log.info("shutdown", { signal: sig });
-    void gateway.close().then(() => process.exit(0));
+    void Promise.all([gateway.close(), pipeline?.close()]).then(() => process.exit(0));
   });
 }

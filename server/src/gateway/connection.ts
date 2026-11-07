@@ -36,7 +36,7 @@ export interface ConnectionOptions {
   resolveSession(identity: DeviceIdentity, resume: string | undefined): string;
 }
 
-type Events = {
+export type ConnectionEvents = {
   /** Handshake complete. */
   ready: [];
   message: [DeviceMessage];
@@ -44,7 +44,7 @@ type Events = {
   close: [code: number, reason: string];
 };
 
-export class DeviceConnection extends EventEmitter<Events> {
+export class DeviceConnection extends EventEmitter<ConnectionEvents> {
   hello: DeviceHello | undefined;
   sessionId: string | undefined;
   downlink: AudioStreamParams | undefined;

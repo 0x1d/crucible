@@ -94,6 +94,8 @@
           pnpm
           libopus
           ffmpeg-headless
+          whisper-cpp # STT (D-01): whisper-server
+          piper-tts # TTS fallback (D-02)
         ];
 
         docsTools = with pkgs; [
