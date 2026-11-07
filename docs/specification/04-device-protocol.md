@@ -18,6 +18,7 @@ HDP is a WebSocket sub-protocol carrying **binary audio frames** and **JSON cont
 | Headers | `X-Device-Id: <MAC>`, `X-Device-Model: ws-s3-amoled-175c`, `X-Firmware: <semver>` |
 | Keep-alive | WebSocket ping frames (not JSON messages) from the device every 20 s; server closes after 60 s without any frame, ping or pong |
 | Upgrade rejection | HTTP 404 wrong path, 400 missing `hdp.v1` sub-protocol or `X-Device-Id`, 401 bad token |
+| Replacement | One live connection per `X-Device-Id`; a newer connection closes the older with close code 4000 `replaced` (D-14) |
 | Handshake | First text frame must be `hello` within 10 s, else `error{hello_required}` + close 1008 |
 | Reconnect | Exponential backoff 1 s → 60 s with jitter; session resumes via `session_id` |
 | Text frames | UTF-8 JSON, one message per frame |

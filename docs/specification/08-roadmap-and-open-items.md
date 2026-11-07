@@ -109,39 +109,10 @@ Product decisions taken on resolved open items. Decided 2026-11-07.
 | D-07 | **ESP-Brookesia 0.8.x + ESP-IDF 6.x** | Latest released versions. Brookesia 0.8 requires IDF ≥ 6.0, ≤ 6.2 on ESP32-S3. Component versions pinned in §3.1. |
 | D-08 | **Latency target (interim): ≤ 3 s to first spoken sentence** | Replaces the §5.5 budget until Phase 1 measurements. |
 | D-09 | **Web lookups are announced** | Persona voice rule: one short sentence ("Let me look that up") before any web search/fetch. Measured: first sentence 3.2 s instead of 26.6 s. Orchestrator filler (§5.5) remains the fallback. |
+| D-10 | **Kokoro fp32, per-segment synthesis; first segment 3–8 words** | q8 measured 1.6–2.5× slower than fp32 at equal WER; kokoro-js `stream()` gives no gain. Voice rule asks for a short first sentence. Limits configurable via env (§5.4.2). |
+| D-11 | **Agent session recovery** | Fatal/non-retryable agent error, dead process, watchdog or stuck interrupt → reopen session; first reopen resumes the last session id, a second consecutive failure starts fresh. |
+| D-12 | **Orchestrator timeouts** | Uplink gap 2.5 s, utterance cap 22.5 s, final transcript 20 s, agent idle 90 s, speech idle 20 s, interrupt wait 8 s, whisper request 15 s (§5.2). |
+| D-13 | **Uplink stream id latched on First flag or seq 0** | Frames of other streams dropped. Firmware sets the First flag on seq 0. |
+| D-14 | **One live conversation per device id** | A newer connection closes the older with WebSocket close code 4000 `replaced` (§4.1). |
 
-## 8.6 Phase 0 results
-
-| Spike | Exit criterion | Result | Evidence |
-| --- | --- | --- | --- |
-| p0a | Display + touch + audio on upstream Brookesia board definition | CO5300 466×466, CST9217 (interrupt mode), ES8311 + ES7210 running on Brookesia 0.8.x / ESP-IDF 6.0.2, 32 MB flash | `firmware/`, research notes p0a |
-| p0b | AFE CPU load measured | Full duplex (AFE + Opus enc + Opus dec/playback): core 0 54 %, core 1 42 %; internal heap min 178 KB | research notes p0a/p0b |
-| p0c | Claude SDK partial streaming + interrupt | `text_delta` streaming; interrupt → turn end 13 ms; session reusable | `server/src/spikes/`, research notes p0c |
-
-Carried into Phase 1:
-
-- Barge-in while speaking: wake word or touch, not VAD (R-06).
-- Wake word false triggers observed (R-09).
-- OI-02 two-mic AFE not measured.
-
-## 8.7 Phase 1 progress
-
-| Step | Result | Evidence |
-| --- | --- | --- |
-| p1a | **Done 2026-11-07.** HDP/1 TypeBox schemas → JSON Schema; frame codec; 53 vector tests. Gateway `/hdp`: auth, hello/version check, downlink negotiation, resume, idle timeout, pacer; 8 tests. Loopback handler (echo) as p1c placeholder. Simulator `hdp-sim`: file/mic uplink, WAV/player downlink, device tools, stage timings | `protocol/`, `server/src/gateway/`, `server/src/orchestrator/loopback.ts`, `tools/simulator/` |
-| p1b | **Implemented, not verified on hardware.** `homunculus_agent`: HDP/1 codec (host test 89 checks vs `protocol/vectors`), WebSocket client, Wi-Fi, Brookesia agent lifecycle; builds. Review 2026-11-07: wake word path unreachable (Brookesia Slept/InterruptSpeaking not wired), uplink continues after disconnect, UI can stick in Speaking, thread stacks 3 KB default, no session resume, no jitter buffer | `firmware/components/homunculus_agent/` |
-| p1c | **Done 2026-11-07 (simulator).** Orchestrator FSM, Silero VAD endpointer, whisper.cpp `whisper-server` (base.en, CPU, 4 threads), Kokoro (kokoro-js, fp32, bf_emma), Piper fallback, Speech Shaper, Opus 24 kHz downlink, barge-in, per-stage latency log | `server/src/orchestrator/`, `server/src/speech/` |
-| p1d | Open: hardware end-to-end blocked on p1b review fixes | `firmware/main/main.cpp`, `server/src/main.ts` |
-
-p1a loopback measurement (localhost, 2.0 s 440 Hz tone, auto mode, 600 ms tail): `listen.stop` 658 ms after end of audio (= tail, no VAD), downlink 45 frames 24 kHz decoded at 440 Hz, playback 2.46 s after first frame.
-
-p1c simulator measurements (localhost, Kokoro-generated questions, auto mode; ms after end of speech, server log):
-
-| Question | VAD hangover | STT final (`stt_ms`) | Agent first token | First sentence | First TTS chunk | First downlink |
-| --- | --- | --- | --- | --- | --- | --- |
-| "What is the capital of Australia?" | 542 | 856 (315) | 1864 | 2203 | 3690 | 3774 |
-| "Tell me a short joke." | 542 | 858 (315) | 1483 | 1939 | 3320 | 3383 |
-| "What's the weather in Vienna tomorrow?" (WebSearch) | 542 | 839 (297) | 1544 | 2245 | 2665 (filler) | 2685 |
-
-- Kokoro fp32 synthesis of the first segment: 1.38–1.49 s (whole segment, not streamed); dominant stage vs D-08 (≤ 3 s).
-- Agent cost per turn: 0.050–0.095 USD.
+After hardening (D-10 first segment 3–8 words), ms after end of speech, first downlink: "capital" 1924, "joke" 3016, "tokyo" 3371; second round capital / joke / weather (WebSearch) 3927 / 3688 / 4592. Agent time to first sentence (0.7–2.8 s after transcript) is the dominant stage.
