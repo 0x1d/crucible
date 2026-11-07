@@ -1,0 +1,11 @@
+# Build outputs
+build/
+managed_components/
+dependencies.lock
+sdkconfig
+sdkconfig.old
+node_modules/
+dist/
+.env
+*.log
+.DS_Store
