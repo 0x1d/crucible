@@ -61,7 +61,7 @@ gantt
 | Phase | Exit criteria | Status |
 | --- | --- | --- |
 | 0 — Spikes | Display + touch + audio running on upstream Brookesia board def; measured AFE CPU load; Claude SDK partial streaming + interrupt verified | **Done 2026-11-07** (§8.6) |
-| 1 — Voice MVP | Wake word → answer by voice with web search; barge-in works; latency measured per stage | **Ready for end-to-end test** (§8.7) |
+| 1 — Voice MVP | Wake word → answer by voice with web search; barge-in works; latency measured per stage | In progress (§8.7) |
 | 2 — Avatar | All states and emotes rendered ≥ 20 fps; lip-sync; agent drives emotions | Open |
 | 3 — Agent features | Backend switchable (Claude / OpenCode); device tools; confirmation flow; Wi-Fi provisioning + pairing; OTA | Open |
 | 4 — Multi-device | Second board with different display shape runs the same firmware and server unchanged | Open |
@@ -129,8 +129,19 @@ Carried into Phase 1:
 | Step | Result | Evidence |
 | --- | --- | --- |
 | p1a | **Done 2026-11-07.** HDP/1 TypeBox schemas → JSON Schema; frame codec; 53 vector tests. Gateway `/hdp`: auth, hello/version check, downlink negotiation, resume, idle timeout, pacer; 8 tests. Loopback handler (echo) as p1c placeholder. Simulator `hdp-sim`: file/mic uplink, WAV/player downlink, device tools, stage timings | `protocol/`, `server/src/gateway/`, `server/src/orchestrator/loopback.ts`, `tools/simulator/` |
-| p1b | **Done.** `firmware/components/homunculus_agent/`: HDP/1 codec, WebSocket client, Wi-Fi helper, Brookesia agent_manager integration, lifecycle, worker thread, uplink/downlink, barge-in. Component builds. | `firmware/components/homunculus_agent/` |
-| p1c | **Done.** Server speech pipeline: Conversation orchestrator, Whisper.cpp STT, Kokoro/Piper TTS, Silero VAD, Speech Shaper, latency timers. All tests pass. | `server/src/orchestrator/`, `server/src/speech/`, `server/test/` |
-| p1d | **Ready for end-to-end test.** `app_main` wires display state, touch, Wi-Fi and activates HomunculusAgent; server defaults to `HOMUNCULUS_PIPELINE=speech`. Both firmware and server build. | `firmware/main/main.cpp`, `server/src/main.ts` |
+| p1b | **Implemented, not verified on hardware.** `homunculus_agent`: HDP/1 codec (host test 89 checks vs `protocol/vectors`), WebSocket client, Wi-Fi, Brookesia agent lifecycle; builds. Review 2026-11-07: wake word path unreachable (Brookesia Slept/InterruptSpeaking not wired), uplink continues after disconnect, UI can stick in Speaking, thread stacks 3 KB default, no session resume, no jitter buffer | `firmware/components/homunculus_agent/` |
+| p1c | **Done 2026-11-07 (simulator).** Orchestrator FSM, Silero VAD endpointer, whisper.cpp `whisper-server` (base.en, CPU, 4 threads), Kokoro (kokoro-js, fp32, bf_emma), Piper fallback, Speech Shaper, Opus 24 kHz downlink, barge-in, per-stage latency log | `server/src/orchestrator/`, `server/src/speech/` |
+| p1d | Open: hardware end-to-end blocked on p1b review fixes | `firmware/main/main.cpp`, `server/src/main.ts` |
 
 p1a loopback measurement (localhost, 2.0 s 440 Hz tone, auto mode, 600 ms tail): `listen.stop` 658 ms after end of audio (= tail, no VAD), downlink 45 frames 24 kHz decoded at 440 Hz, playback 2.46 s after first frame.
+
+p1c simulator measurements (localhost, Kokoro-generated questions, auto mode; ms after end of speech, server log):
+
+| Question | VAD hangover | STT final (`stt_ms`) | Agent first token | First sentence | First TTS chunk | First downlink |
+| --- | --- | --- | --- | --- | --- | --- |
+| "What is the capital of Australia?" | 542 | 856 (315) | 1864 | 2203 | 3690 | 3774 |
+| "Tell me a short joke." | 542 | 858 (315) | 1483 | 1939 | 3320 | 3383 |
+| "What's the weather in Vienna tomorrow?" (WebSearch) | 542 | 839 (297) | 1544 | 2245 | 2665 (filler) | 2685 |
+
+- Kokoro fp32 synthesis of the first segment: 1.38–1.49 s (whole segment, not streamed); dominant stage vs D-08 (≤ 3 s).
+- Agent cost per turn: 0.050–0.095 USD.
