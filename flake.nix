@@ -52,6 +52,27 @@
           picocom
         ];
 
+        # nixpkgs-esp-dev bundles idf-component-manager 2.2.2, which cannot resolve
+        # Kconfig-conditional dependencies (esp_board_manager, used by Brookesia
+        # v0.7). Shadow it with a newer release via PYTHONPATH; its runtime deps
+        # come from the ESP-IDF Python environment.
+        idfComponentManager = pkgs.python3Packages.buildPythonPackage rec {
+          pname = "idf_component_manager";
+          version = "2.4.9";
+          format = "wheel";
+          src = pkgs.fetchPypi {
+            inherit pname version format;
+            dist = "py3";
+            python = "py3";
+            hash = "sha256-DHfnsH0fIMkP2X1+gJQNVdSPBW4alARFK/nURpr/IzI=";
+          };
+          dontCheckRuntimeDeps = true;
+        };
+
+        firmwareShellHook = ''
+          export PYTHONPATH=${idfComponentManager}/${pkgs.python3.sitePackages}''${PYTHONPATH:+:$PYTHONPATH}
+        '';
+
         serverTools = with pkgs; [
           nodejs_22
           pnpm
@@ -73,13 +94,13 @@
           default = pkgs.mkShell {
             name = "homunculus";
             packages = commonTools ++ firmwareTools ++ serverTools;
-            inherit shellHook;
+            shellHook = shellHook + firmwareShellHook;
           };
 
           firmware = pkgs.mkShell {
             name = "homunculus-firmware";
             packages = commonTools ++ firmwareTools;
-            inherit shellHook;
+            shellHook = shellHook + firmwareShellHook;
           };
 
           server = pkgs.mkShell {
