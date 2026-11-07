@@ -233,7 +233,13 @@ export class FakeSession implements AgentSession {
     let interrupted: Promise<void> | undefined;
     const onAbort = () => {
       this.interrupts++;
-      interrupted = this.interruptMs === Infinity ? new Promise(() => {}) : sleep(this.interruptMs);
+      // A stuck interrupt ends only when the session is closed (like a killed CLI process).
+      interrupted =
+        this.interruptMs === Infinity
+          ? (async () => {
+              while (!this.closed) await sleep(5);
+            })()
+          : sleep(this.interruptMs);
     };
     signal?.addEventListener("abort", onAbort, { once: true });
     try {
