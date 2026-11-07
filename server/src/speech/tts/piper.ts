@@ -40,6 +40,8 @@ export class PiperTtsProvider implements TtsProvider {
     let err = "";
     proc.stderr.on("data", (c: Buffer) => (err = (err + c.toString()).slice(-1000)));
     proc.on("error", () => {});
+    // Created before reading stdout so a close (incl. death by signal) is never missed.
+    const closed = new Promise<number | null>((r) => proc.once("close", (code) => r(code)));
     proc.stdin.end(`${text.replace(/\s+/g, " ")}\n`);
     const chunks: Buffer[] = [];
     try {
@@ -47,9 +49,7 @@ export class PiperTtsProvider implements TtsProvider {
     } catch (e) {
       if (!opts.signal.aborted) throw e;
     }
-    const code = await new Promise<number | null>((r) =>
-      proc.exitCode !== null ? r(proc.exitCode) : proc.once("close", r),
-    );
+    const code = await closed;
     if (opts.signal.aborted) return;
     if (code !== 0) this.opts.log.warn("piper_failed", { code, error: err.trim() });
     const buf = Buffer.concat(chunks);

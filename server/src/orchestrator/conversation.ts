@@ -189,7 +189,14 @@ export class Conversation {
   private onAudio(f: AudioFrame): void {
     const utt = this.utt;
     if (!utt || utt.ended) return;
-    const pcm = this.decoder.decode(f.payload);
+    let pcm: Int16Array;
+    try {
+      pcm = this.decoder.decode(f.payload);
+    } catch (e) {
+      // Corrupt/oversized packet: substitute silence so audio timing stays intact.
+      this.log.warn("opus_decode_failed", { error: (e as Error).message, bytes: f.payload.length });
+      pcm = new Int16Array(960);
+    }
     utt.arrivals.push(performance.now());
     if (utt.mode !== "auto" || utt.speech) utt.stt.write(pcm);
     else {
@@ -352,6 +359,10 @@ export class Conversation {
             break;
           case "tool.start":
             turn.tools.push(ev.name);
+            // Speak text preceding the tool call now (D-09 announcement); the next
+            // assistant text block starts a new sentence.
+            say(shaper.flush());
+            if (turn.reply && !/\s$/.test(turn.reply)) turn.reply += " ";
             this.send({ type: "agent.status", phase: "tool", tool: ev.name });
             if (this.state === "running") this.send({ type: "avatar", state: "working" });
             this.maybeFiller(turn);

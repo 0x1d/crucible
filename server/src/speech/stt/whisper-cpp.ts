@@ -20,6 +20,8 @@ export interface WhisperCppOptions {
 }
 
 const RATE = 16000;
+/** Upper bound for one whisper-server request; a hung server must not wedge a turn. */
+const INFERENCE_TIMEOUT_MS = 15_000;
 
 /**
  * Encoder context for an utterance of `samples` length: whisper.cpp encodes 30 s (1500 positions)
@@ -121,7 +123,11 @@ export class WhisperCppProvider implements SttProvider {
     form.append("audio_ctx", String(audioCtx(pcm.length)));
     form.append("no_timestamps", "true");
     const t0 = performance.now();
-    const res = await fetch(`${url}/inference`, { method: "POST", body: form, signal });
+    const res = await fetch(`${url}/inference`, {
+      method: "POST",
+      body: form,
+      signal: AbortSignal.any([signal, AbortSignal.timeout(INFERENCE_TIMEOUT_MS)].filter((s) => s !== undefined)),
+    });
     if (!res.ok) throw new Error(`whisper-server HTTP ${res.status}: ${await res.text()}`);
     const body = (await res.json()) as { text?: string; error?: string };
     if (body.error) throw new Error(`whisper-server: ${body.error}`);

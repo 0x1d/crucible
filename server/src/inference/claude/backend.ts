@@ -108,7 +108,7 @@ class ClaudeAgentSession implements AgentSession {
     if (this.busy) throw new Error("turn already in progress");
     this.busy = true;
     this.interrupted = false;
-    const onAbort = () => void this.interrupt();
+    const onAbort = () => void this.interrupt();  // interrupt() never rejects
     signal?.addEventListener("abort", onAbort, { once: true });
     try {
       this.input.push(toUserMessage(input));
@@ -152,7 +152,11 @@ class ClaudeAgentSession implements AgentSession {
   async interrupt(): Promise<void> {
     if (!this.busy) return;
     this.interrupted = true;
-    await this.q.interrupt();
+    try {
+      await this.q.interrupt();
+    } catch {
+      // Query closed or CLI already idle: nothing left to interrupt.
+    }
   }
 
   async close(): Promise<void> {

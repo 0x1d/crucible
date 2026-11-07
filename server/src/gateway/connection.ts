@@ -19,6 +19,9 @@ import {
 import type { WebSocket } from "ws";
 import type { Logger } from "../log.js";
 
+/** Generous bound for one 60 ms Opus packet (libopus max 1275 bytes per 20 ms frame × 3). */
+const MAX_OPUS_PACKET = 4000;
+
 export interface DeviceIdentity {
   deviceId: string;
   model: string;
@@ -189,6 +192,9 @@ export class DeviceConnection extends EventEmitter<ConnectionEvents> {
     } catch (e) {
       if (e instanceof FrameError) return this.error("bad_message", e.message);
       throw e;
+    }
+    if (frame.payload.length > MAX_OPUS_PACKET) {
+      return this.error("bad_message", `uplink payload ${frame.payload.length} bytes exceeds ${MAX_OPUS_PACKET}`);
     }
     if (frame.type !== FrameType.OpusUplink) {
       return this.error("bad_message", `unexpected frame type ${frame.type} from device`);

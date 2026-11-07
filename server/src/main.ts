@@ -8,6 +8,9 @@ import { createSpeechPipeline } from "./orchestrator/pipeline.js";
 const env = process.env;
 const log = createLogger();
 
+// A failure in one device's turn must not take down every connected device.
+process.on("unhandledRejection", (e) => log.error("unhandled_rejection", { error: String(e) }));
+
 const tls =
   env.HOMUNCULUS_TLS_CERT && env.HOMUNCULUS_TLS_KEY
     ? { cert: readFileSync(env.HOMUNCULUS_TLS_CERT), key: readFileSync(env.HOMUNCULUS_TLS_KEY) }

@@ -58,7 +58,7 @@ export class SpeechOutput {
     if (this.cancelled) return;
     this.queue.push(text);
     this.lastEnqueuedAt = performance.now();
-    this.running ??= this.loop().finally(() => (this.running = undefined));
+    this.running ??= this.loop();
   }
 
   /** Resolves once every enqueued segment is synthesised and its frames sent. */
@@ -112,6 +112,8 @@ export class SpeechOutput {
         this.d.log.error("tts_failed", { error: (e as Error).message, text });
       }
     }
+    // Cleared synchronously with the empty-queue check, so a concurrent enqueue starts a new loop.
+    this.running = undefined;
   }
 
   private async speak(text: string): Promise<void> {
