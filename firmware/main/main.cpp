@@ -31,6 +31,8 @@
 #include "brookesia/hal_interface.hpp"
 #include "brookesia/hal_adaptor.hpp"
 #include "homunculus/agent.hpp"
+#include "homunculus/provision.hpp"
+#include "homunculus/settings.hpp"
 #include "homunculus/visualizer.hpp"
 #include "homunculus/wifi.hpp"
 #include "sdkconfig.h"
@@ -269,6 +271,44 @@ void register_device_tools(HomunculusAgent &agent)
     });
 }
 
+// ---------------------------------------------------------------------------
+// Wi-Fi provisioning (spec 03 §3.5)
+
+constexpr int PROVISION_FALLBACK_S = 90;  // stored credentials that never connect open the setup AP
+
+void start_provisioning()
+{
+    if (!homunculus::wifi::init() || !homunculus::provision::start()) {
+        BROOKESIA_LOGE("[prov] could not start provisioning");
+        return;
+    }
+    if (!g_visualizer) return;
+    const std::string text = "Join Wi-Fi " + homunculus::provision::ap_ssid() + " with password " +
+                             homunculus::provision::ap_password() + " and open 192.168.4.1";
+    std::lock_guard lock(g_card_mutex);
+    g_card_owner = CardOwner::Text;
+    homunculus::Visualizer::get_instance().show_text_card(text);
+}
+
+// Credentials are stored but the network is unreachable: offer the setup AP while the station keeps retrying.
+void provision_watch_task()
+{
+    for (int s = 0; s < PROVISION_FALLBACK_S; s++) {
+        if (homunculus::wifi::is_connected()) return;
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+    BROOKESIA_LOGW("[prov] no Wi-Fi after %1% s: starting setup AP", PROVISION_FALLBACK_S);
+    start_provisioning();
+    while (!homunculus::wifi::is_connected()) std::this_thread::sleep_for(std::chrono::seconds(1));
+    BROOKESIA_LOGI("[prov] Wi-Fi connected: stopping setup AP");
+    homunculus::provision::stop();
+    std::lock_guard lock(g_card_mutex);
+    if (g_visualizer && g_card_owner == CardOwner::Text) {
+        g_card_owner = CardOwner::None;
+        homunculus::Visualizer::get_instance().hide_card();
+    }
+}
+
 std::atomic<bool> g_touch_run{true};
 
 void touch_task()
@@ -412,7 +452,7 @@ void console_task()
     if (usb_serial_jtag_driver_install(&cfg) == ESP_OK) {
         usb_serial_jtag_vfs_use_driver();
     }
-    BROOKESIA_LOGI("[console] keys: t = touch, w = wake word, s = stats, r = HDP reconnect, d = Wi-Fi disconnect, v = visualizer test tone");
+    BROOKESIA_LOGI("[console] keys: t = touch, w = wake word, s = stats, r = HDP reconnect, d = Wi-Fi disconnect, v = visualizer test tone, p = Wi-Fi provisioning");
     auto &agent = homunculus::HomunculusAgent::get_instance();
     while (true) {
         uint8_t c = 0;
@@ -441,6 +481,11 @@ void console_task()
             homunculus::Visualizer::get_instance().inject_test_tone(5000);
             break;
 #endif
+        case 'p':
+            BROOKESIA_LOGW("[console] provisioning requested: restarting");
+            homunculus::settings::request_provisioning();
+            esp_restart();
+            break;
         case 'd':
             BROOKESIA_LOGI("[console] Wi-Fi disconnect (auto-reconnects)");
             esp_wifi_disconnect();
@@ -514,7 +559,12 @@ extern "C" void app_main(void)
     register_device_tools(agent);
 
     // Start Wi-Fi; the agent's worker thread opens the HDP connection once connected.
-    BROOKESIA_CHECK_FALSE_EXIT(homunculus::wifi::start(), "Failed to start Wi-Fi");
+    if (homunculus::wifi::start()) {
+        start_thread("prov_watch", 4 * 1024, provision_watch_task);
+    } else {
+        BROOKESIA_LOGW("[wifi] no credentials: provisioning");
+        start_provisioning();
+    }
 
     // Activate the Homunculus agent through the agent_manager state machine.
     auto &agent_manager = esp_brookesia::agent::Manager::get_instance();

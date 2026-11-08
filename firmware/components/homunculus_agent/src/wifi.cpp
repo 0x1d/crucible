@@ -1,5 +1,7 @@
 #include "homunculus/wifi.hpp"
+#include "homunculus/settings.hpp"
 
+#include <algorithm>
 #include <atomic>
 #include <cstdio>
 #include <cstring>
@@ -22,6 +24,7 @@ constexpr int RETRY_MAX_MS = 30000;
 std::atomic<bool> g_connected{false};
 esp_timer_handle_t g_retry_timer = nullptr;
 int g_retry_ms = 1000;
+bool g_initialised = false;
 
 void retry_cb(void *)
 {
@@ -48,23 +51,12 @@ void on_event(void *, esp_event_base_t base, int32_t id, void *data)
 
 }  // namespace
 
-bool start()
+bool init()
 {
-    if (std::strlen(CONFIG_HOMUNCULUS_WIFI_SSID) == 0) {
-        ESP_LOGE(TAG, "no SSID configured (CONFIG_HOMUNCULUS_WIFI_SSID, see firmware/sdkconfig.local)");
-        return false;
-    }
-    esp_err_t err = nvs_flash_init();
-    if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-        ESP_ERROR_CHECK(nvs_flash_erase());
-        err = nvs_flash_init();
-    }
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "nvs_flash_init: %s", esp_err_to_name(err));
-        return false;
-    }
+    if (g_initialised) return true;
+    if (!settings::init()) return false;
     ESP_ERROR_CHECK(esp_netif_init());
-    err = esp_event_loop_create_default();
+    esp_err_t err = esp_event_loop_create_default();
     if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
         ESP_LOGE(TAG, "event loop: %s", esp_err_to_name(err));
         return false;
@@ -79,18 +71,34 @@ bool start()
     ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID, on_event, nullptr, nullptr));
     ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT, IP_EVENT_STA_GOT_IP, on_event, nullptr, nullptr));
 
+    g_initialised = true;
+    return true;
+}
+
+bool has_credentials()
+{
+    return settings::network().configured();
+}
+
+bool start()
+{
+    if (!init()) return false;
+    const auto net = settings::network();
+    if (!net.configured()) {
+        ESP_LOGW(TAG, "no Wi-Fi credentials");
+        return false;
+    }
     wifi_config_t cfg{};
-    std::strncpy(reinterpret_cast<char *>(cfg.sta.ssid), CONFIG_HOMUNCULUS_WIFI_SSID, sizeof(cfg.sta.ssid));
-    std::strncpy(reinterpret_cast<char *>(cfg.sta.password), CONFIG_HOMUNCULUS_WIFI_PASSWORD,
-                 sizeof(cfg.sta.password));
-    cfg.sta.threshold.authmode = std::strlen(CONFIG_HOMUNCULUS_WIFI_PASSWORD) ? WIFI_AUTH_WPA2_PSK : WIFI_AUTH_OPEN;
+    std::memcpy(cfg.sta.ssid, net.ssid.data(), std::min(net.ssid.size(), sizeof(cfg.sta.ssid)));
+    std::memcpy(cfg.sta.password, net.password.data(), std::min(net.password.size(), sizeof(cfg.sta.password) - 1));
+    cfg.sta.threshold.authmode = net.password.empty() ? WIFI_AUTH_OPEN : WIFI_AUTH_WPA2_PSK;
     cfg.sta.pmf_cfg.capable = true;
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &cfg));
     ESP_ERROR_CHECK(esp_wifi_start());
     // Lowest latency for streaming audio; power policy (spec 3.7) comes later.
     esp_wifi_set_ps(WIFI_PS_NONE);
-    ESP_LOGI(TAG, "connecting to \"%s\"", CONFIG_HOMUNCULUS_WIFI_SSID);
+    ESP_LOGI(TAG, "connecting to \"%s\"", net.ssid.c_str());
     return true;
 }
 

@@ -12,6 +12,7 @@
 //   calls on_interrupt_speaking() on WakeStart while speaking (wake-word barge-in) and then
 //   drops decoder writes until reset_interrupted_speaking() (called at the next tts start).
 #include "homunculus/agent.hpp"
+#include "homunculus/settings.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -480,7 +481,7 @@ void HomunculusAgent::set_ui(UiState s)
 
 void HomunculusAgent::connect()
 {
-    const std::string url = CONFIG_HOMUNCULUS_SERVER_URL;
+    const std::string url = settings::server_url();
 #if !CONFIG_HOMUNCULUS_ALLOW_PLAIN_WS
     if (url.rfind("ws://", 0) == 0) {
         if (!url_rejected_) {
@@ -494,7 +495,7 @@ void HomunculusAgent::connect()
     const bool ok = client->start(
     {
         .url = url,
-        .token = CONFIG_HOMUNCULUS_DEVICE_TOKEN,
+        .token = settings::token(),
         .device_id = wifi::mac_string(),
         .model = MODEL,
         .firmware = FIRMWARE,

@@ -236,9 +236,18 @@ Device tools are declared in the `hello` message and bridged by the server into 
 
 ## 3.5 Provisioning and pairing
 
-1. First boot: device starts SoftAP + BLE provisioning (`wifi_provisioning` component, ESP BLE Prov app) and shows a QR code containing provisioning info.
-2. After Wi-Fi join, device discovers the server via mDNS or uses a provisioned URL.
-3. Pairing: device shows a 6-digit code; user confirms it in the server admin UI/CLI → server issues a per-device token stored in NVS (encrypted NVS when flash encryption is enabled).
+Wi-Fi provisioning (Phase 3C-1, implemented):
+
+| Item | Value |
+| --- | --- |
+| Settings | NVS namespace `homunculus`: `ssid`, `pass`, `url`, `token`. A stored value wins over the Kconfig default; a stored empty `ssid` means provisioning requested (Kconfig credentials ignored) |
+| Trigger | No credentials (stored, or Kconfig) at boot; stored credentials without a connection for 90 s (setup AP runs beside the station, stops once connected); console key `p` |
+| Access point | SoftAP `Homunculus-XXXX` (last two MAC bytes), WPA2, password = last four MAC bytes in hex; both shown on a text card (spec 06 §6.6) |
+| Setup page | `http://192.168.4.1/` (any other URL redirects): SSID (suggestions from a scan taken before the AP starts), Wi-Fi password, server URL (default: current), device token (optional) |
+| Validation | SSID 1–32 bytes; password empty or 8–63; URL empty or `ws://` / `wss://` with host; token ≤ 128 printable ASCII without spaces |
+| Save | Stores to NVS, answers, restarts after 1.5 s |
+
+Planned (3C-2): server discovery via mDNS; pairing: device shows a 6-digit code, the user confirms it in the server CLI, the server issues a per-device token stored in NVS (encrypted NVS when flash encryption is enabled).
 
 ## 3.6 OTA
 
