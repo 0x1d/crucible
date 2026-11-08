@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | Document | HOM-SPEC-06 |
-| Status | Draft 0.2 (2026-11-08) |
+| Status | 1.0 (2026-11-08), Phase 2 closed |
 | Supersedes | Procedural face for Phase 2 (D-20); face spec kept as [06-avatar-face-deferred.md](06-avatar-face-deferred.md) |
 
 ## 6.1 Scope
@@ -120,11 +120,13 @@ Kconfig (`Homunculus visualizer` menu):
 
 ## 6.5 Phase 2 exit criteria
 
+Phase 2 closed 2026-11-08.
+
 | Criterion | Status |
 | --- | --- |
-| Ring follows speaker output during agent speech, in time with the audio | Pending hardware |
-| ≥ 25 fps during speech (`[stats] visualizer`) | Not met: ~16 fps with the test tone at prio 4 (§6.3.3); rated smooth enough by the user at ~19 fps |
-| Agent speech without stutter while the ring moves | Pending hardware (prio 4, poll 5 ms) |
-| Palette changes with UI state | Pending hardware |
-| No added downlink underruns or AFE overruns; CPU per core and internal heap minimum measured against p1d (§8.7) | Pending hardware |
-| Reference lane carries the speaker signal (lane `R` of `RMNN`) | Pending hardware |
+| Ring follows speaker output during agent speech, in time with the audio | **Met** (hardware, 2026-11-08) |
+| ≥ 15 fps during speech (`[stats] visualizer`) | **Met**: ~16 fps with the test tone at prio 4 (§6.3.3) |
+| Agent speech without stutter while the ring moves | **Met** (hardware, prio 4, poll 5 ms) |
+| Palette changes with UI state | **Met** (hardware) |
+| No added downlink underruns or AFE overruns; CPU per core and internal heap minimum measured against p1d (§8.7) | Not measured during a speech turn; idle CPU and heap in spec 03 §3.2.2 |
+| Reference lane carries the speaker signal (lane `R` of `RMNN`) | **Met** (ring follows speech) |

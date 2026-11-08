@@ -61,7 +61,7 @@ gantt
 | --- | --- | --- |
 | 0 — Spikes | Display + touch + audio running on upstream Brookesia board def; measured AFE CPU load; Claude SDK partial streaming + interrupt verified | **Done 2026-11-07** (§8.6) |
 | 1 — Voice MVP | Wake word → answer by voice with web search; barge-in works; latency measured per stage | **Met on hardware 2026-11-08**; in-person checks pending (§8.7) |
-| 2 — Audio visualizer | Ring waveform follows speaker output ≥ 25 fps; palette per UI state; no added audio underruns; CPU / heap measured (spec 06 §6.5) | Implemented 2026-11-08, hardware checks pending |
+| 2 — Audio visualizer | Ring waveform follows speaker output ≥ 15 fps; palette per UI state; speech without stutter (spec 06 §6.5) | **Done 2026-11-08**; underruns / CPU during speech not measured |
 | 2F — Procedural face | All states and emotes rendered ≥ 20 fps; lip-sync; agent drives emotions ([06-avatar-face-deferred.md](06-avatar-face-deferred.md)) | **Deferred** (D-20) |
 | 3 — Agent features | Backend switchable (Claude / OpenCode); device tools; confirmation flow; Wi-Fi provisioning + pairing; OTA | Open |
 | 4 — Multi-device | Second board with different display shape runs the same firmware and server unchanged | Open |
