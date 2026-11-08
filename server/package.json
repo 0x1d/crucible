@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "spike:claude": "tsx src/spikes/claude-streaming.ts",
     "dev": "tsx src/main.ts",
+    "memory": "tsx src/memory/cli.ts",
     "test": "node --import tsx --test test/*.test.ts"
   },
   "dependencies": {

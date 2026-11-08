@@ -21,6 +21,8 @@ export interface SessionContext {
   cwd?: string;
   /** Host-side tools exposed to the agent (device tools), with their permission policy. */
   tools?: HostTool[];
+  /** Further host-side tool servers by name (e.g. `memory`), same policy rules as `tools`. */
+  servers?: Record<string, HostTool[]>;
   /** Asks the user on the device to approve a tool call; resolves false on denial, timeout, abort. */
   confirm?: (req: ConfirmRequest, signal?: AbortSignal) => Promise<boolean>;
 }

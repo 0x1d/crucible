@@ -69,8 +69,21 @@ export interface ConversationDeps {
   playedTimeoutMs?: number;
   prebufferFrames?: number;
   timeouts?: Partial<ConversationTimeouts>;
+  /** Called once per completed or interrupted turn (memory source log, spec 10 §10.1). */
+  onTurn?: (t: CompletedTurn) => void;
   /** Device tool bridge: its confirmations drive the `confirming` avatar state; barge-in denies them. */
   bridge?: Pick<DeviceBridge, "cancelConfirms"> & { onConfirmChange?: (waiting: boolean) => void };
+}
+
+export interface CompletedTurn {
+  /** ISO time of the endpoint (turn start). */
+  at: string;
+  text: string;
+  reply: string;
+  tools: string[];
+  /** Barge-in: what the user heard of the reply. */
+  heard?: string;
+  error?: string;
 }
 
 const FRAME_MS = 60;
@@ -102,6 +115,7 @@ interface Utterance {
 interface Turn {
   id: number;
   text: string;
+  startedAt: string;
   reply: string;
   timer: TurnTimer;
   abort: AbortController;
@@ -144,7 +158,7 @@ export class Conversation {
   private readonly pacer: Pacer<PacedItem>;
   private readonly log: Logger;
   private readonly opts: Required<
-    Omit<ConversationDeps, "endpointer" | "openAgent" | "resumeSessionId" | "stt" | "tts" | "vad" | "timeouts" | "shaper" | "bridge">
+    Omit<ConversationDeps, "endpointer" | "openAgent" | "resumeSessionId" | "stt" | "tts" | "vad" | "timeouts" | "shaper" | "bridge" | "onTurn">
   > & {
     endpointer: EndpointerOptions;
     shaper: Partial<ShaperOptions>;
@@ -479,6 +493,7 @@ export class Conversation {
     const turn: Turn = {
       id: this.seq,
       text,
+      startedAt: new Date().toISOString(),
       reply: "",
       timer,
       abort: new AbortController(),
@@ -658,6 +673,7 @@ export class Conversation {
     if (!turn.error) this.send({ type: "agent.status", phase: "done" });
     timer.mark("turn_end");
     this.logTurn(timer, this.turnFields(turn));
+    this.reportTurn(turn);
     if (this.turn === turn) this.turn = undefined;
     this.toIdle();
   }
@@ -704,7 +720,24 @@ export class Conversation {
     if (turn.speech.started) this.send({ type: "tts", state: "stop" });
     turn.timer.mark("turn_end");
     this.logTurn(turn.timer, { ...this.turnFields(turn), interrupted: reason, heard_chars: this.heardSoFar.length });
+    this.reportTurn(turn, this.heardSoFar);
     this.turn = undefined;
+  }
+
+  private reportTurn(turn: Turn, heard?: string): void {
+    if (!this.deps.onTurn || !turn.text) return;
+    try {
+      this.deps.onTurn({
+        at: turn.startedAt,
+        text: turn.text,
+        reply: turn.reply,
+        tools: turn.tools,
+        ...(heard !== undefined ? { heard } : {}),
+        ...(turn.error ? { error: turn.error } : {}),
+      });
+    } catch (e) {
+      this.log.warn("on_turn_failed", { error: (e as Error).message });
+    }
   }
 
   private abort(reason: string): void {

@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { FrameFlag, type ServerMessage } from "@homunculus/protocol";
-import { Conversation, type ConversationTimeouts } from "../src/orchestrator/conversation.js";
+import { Conversation, type CompletedTurn, type ConversationDeps, type ConversationTimeouts } from "../src/orchestrator/conversation.js";
 import { FakeBackend, FakeLink, FakeStt, FakeTts, fakeVad, sleep, until, Uplink, type Step } from "./fakes.js";
 
 interface Setup {
@@ -11,6 +11,7 @@ interface Setup {
   timeouts?: Partial<ConversationTimeouts>;
   fillerAfterMs?: number;
   interruptMs?: number;
+  onTurn?: ConversationDeps["onTurn"];
 }
 
 function setup(o: Setup = {}) {
@@ -29,6 +30,7 @@ function setup(o: Setup = {}) {
     language: "en",
     openAgent: (resumeSessionId) => backend.openSession({ systemPrompt: "", resumeSessionId }),
     fillerAfterMs: o.fillerAfterMs ?? 0,
+    ...(o.onTurn ? { onTurn: o.onTurn } : {}),
     playedTimeoutMs: 200,
     timeouts: { uplinkGapMs: 1000, ...o.timeouts },
   });
@@ -98,6 +100,27 @@ test("normal turn: transcript → agent → segments → tts stop → idle", asy
   );
   const log = turnLog(t.link).at(-1);
   assert.ok(log && typeof log.t_first_downlink === "number" && typeof log.t_tts_first_chunk === "number");
+});
+
+test("onTurn reports completed and interrupted turns (memory source log)", async () => {
+  const turns: CompletedTurn[] = [];
+  const t = setup({
+    finals: ["first", "second"],
+    scripts: [[{ wait: 2000 }, text("Too late."), done], [text("Second answer."), done]],
+    onTurn: (x) => turns.push(x),
+  });
+  t.ask();
+  await until(() => t.conv.state === "running");
+  t.ask();
+  await until(() => turns.length === 2);
+  assert.deepEqual(
+    turns.map(({ text: q, reply, heard, tools }) => ({ q, reply, heard, tools })),
+    [
+      { q: "first", reply: "", heard: "", tools: [] },
+      { q: "second", reply: "Second answer.", heard: undefined, tools: [] },
+    ],
+  );
+  assert.ok(turns.every((x) => !Number.isNaN(Date.parse(x.at))));
 });
 
 test("barge-in while listening cancels the first utterance", async () => {

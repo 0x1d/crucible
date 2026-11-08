@@ -156,6 +156,12 @@ export class TemporalStore {
     return { closed, next: fresh };
   }
 
+  /** Writes an existing fact with its id and window (compact: rebuild without retracted datoms). */
+  restore(f: Fact): void {
+    entityKw(f.id);
+    this.write(f);
+  }
+
   /** Retracts every datom of the fact (stays visible under `asOf`). */
   retract(id: string): boolean {
     const datoms = this.datoms(id, true);
