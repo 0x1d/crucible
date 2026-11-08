@@ -11,7 +11,7 @@ menu "Homunculus visualizer"
         int "Frame rate while audio is playing"
         depends on HOMUNCULUS_VISUALIZER
         range 5 60
-        default 30
+        default 20
 
     config HOMUNCULUS_VIS_GATE_DBFS
         int "Silence gate (dBFS RMS of the reference lane)"

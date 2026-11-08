@@ -125,7 +125,9 @@ bool Visualizer::start(esp_brookesia::hal::display::PanelIface *panel)
                  static_cast<unsigned>(stride_), layout.c_str());
     }
 
-    thread_ = spawn("hom_vis", 6 * 1024, 6, [this] { render_loop(); });
+    // Prio 4: below the Brookesia service manager workers (5), which complete every downlink
+    // audio write (DataFlow release callback); above them the render thread starved playback.
+    thread_ = spawn("hom_vis", 6 * 1024, 4, [this] { render_loop(); });
     return true;
 }
 

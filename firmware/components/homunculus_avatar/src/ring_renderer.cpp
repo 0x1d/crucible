@@ -8,8 +8,8 @@ namespace homunculus::ring {
 
 namespace {
 
-constexpr float BASE_RADIUS = 0.30f;  // of min(w, h)
-constexpr float DEFLECTION = 0.16f;   // of min(w, h), at full scale
+constexpr float BASE_RADIUS = 0.24f;  // of min(w, h)
+constexpr float DEFLECTION = 0.13f;   // of min(w, h), at full scale
 constexpr float ATTACK_TAU = 0.060f;   // s; time constants, so smoothing is independent of frame rate
 constexpr float RELEASE_TAU = 0.150f;
 constexpr float ENV_FLOOR = 1500.0f;  // auto-gain never amplifies below this peak (int16)

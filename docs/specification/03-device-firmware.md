@@ -151,7 +151,7 @@ Kconfig (`Homunculus agent` menu):
 | Opus encode | 0 | 18 | 24–32 KB | 60 ms frames |
 | Opus decode + I²S write | 0 | 19 | 24–32 KB | Jitter buffer 120–240 ms |
 | WebSocket / network | 0 | 10 | 8 KB | TLS buffers in PSRAM |
-| Visualizer (`hom_vis`) | any | 6 | 6 KB (PSRAM) | Up to 30 fps while the ring moves; idle otherwise (spec 06 §6.3.4) |
+| Visualizer (`hom_vis`) | any | 4 | 6 KB (PSRAM) | Up to 20 fps while the ring moves; idle otherwise; must stay below the service manager workers (5), which complete downlink audio writes (spec 06 §6.3.4) |
 | Housekeeping (PMU poll, IMU, battery) | 0 | 3 | 4 KB | 2 Hz PMU poll (no IRQ line) |
 
 Measured idle CPU (1.75C, agent idle, `[stats] top tasks`, % of one core):
@@ -160,9 +160,10 @@ Measured idle CPU (1.75C, agent idle, `[stats] top tasks`, % of one core):
 | --- | --- | --- | --- | --- | --- | --- |
 | `-Og`, worker poll 5 ms (Brookesia default) | 64 / 45 % | 22 | 17–18 | 11 | 11 + 14 + 13 + 4 + 6 ≈ 45 | 67 KB |
 | `-Og`, worker poll 10 ms | 60 / 36 % | 21 | 17 | 11 | 12 + 14 + 6 + 2 + 3 ≈ 37 | 67 KB |
-| `-O2`, worker poll 10 ms (D-21) | 54 / 36 % | 22 | 17 | 11 | 8 + 11 + 8 + 2 + 3 ≈ 32 | 72 KB |
+| `-O2`, worker poll 10 ms | 54 / 36 % | 22 | 17 | 11 | 8 + 11 + 8 + 2 + 3 ≈ 32 | 72 KB |
+| `-O2`, worker poll 5 ms (current, D-21) | 57 / 36 % | 21–23 | 17 | 10 | 8 + 10 + 8 + 3 + 5 ≈ 34 | 72 KB |
 
-Service manager workers sleep for the poll interval only when their queue is empty (`TaskScheduler` worker loop, `io_context::poll()`); the remaining load is queued work. Kconfig range of the poll interval: 1–10 ms.
+Service manager workers sleep for the poll interval only when their queue is empty (`TaskScheduler` worker loop, `io_context::poll()`); a task posted to a sleeping worker waits up to one interval. The remaining load is queued work. Kconfig range of the poll interval: 1–10 ms. Downlink audio writes complete on these workers (spec 06 §6.3.3), so the interval stays at the default 5 ms.
 
 ### 3.2.3 Audio configuration (reference device)
 

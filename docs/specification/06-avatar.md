@@ -43,8 +43,8 @@ flowchart LR
 
 | Parameter | Value |
 | --- | --- |
-| Base radius | 0.30 × min(w, h) (1.75C: 140 px) |
-| Full-scale deflection | ± 0.16 × min(w, h) (± 75 px) |
+| Base radius | 0.24 × min(w, h) (1.75C: 112 px) |
+| Full-scale deflection | ± 0.13 × min(w, h) (± 61 px) |
 | Points | 96 per half circle, top to bottom; left half mirrored (closed, seamless, symmetric) |
 | Window | Last 480 samples (30 ms), DC removed; point k = mean of samples 5k…5k+4 |
 | Normalisation | Divide by a peak envelope: instant attack, ×0.967 per frame release (~1 s at 30 fps), floor 1500 (int16) |
@@ -73,7 +73,7 @@ The waveform is drawn in every state whenever the reference lane is above the ga
 - Per band of 10 rows: intensity plane and colour-index plane (233 × 10 B each, PSRAM). The band's changed columns (union of this frame's and the previous frame's drawn columns) are converted through an 8 × 64 LUT into byte-swapped RGB565 in a full framebuffer (466 × 466 × 2 B, PSRAM). Bands with neither are skipped.
 - Flush: each changed band is copied into one internal DMA buffer (10 rows × 466 px × 2 B = 9320 B, the Brookesia max transfer) and sent full width with `draw_bitmap_sync` (100 ms timeout). Full width keeps x start and width even (CO5300).
 - Rejected: a single `draw_bitmap_sync` straight from the PSRAM framebuffer timed out at the first full-screen transfer, then `spi_device_release_bus` asserted (boot loop). Per-band rectangles of the changed columns only (1–2 per band, ~60 per speech frame): fixed cost per transfer dominated, 0.9 ms each at prio 3.
-- Frame rate `HOMUNCULUS_VIS_FPS` (30) while the ring is deflected or the state changed; otherwise the thread polls every 50 ms without drawing.
+- Frame rate cap `HOMUNCULUS_VIS_FPS` (20) while the ring is deflected or the state changed; otherwise the thread polls every 50 ms without drawing.
 - Host measurement (`test/host/run.sh`, synthetic speech): 393 changed rows per speech frame.
 - Device measurement (1.75C, idle agent, development console `v` test tone, 180 / 720 / 2100 Hz):
 
@@ -85,6 +85,9 @@ The waveform is drawn in every state whenever the reference lane is above the ga
 | Framebuffer, full-width bands, prio 6 | 83 ms | 60 ms (393 rows) | ~12 fps |
 | Same, Brookesia worker poll 10 ms | 78 ms | 59 ms (362 rows) | ~13 fps |
 | Same, project `-O2` (D-21) | 53 ms | 35 ms (362 rows) | ~19 fps |
+| `-O2`, poll 5 ms, prio 4, 20 fps cap, smaller ring (current) | 64 ms | 39 ms (296 rows) | ~16 fps |
+
+- Prio 6 stuttered agent speech: every downlink frame write (`Base::feed_audio_decoder_data()`, DataFlow `write_borrowed()`) waits for a release callback that runs on the Brookesia service manager workers (prio 5); the render thread used ~50 % of a core while speaking and delayed them. Current prio 4 (spec 03 §3.2.2).
 
 - Per-task CPU at idle: see spec 03 §3.2.2. A render thread at prio 3 waited behind the Brookesia service manager workers (prio 5) after every transfer.
 
@@ -92,7 +95,7 @@ The waveform is drawn in every state whenever the reference lane is above the ga
 
 | Item | Value |
 | --- | --- |
-| Thread | `hom_vis`, prio 6 (above the Brookesia service manager workers at 5, below `hom_player` 7), no core affinity, 6 KB stack in PSRAM |
+| Thread | `hom_vis`, prio 4 (below the Brookesia service manager workers at 5, which complete downlink audio writes), no core affinity, 6 KB stack in PSRAM |
 | Internal RAM | 9320 B DMA buffer + 2 KB tap ring buffer |
 | PSRAM | Framebuffer 434 KB, 2 × 2330 B planes, renderer state (~5 KB) |
 | Ownership | After `Visualizer::start()` the render thread does all panel drawing; it clears the screen once at start |
@@ -112,7 +115,7 @@ Kconfig (`Homunculus visualizer` menu):
 | Option | Default | Meaning |
 | --- | --- | --- |
 | `HOMUNCULUS_VISUALIZER` | y | Ring visualizer; n = solid state colours |
-| `HOMUNCULUS_VIS_FPS` | 30 | Frame rate while the ring moves |
+| `HOMUNCULUS_VIS_FPS` | 20 | Frame rate cap while the ring moves |
 | `HOMUNCULUS_VIS_GATE_DBFS` | −55 | Silence gate (RMS of the reference lane) |
 
 ## 6.5 Phase 2 exit criteria
@@ -120,7 +123,8 @@ Kconfig (`Homunculus visualizer` menu):
 | Criterion | Status |
 | --- | --- |
 | Ring follows speaker output during agent speech, in time with the audio | Pending hardware |
-| ≥ 25 fps during speech (`[stats] visualizer`) | Not met: ~19 fps with the test tone (§6.3.3) |
+| ≥ 25 fps during speech (`[stats] visualizer`) | Not met: ~16 fps with the test tone at prio 4 (§6.3.3); rated smooth enough by the user at ~19 fps |
+| Agent speech without stutter while the ring moves | Pending hardware (prio 4, poll 5 ms) |
 | Palette changes with UI state | Pending hardware |
 | No added downlink underruns or AFE overruns; CPU per core and internal heap minimum measured against p1d (§8.7) | Pending hardware |
 | Reference lane carries the speaker signal (lane `R` of `RMNN`) | Pending hardware |

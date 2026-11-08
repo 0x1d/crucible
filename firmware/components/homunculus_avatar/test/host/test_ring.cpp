@@ -75,9 +75,9 @@ int main(int argc, char **argv)
     check(r.update(win.data(), gate) == 0, "silence gives a flat ring");
     Rows rows = r.render();
     const Screen s = fb;
-    const float r0f = 0.30f * W;
+    const float r0f = 0.24f * W;
     check(rows.y1 <= (W - 1) / 2.0f - r0f - BRUSH_R && rows.y2 >= (W - 1) / 2.0f + r0f + BRUSH_R, "dirty rows cover the ring");
-    const float r0 = 0.30f * W, c = (W - 1) / 2.0f;
+    const float r0 = 0.24f * W, c = (W - 1) / 2.0f;
     bool on_ring = true, symmetric = true, off_ring_dark = true;
     for (int y = 0; y < H; y++)
         for (int x = 0; x < W; x++) {
@@ -112,7 +112,7 @@ int main(int argc, char **argv)
         for (int x = 0; x < W; x++) {
             if (sp.lit(x, y) != sp.lit(W - 1 - x, y)) sym = false;
             const float d = std::hypot(x - c, y - c);
-            if (sp.lit(x, y) && (d > 0.46f * W + BRUSH_R + 2 || d < 0.14f * W - BRUSH_R - 2)) inside = false;
+            if (sp.lit(x, y) && (d > 0.37f * W + BRUSH_R + 2 || d < 0.11f * W - BRUSH_R - 2)) inside = false;
         }
     check(sym, "speech frame is mirror-symmetric");
     check(inside, "deflection stays within base radius +- amplitude");

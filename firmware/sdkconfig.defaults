@@ -19,10 +19,5 @@ CONFIG_BROOKESIA_AGENT_MANAGER_DEFAULT_CHAT_MODE_REAL_TIME=y
 # Playback default 100 % (Brookesia default 75 % is too quiet on the 1.75C speaker).
 CONFIG_BROOKESIA_SERVICE_AUDIO_PLAYBACK_VOLUME_DEFAULT=100
 
-# Brookesia service manager workers (3 main + 2 secondary) sleep this long only when their
-# queue is empty; 5 ms (default) cost ~45 % of one core at idle (spec 03 §3.2.2). Kconfig max: 10.
-CONFIG_BROOKESIA_SERVICE_MANAGER_WORKER_POLL_INTERVAL_MS=10
-CONFIG_BROOKESIA_SERVICE_MANAGER_SECONDARY_SCHEDULER_WORKER_POLL_INTERVAL_MS=10
-
 # -O2: Brookesia (Boost-heavy C++) at -Og dominated idle CPU; the vendor example uses PERF too.
 CONFIG_COMPILER_OPTIMIZATION_PERF=y
