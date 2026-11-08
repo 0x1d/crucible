@@ -10,12 +10,18 @@ import {
   type AudioFrame,
   type ServerMessage,
 } from "@homunculus/protocol";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import WebSocket from "ws";
 import { startGateway, type Gateway } from "../src/gateway/server.js";
 import { createLogger } from "../src/log.js";
 import { attachLoopback } from "../src/orchestrator/loopback.js";
 
 let gw: Gateway;
+const otaDir = mkdtempSync(join(tmpdir(), "hom-ota-"));
+const image = Buffer.from([0xe9, 1, 2, 3, 4, 5]);
+writeFileSync(join(otaDir, "sim.bin"), image);
 const url = () => `ws://127.0.0.1:${gw.port}/hdp`;
 
 before(async () => {
@@ -23,13 +29,17 @@ before(async () => {
     host: "127.0.0.1",
     port: 0,
     deviceTokens: ["secret"],
+    otaDir,
     config: { captions: true, language: "en" },
     helloTimeoutMs: 300,
     onConnection: attachLoopback,
     log: createLogger({ test: true }),
   });
 });
-after(() => gw.close());
+after(() => {
+  rmSync(otaDir, { recursive: true, force: true });
+  return gw.close();
+});
 
 const hello = (extra: Record<string, unknown> = {}) => ({
   type: "hello",
@@ -101,6 +111,18 @@ class Client {
 
 const upgradeStatus = (c: Client) =>
   new Promise<number>((resolve) => c.ws.once("unexpected-response", (_req, res) => resolve(res.statusCode ?? 0)));
+
+const otaGet = (model: string, token = "secret") =>
+  fetch(`http://127.0.0.1:${gw.port}/ota/${model}/firmware.bin`, { headers: { Authorization: `Bearer ${token}` } });
+
+test("serves OTA images with bearer auth", async () => {
+  const ok = await otaGet("sim");
+  assert.equal(ok.status, 200);
+  assert.deepEqual(Buffer.from(await ok.arrayBuffer()), image);
+  assert.equal((await otaGet("sim", "nope")).status, 401);
+  assert.equal((await otaGet("other")).status, 404);
+  assert.equal((await otaGet("..%2Fsim")).status, 404);
+});
 
 test("rejects a wrong token with 401", async () => {
   assert.equal(await upgradeStatus(new Client({ Authorization: "Bearer nope" })), 401);

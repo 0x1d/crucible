@@ -54,6 +54,7 @@ make sim-play
 | `setup` | `deps` + `models` + `fw-config` |
 | `models-piper` | Also fetch the Piper TTS fallback voice |
 | `fw-config` / `fw-build` / `fw-flash` / `fw-flash-full` / `fw-monitor` / `fw-flash-monitor` | Firmware build and flash (`BOARD`, `PORT` overridable) |
+| `fw-publish` | Build and copy the image to `server/.data/ota/` for OTA ("update your firmware", console key `u`) |
 | `fw-menuconfig` / `fw-clean` / `fw-test` | Config UI, clean, host tests |
 | `server` (`backend`) | Run the backend |
 | `sim` / `sim-play` | Device simulator |

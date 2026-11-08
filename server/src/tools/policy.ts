@@ -9,11 +9,13 @@ const ALLOWED_DEVICE_TOOLS = new Set([
   "device.show_qr",
   "device.show_image",
   "device.get_status",
+  "device.get_time",
+  "device.set_timezone",
   "device.get_motion",
   "device.set_timer",
 ]);
 
-/** Default-deny: a device tool the server does not know asks on the device. */
+/** Default-deny: a device tool the server does not know (e.g. device.update_firmware) asks on the device. */
 export function devicePolicy(deviceToolName: string): ToolPolicy {
   return ALLOWED_DEVICE_TOOLS.has(deviceToolName) ? "allow" : "ask";
 }

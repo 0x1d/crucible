@@ -32,6 +32,7 @@
 #include "brookesia/lib_utils/plugin.hpp"
 #include "hdp_client.hpp"
 #include "homunculus/hdp.hpp"
+#include "homunculus/ota.hpp"
 #include "homunculus/wifi.hpp"
 
 namespace homunculus {
@@ -312,6 +313,11 @@ void HomunculusAgent::set_confirm_callback(ConfirmCallback cb)
     confirm_cb_ = std::move(cb);
 }
 
+void HomunculusAgent::set_session_callback(SessionCallback cb)
+{
+    session_cb_ = std::move(cb);
+}
+
 void HomunculusAgent::add_tool(std::string name, std::string description, boost::json::object input_schema,
                                ToolHandler handler)
 {
@@ -498,7 +504,7 @@ void HomunculusAgent::connect()
         .token = settings::token(),
         .device_id = wifi::mac_string(),
         .model = MODEL,
-        .firmware = FIRMWARE,
+        .firmware = ota::running_version(),
     },
     {
         .connected = [this] { post([this] { handle_connected(); }); },
@@ -532,7 +538,7 @@ void HomunculusAgent::handle_connected()
     ESP_LOGI(TAG, "hdp connected%s%s", session_id_.empty() ? "" : ", resume ", session_id_.c_str());
     hdp::HelloParams p{
         .model = MODEL,
-        .firmware = FIRMWARE,
+        .firmware = ota::running_version(),
         .board = BOARD,
         .display_width = 466,
         .display_height = 466,
@@ -652,6 +658,7 @@ void HomunculusAgent::handle_hello(const hdp::ServerMessage &m)
     ESP_LOGI(TAG, "session %s, downlink %s %u Hz %u ms", session_id_.c_str(), m.format.c_str(),
              static_cast<unsigned>(m.sample_rate), static_cast<unsigned>(m.frame_ms));
     set_ui(UiState::Idle);
+    if (session_cb_) session_cb_();
 }
 
 void HomunculusAgent::handle_tts(const hdp::ServerMessage &m)

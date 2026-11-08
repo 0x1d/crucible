@@ -12,6 +12,7 @@
 #include <thread>
 #include <vector>
 #include <string>
+#include <ctime>
 #include "driver/usb_serial_jtag.h"
 #include "driver/usb_serial_jtag_vfs.h"
 #include "esp_heap_caps.h"
@@ -30,7 +31,9 @@
 #include "brookesia/service_audio/service_audio.hpp"
 #include "brookesia/hal_interface.hpp"
 #include "brookesia/hal_adaptor.hpp"
+#include "brookesia/service_helper/network/sntp.hpp"
 #include "homunculus/agent.hpp"
+#include "homunculus/ota.hpp"
 #include "homunculus/settings.hpp"
 #include "homunculus/visualizer.hpp"
 #include "homunculus/wifi.hpp"
@@ -43,6 +46,7 @@ namespace {
 // Acquired interfaces must stay alive: releasing the last handle deinitialises the device.
 hal::InterfaceHandle<hal::display::PanelIface> g_panel;
 hal::InterfaceHandle<hal::display::BacklightIface> g_backlight;
+hal::InterfaceHandle<hal::power::BatteryIface> g_battery;  // AXP2101 on the 1.75C; null without a PMU
 std::mutex g_draw_mutex;
 bool g_visualizer = false;
 
@@ -125,6 +129,9 @@ void init_display()
     }
 #endif
 
+    g_battery = hal::acquire_first_interface<hal::power::BatteryIface>();
+    if (!g_battery) BROOKESIA_LOGW("[power] no battery interface");
+
     g_backlight = hal::acquire_first_interface<hal::display::BacklightIface>();
     if (g_backlight) {
         g_backlight->set_brightness(80);
@@ -189,6 +196,54 @@ std::optional<int> int_arg(const boost::json::object &a, const char *key, int lo
     const double d = v->to_number<double>();
     if (d < lo || d > hi) return std::nullopt;
     return static_cast<int>(d);
+}
+
+// "Sunday 8 November 2026, 14:05, CET (UTC+01:00)"; nullopt before the first SNTP sync.
+std::optional<std::string> local_time_text()
+{
+    using SNTP = service::helper::SNTP;
+    const auto synced = SNTP::call_function_sync<bool>(SNTP::FunctionId::IsTimeSynced);
+    const time_t now = time(nullptr);
+    if ((!synced || !*synced) && now < 1700000000) return std::nullopt;  // RTC still at the epoch
+    struct tm tm = {};
+    localtime_r(&now, &tm);
+    char weekday[16], month_year[32], clock[8], zone[8], abbr[16];
+    std::strftime(weekday, sizeof(weekday), "%A", &tm);
+    std::strftime(month_year, sizeof(month_year), "%B %Y", &tm);
+    std::strftime(clock, sizeof(clock), "%H:%M", &tm);
+    std::strftime(zone, sizeof(zone), "%z", &tm);  // +0100
+    std::strftime(abbr, sizeof(abbr), "%Z", &tm);
+    const std::string z(zone);
+    const std::string utc = z.size() == 5 ? "UTC" + z.substr(0, 3) + ":" + z.substr(3) : z;
+    return std::string(weekday) + " " + std::to_string(tm.tm_mday) + " " + month_year + ", " + clock + ", " + abbr +
+           " (" + utc + ")";
+}
+
+// "battery 67 %, 3920 mV, charging" / "no battery, external power"; from the PMU (AXP2101).
+std::string battery_text()
+{
+    using Battery = hal::power::BatteryIface;
+    Battery::State st;
+    if (!g_battery || !g_battery->get_state(st)) return "battery n/a";
+    std::string text;
+    if (!st.is_present) {
+        text = "no battery";
+    } else {
+        text = "battery " + (st.percentage ? std::to_string(*st.percentage) + " %" : std::string("level unknown"));
+        if (st.voltage_mv) text += ", " + std::to_string(*st.voltage_mv) + " mV";
+        if (st.is_critical) text += ", critical";
+        else if (st.is_low) text += ", low";
+    }
+    switch (st.charge_state) {
+    case Battery::ChargeState::Full: text += ", full"; break;
+    case Battery::ChargeState::Fault: text += ", charger fault"; break;
+    case Battery::ChargeState::NotCharging:
+    case Battery::ChargeState::Unknown: break;
+    default: text += ", charging"; break;
+    }
+    if (st.power_source == Battery::PowerSource::External) text += ", external power";
+    else if (st.power_source == Battery::PowerSource::Battery) text += ", on battery";
+    return text;
 }
 
 void register_device_tools(HomunculusAgent &agent)
@@ -272,7 +327,8 @@ void register_device_tools(HomunculusAgent &agent)
         return {true, "QR code shown for " + std::to_string(seconds) + " seconds"};
     });
 
-    agent.add_tool("device.get_status", "Get device status: uptime, free memory, Wi-Fi signal strength",
+    agent.add_tool("device.get_status",
+                   "Get device status: battery, uptime, free memory, Wi-Fi signal strength, firmware version",
                    json::object{{"type", "object"}, {"properties", json::object{}}},
     [](const json::object &) -> Reply {
         wifi_ap_record_t ap = {};
@@ -285,7 +341,58 @@ void register_device_tools(HomunculusAgent &agent)
                       static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024),
                       static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_SPIRAM) / 1024),
                       wifi ? "" : "n/a ", wifi ? ap.rssi : 0);
-        return {true, buf};
+        std::string text = battery_text() + ", " + buf;
+        const auto ota = homunculus::ota::status();
+        text += ", firmware " + ota.running;
+        if (ota.update_available) text += ", update " + ota.available + " available";
+        return {true, text};
+    });
+
+    agent.add_tool("device.get_time", "Get the current local date, time and time zone of the device",
+                   json::object{{"type", "object"}, {"properties", json::object{}}},
+    [](const json::object &) -> Reply {
+        const auto now = local_time_text();
+        if (!now) return {false, "the clock is not set yet (no network time)"};
+        return {true, *now};
+    });
+
+    agent.add_tool("device.set_timezone",
+                   "Set the device time zone as a POSIX TZ string, e.g. CET-1CEST,M3.5.0,M10.5.0/3 for Zurich or "
+                   "GMT0BST,M3.5.0/1,M10.5.0 for London. Persists across restarts",
+                   json::object{{"type", "object"},
+                                {"properties", {{"posix_tz", {{"type", "string"}, {"minLength", 3}, {"maxLength", 64}}}}},
+                                {"required", {"posix_tz"}}},
+    [](const json::object &a) -> Reply {
+        const auto *t = a.if_contains("posix_tz");
+        if (!t || !t->is_string()) return {false, "posix_tz must be a string"};
+        const std::string tz(t->get_string());
+        // POSIX TZ: name, offset, optional DST rule; printable ASCII without spaces.
+        const bool valid = tz.size() >= 3 && tz.size() <= 64 &&
+                           std::all_of(tz.begin(), tz.end(), [](char c) { return c > ' ' && c < 0x7f; });
+        if (!valid) return {false, "posix_tz must be a POSIX TZ string such as CET-1CEST,M3.5.0,M10.5.0/3"};
+        using SNTP = service::helper::SNTP;
+        auto r = SNTP::call_function_sync(SNTP::FunctionId::SetTimezone, tz);
+        if (!r) return {false, "time zone change failed: " + r.error()};
+        const auto now = local_time_text();
+        return {true, "time zone set to " + tz + (now ? ", local time now " + *now : "")};
+    });
+
+    // Not in the server allow list: every call is confirmed on the device (spec 05 §5.6).
+    agent.add_tool("device.update_firmware",
+                   "Install the newest firmware from the Homunculus server; the device restarts when done",
+                   json::object{{"type", "object"}, {"properties", json::object{}}},
+    [](const json::object &) -> Reply {
+        const auto st = homunculus::ota::status();
+        if (st.phase == homunculus::ota::Phase::Installing || st.phase == homunculus::ota::Phase::Restarting) {
+            return {true, "an update is already being installed"};
+        }
+        if (!homunculus::ota::request_install()) return {false, "an update check is running, try again shortly"};
+        if (st.checked_us > 0 && !st.update_available) {
+            return {true, "checking again; the last check found no update (running " + st.running + ")"};
+        }
+        return {true, "update started (running " + st.running +
+                      (st.update_available ? ", server has " + st.available : "") +
+                      "); the device shows progress and restarts in about a minute when done"};
     });
 
     // Development: a tool the server policy does not know asks for confirmation (default-deny).
@@ -297,6 +404,33 @@ void register_device_tools(HomunculusAgent &agent)
         }).detach();
         return {true, "restarting"};
     });
+}
+
+// ---------------------------------------------------------------------------
+// Firmware update (spec 03 §3.6): progress and outcome as a text card
+
+// `seconds` 0: stays until replaced (progress, restart).
+void show_ota_card(const std::string &text, int seconds)
+{
+    if (!g_visualizer) return;
+    std::lock_guard lock(g_card_mutex);
+    if (g_card_owner == CardOwner::Confirm) return;
+    g_card_owner = CardOwner::Text;
+    homunculus::Visualizer::get_instance().show_text_card(text);
+    esp_timer_stop(g_text_timer);
+    if (seconds > 0) esp_timer_start_once(g_text_timer, static_cast<uint64_t>(seconds) * 1000000);
+}
+
+void on_ota_event(const homunculus::ota::Event &e)
+{
+    using Kind = homunculus::ota::Event::Kind;
+    switch (e.kind) {
+    case Kind::Started: show_ota_card("Updating firmware to " + e.text, 0); break;
+    case Kind::Progress: show_ota_card("Updating firmware " + std::to_string(e.percent) + " %", 0); break;
+    case Kind::Restarting: show_ota_card("Firmware " + e.text + " installed, restarting", 0); break;
+    case Kind::UpToDate: show_ota_card("Firmware is up to date (" + e.text + ")", 10); break;
+    case Kind::Failed: show_ota_card("Firmware update failed: " + e.text, 15); break;
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -490,7 +624,7 @@ void console_task()
     if (usb_serial_jtag_driver_install(&cfg) == ESP_OK) {
         usb_serial_jtag_vfs_use_driver();
     }
-    BROOKESIA_LOGI("[console] keys: t = touch, w = wake word, s = stats, r = HDP reconnect, d = Wi-Fi disconnect, v = visualizer test tone, p = Wi-Fi provisioning");
+    BROOKESIA_LOGI("[console] keys: t = touch, w = wake word, s = stats, r = HDP reconnect, d = Wi-Fi disconnect, v = visualizer test tone, p = Wi-Fi provisioning, u = firmware update");
     auto &agent = homunculus::HomunculusAgent::get_instance();
     while (true) {
         uint8_t c = 0;
@@ -522,6 +656,9 @@ void console_task()
         case 'p':
             BROOKESIA_LOGW("[console] forgetting Wi-Fi, starting provisioning");
             if (homunculus::wifi::reset_and_provision()) show_provisioning_card();
+            break;
+        case 'u':
+            BROOKESIA_LOGI("[console] firmware update: %1%", homunculus::ota::request_install() ? "started" : "busy");
             break;
         case 'd':
             BROOKESIA_LOGI("[console] Wi-Fi disconnect (auto-reconnects)");
@@ -560,7 +697,7 @@ void start_thread(const char *name, size_t stack, void (*fn)())
 
 extern "C" void app_main(void)
 {
-    BROOKESIA_LOGI("=== Homunculus (Phase 3: device tools) ===");
+    BROOKESIA_LOGI("=== Homunculus (Phase 3: device tools, OTA) ===");
     for (const char *tag : {"ESP_GMF_TASK", "ESP_GMF_PORT", "ESP_GMF_POOL", "GMF_AFE", "ESP_GMF_AENC", "AFE_MANAGER",
                             "AUD_RENDER", "AUDIO_PROCESSOR", "AUD_SDEC", "AFE_CONFIG", "NEW_DATA_BUS"}) {
         esp_log_level_set(tag, ESP_LOG_WARN);
@@ -593,7 +730,16 @@ extern "C" void app_main(void)
     auto &agent = homunculus::HomunculusAgent::get_instance();
     agent.set_state_callback([](homunculus::UiState s) { show_ui_state(s); });
     agent.set_confirm_callback(on_confirm);
+    // First HDP session after an update confirms the image (rollback otherwise); then look for updates.
+    agent.set_session_callback([] {
+        homunculus::ota::mark_running_valid();
+#if CONFIG_HOMUNCULUS_OTA_CHECK_ON_CONNECT
+        homunculus::ota::request_check();
+#endif
+    });
     register_device_tools(agent);
+    homunculus::ota::start(on_ota_event);
+    BROOKESIA_LOGI("[ota] running %1%", homunculus::ota::running_version());
 
     // Start Wi-Fi; the agent's worker thread opens the HDP connection once connected.
     if (!homunculus::wifi::start()) {

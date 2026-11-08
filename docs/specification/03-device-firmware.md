@@ -230,7 +230,10 @@ Device tools are declared in the `hello` message and bridged by the server into 
 | `device.show_text` | `text, duration_s` | Show a card on screen (e.g. a phone number) |
 | `device.show_qr` | `data, caption` | QR code (Brookesia emote `SetQrcode`) |
 | `device.show_image` | `url` or `asset_id` | Small image (server pre-scales to 466×466 JPEG/PNG) |
-| `device.get_status` | — | Battery %, charging, Wi-Fi RSSI, uptime |
+| `device.get_status` | — | Battery (HAL `PowerBattery`, AXP2101: %, mV, charge state, power source), uptime, free heap, Wi-Fi RSSI, firmware version, available update |
+| `device.get_time` | — | Local date, time, zone abbreviation and UTC offset (Brookesia SNTP service; error before the first sync) |
+| `device.set_timezone` | `posix_tz` | POSIX TZ string via SNTP `SetTimezone`, persisted by the service; default `CONFIG_BROOKESIA_SERVICE_SNTP_DEFAULT_TIMEZONE` = `CET-1CEST,M3.5.0,M10.5.0/3` |
+| `device.update_firmware` | — | Starts an OTA install (§3.6); not in the server allow list, so confirmed on the device |
 | `device.get_motion` | — | Orientation, last motion event |
 | `device.set_timer` | `seconds, label` | Local timer with avatar alert |
 
@@ -252,7 +255,18 @@ Planned (3C-2): server discovery via mDNS; pairing: device shows a 6-digit code,
 
 ## 3.6 OTA
 
-Dual OTA slots; server exposes firmware manifest per device model (`GET /ota/{model}/manifest`). Device checks on connect and on a daily timer; images are signed (Secure Boot v2 for production builds).
+| Item | Value |
+| --- | --- |
+| Partitions | `otadata` 8 KB, `ota_0` / `ota_1` 8 MB each (no factory slot), `model` 1 MB, `littlefs_data` 14 MB; `nvs` unchanged at 0x9000 |
+| Image | `GET /ota/{model}/firmware.bin` on the HDP server host (scheme `ws` → `http`, `wss` → `https` with the certificate bundle), headers `Authorization: Bearer <token>`, `X-Device-Id`, `X-Device-Model`, `X-Firmware` |
+| Client | ESP-IDF `esp_https_ota` (no Brookesia OTA service exists); thread `hom_ota`, 6 KB internal-RAM stack (flash writes, D-17) |
+| Version | `esp_app_desc_t.version` (`git describe` at build time). An image is installed when its version differs from the running one and its project name is `homunculus` |
+| Check | Image header only (download aborted after the app description): at every HDP session start (`CONFIG_HOMUNCULUS_OTA_CHECK_ON_CONNECT`) and every `CONFIG_HOMUNCULUS_OTA_CHECK_INTERVAL_H` hours (24) |
+| Install | `device.update_firmware` (confirmed on the device) or console key `u`: text card with progress in 5 % steps, then restart |
+| Rollback | `CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE`: a new image boots pending verification; the first HDP session marks it valid, otherwise the next reset returns to the previous image |
+| Plain http | `CONFIG_ESP_HTTPS_OTA_ALLOW_HTTP` (development builds, as `HOMUNCULUS_ALLOW_PLAIN_WS`) |
+| Not covered | Image signing and Secure Boot v2 (production builds) |
+| Development flash | `flash-app.sh` writes `ota_data_initial.bin` with the app: the bootloader starts `ota_0` again after an OTA switched to `ota_1` |
 
 ## 3.7 Power policy (reference device)
 

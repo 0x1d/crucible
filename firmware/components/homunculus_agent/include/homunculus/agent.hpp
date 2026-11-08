@@ -49,6 +49,7 @@ public:
     static constexpr const char *NAME = "Homunculus";
     static constexpr const char *MODEL = "ws-s3-amoled-175c";
     static constexpr const char *BOARD = "waveshare/esp32_s3_touch_amoled_1_75c";
+    // Brookesia service version; hello and the X-Firmware header carry the app version (ota::running_version()).
     static constexpr const char *FIRMWARE = "0.1.0";
 
     using StateCallback = std::function<void(UiState)>;
@@ -56,6 +57,8 @@ public:
     using CaptionCallback = std::function<void(bool is_agent, const std::string &text, bool final)>;
     // Confirmation card: show = true with the request text, false to remove it. Worker thread.
     using ConfirmCallback = std::function<void(bool show, const std::string &title, const std::string &detail)>;
+    // HDP session established (hello accepted). Worker thread.
+    using SessionCallback = std::function<void()>;
 
     // Device tool (spec 03 §3.4), declared in hello and invoked by tool.call on the worker thread:
     // handlers must return quickly. `ok` false -> MCP isError result with `text`.
@@ -71,6 +74,7 @@ public:
     void set_state_callback(StateCallback cb);
     void set_caption_callback(CaptionCallback cb);
     void set_confirm_callback(ConfirmCallback cb);
+    void set_session_callback(SessionCallback cb);
     // Registers a device tool; `input_schema` is the JSON Schema of the arguments. Before the agent starts.
     void add_tool(std::string name, std::string description, boost::json::object input_schema, ToolHandler handler);
 
@@ -152,6 +156,7 @@ private:
     StateCallback state_cb_;
     CaptionCallback caption_cb_;
     ConfirmCallback confirm_cb_;
+    SessionCallback session_cb_;
     struct Tool {
         hdp::ToolDescriptor desc;
         ToolHandler handler;

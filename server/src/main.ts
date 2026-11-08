@@ -1,5 +1,6 @@
 // Homunculus server entry point.
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { startGateway } from "./gateway/server.js";
 import { createLogger } from "./log.js";
 import { attachLoopback } from "./orchestrator/loopback.js";
@@ -33,6 +34,8 @@ const gateway = await startGateway({
   port: Number(env.HOMUNCULUS_PORT ?? 8443),
   tls,
   deviceTokens,
+  // Firmware images <model>.bin for OTA (make fw-publish).
+  otaDir: env.HOMUNCULUS_OTA_DIR ?? fileURLToPath(new URL("../.data/ota", import.meta.url)),
   config: { follow_up_window_ms: 6000, captions: true, language: "en" },
   onConnection: pipeline ? (c) => pipeline.attach(c) : attachLoopback,
   log,

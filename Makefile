@@ -19,7 +19,7 @@ IDF := cd firmware && $(FW_SHELL) idf.py
 
 .DEFAULT_GOAL := help
 .PHONY: help setup deps models models-piper \
-        fw-config fw-build fw-flash fw-flash-full fw-monitor fw-flash-monitor fw-menuconfig fw-clean fw-test \
+        fw-config fw-build fw-flash fw-flash-full fw-publish fw-monitor fw-flash-monitor fw-menuconfig fw-clean fw-test \
         server sim sim-play test typecheck backend check
 
 help: ## Show this help
@@ -53,6 +53,10 @@ fw-flash: ## Build, flash only changed app sectors to PORT (development)
 fw-flash-full: ## Flash bootloader, partitions, app, model and littlefs (fresh board; ~90 s)
 	$(IDF) -p $(PORT) flash
 	cp firmware/build/homunculus.bin firmware/build/last-flashed-app.bin
+
+fw-publish: fw-build ## Copy the built image to the server's OTA directory (device.update_firmware / console u)
+	mkdir -p server/.data/ota
+	cp firmware/build/homunculus.bin server/.data/ota/ws-s3-amoled-175c.bin
 
 fw-monitor: ## Serial monitor on PORT (Ctrl-] to exit)
 	$(IDF) -p $(PORT) monitor

@@ -1,4 +1,4 @@
-// HDP WebSocket endpoint (spec §4.1): upgrade, sub-protocol, bearer auth.
+// HDP WebSocket endpoint (spec §4.1): upgrade, sub-protocol, bearer auth; OTA images (spec §3.6).
 import { randomBytes, timingSafeEqual, createHash } from "node:crypto";
 import { createServer as createHttpServer, type IncomingMessage, type Server } from "node:http";
 import { createServer as createHttpsServer } from "node:https";
@@ -7,6 +7,7 @@ import { HDP_SUBPROTOCOL, type SessionConfig } from "@homunculus/protocol";
 import { WebSocketServer } from "ws";
 import type { Logger } from "../log.js";
 import { DeviceConnection, type DeviceIdentity } from "./connection.js";
+import { handleOtaRequest } from "./ota.js";
 
 export interface GatewayOptions {
   host?: string;
@@ -15,6 +16,8 @@ export interface GatewayOptions {
   tls?: { cert: string | Buffer; key: string | Buffer };
   /** Accepted device bearer tokens (pairing replaces this in Phase 3). */
   deviceTokens: string[];
+  /** Directory with OTA images `<model>.bin` served at /ota/<model>/firmware.bin; unset: no OTA. */
+  otaDir?: string;
   config: SessionConfig;
   downlinkRates?: number[];
   helloTimeoutMs?: number;
@@ -50,9 +53,26 @@ export async function startGateway(opts: GatewayOptions): Promise<Gateway> {
   const sessions = new SessionTable();
   const log = opts.log.child({ component: "gateway" });
 
+  const authorized = (req: IncomingMessage) => {
+    const auth = req.headers.authorization ?? "";
+    const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+    const d = digest(token);
+    return token !== "" && tokens.some((t) => timingSafeEqual(t, d));
+  };
+
   const server = opts.tls ? createHttpsServer(opts.tls) : createHttpServer();
-  server.on("request", (_req, res) => {
-    res.writeHead(404).end();
+  server.on("request", (req, res) => {
+    const ota = opts.otaDir;
+    void (ota ? handleOtaRequest(req, res, ota, authorized, log) : Promise.resolve(false)).then(
+      (handled) => {
+        if (!handled) res.writeHead(404).end();
+      },
+      (e: unknown) => {
+        log.warn("request_failed", { error: String(e) });
+        if (!res.headersSent) res.writeHead(500);
+        res.end();
+      },
+    );
   });
 
   const wss = new WebSocketServer({
@@ -70,10 +90,7 @@ export async function startGateway(opts: GatewayOptions): Promise<Gateway> {
     if (url.pathname !== path) return reject(socket, 404, "Not Found", "path", req);
     const protocols = (req.headers["sec-websocket-protocol"] ?? "").split(",").map((p) => p.trim());
     if (!protocols.includes(HDP_SUBPROTOCOL)) return reject(socket, 400, "Bad Request", "subprotocol", req);
-    const auth = req.headers.authorization ?? "";
-    const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
-    const d = digest(token);
-    if (!token || !tokens.some((t) => timingSafeEqual(t, d))) {
+    if (!authorized(req)) {
       return reject(socket, 401, "Unauthorized", "token", req);
     }
     const deviceId = String(req.headers["x-device-id"] ?? "");

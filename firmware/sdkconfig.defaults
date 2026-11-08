@@ -21,3 +21,12 @@ CONFIG_BROOKESIA_SERVICE_AUDIO_PLAYBACK_VOLUME_DEFAULT=100
 
 # -O2: Brookesia (Boost-heavy C++) at -Og dominated idle CPU; the vendor example uses PERF too.
 CONFIG_COMPILER_OPTIMIZATION_PERF=y
+
+# OTA (spec 03 §3.6): a new image boots pending verification; the first HDP session confirms it,
+# otherwise the bootloader rolls back on the next reset.
+CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
+# Development: images over plain http from a ws:// server (wss:// servers use https).
+CONFIG_ESP_HTTPS_OTA_ALLOW_HTTP=y
+
+# Time zone until device.set_timezone stores one (reference setup: Europe/Zurich).
+CONFIG_BROOKESIA_SERVICE_SNTP_DEFAULT_TIMEZONE="CET-1CEST,M3.5.0,M10.5.0/3"

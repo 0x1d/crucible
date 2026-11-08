@@ -79,7 +79,7 @@ Ring visualizer rasteriser host test (spec 06; optional argument writes a PPM co
 firmware/components/homunculus_avatar/test/host/run.sh /tmp/ring.ppm
 ```
 
-Development console (`CONFIG_HOMUNCULUS_DEV_CONSOLE`, USB-Serial-JTAG, e.g. in `idf.py monitor`): `t` tap, `w` wake word, `s` CPU / heap / stack / per-task CPU stats, `v` visualizer test tone (5 s), `r` HDP reconnect (session resume), `d` Wi-Fi disconnect. Serial capture without resetting the board: open `/dev/ttyACM0` with DTR and RTS deasserted (pyserial `dtr=False`, `rts=False` before `open()`).
+Development console (`CONFIG_HOMUNCULUS_DEV_CONSOLE`, USB-Serial-JTAG, e.g. in `idf.py monitor`): `t` tap, `w` wake word, `s` CPU / heap / stack / per-task CPU stats, `v` visualizer test tone (5 s), `r` HDP reconnect (session resume), `d` Wi-Fi disconnect, `p` Wi-Fi provisioning, `u` firmware update (OTA from the server). Serial capture without resetting the board: open `/dev/ttyACM0` with DTR and RTS deasserted (pyserial `dtr=False`, `rts=False` before `open()`).
 
 Device log lines: `hom_agent: uplink: ...` (per utterance), `hom_agent: turn: after listen.stop: tts_start, first_rx, first_fed, play_end` (ms), `[stats] ui, cpu core0/core1 %, internal free (min), stack min free` every `CONFIG_HOMUNCULUS_SYSTEM_STATS_INTERVAL_S`.
 
@@ -103,6 +103,7 @@ pnpm --filter homunculus-server dev
 | `HOMUNCULUS_HOST` | `0.0.0.0` | Listen address |
 | `HOMUNCULUS_DEVICE_TOKENS` | unset → `dev` (plain ws only) | Comma-separated device bearer tokens |
 | `HOMUNCULUS_TLS_CERT`, `HOMUNCULUS_TLS_KEY` | unset | PEM paths; enables `wss://` |
+| `HOMUNCULUS_OTA_DIR` | `server/.data/ota` | OTA images `<model>.bin`, served at `/ota/<model>/firmware.bin` with bearer auth (`make fw-publish`) |
 | `HOMUNCULUS_LOG_LEVEL` | `info` | `debug` logs every HDP message |
 | `HOMUNCULUS_LOG` | text | `json` for JSON lines |
 | `HOMUNCULUS_PIPELINE` | `speech` | `speech` or `loopback` (echo) |

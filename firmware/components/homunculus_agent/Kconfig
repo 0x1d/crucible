@@ -75,6 +75,18 @@ menu "Homunculus agent"
             Set via the Brookesia AudioPlayback service after start. Brookesia's
             default (75 %) is too quiet on the 1.75C speaker.
 
+    config HOMUNCULUS_OTA_CHECK_ON_CONNECT
+        bool "Check for a firmware update when the HDP session starts"
+        default y
+        help
+            Reads the version of <server>/ota/<model>/firmware.bin (spec 3.6); installing needs
+            device.update_firmware (confirmed on the device) or console key u.
+
+    config HOMUNCULUS_OTA_CHECK_INTERVAL_H
+        int "Firmware update check interval (hours)"
+        range 1 168
+        default 24
+
     config HOMUNCULUS_TURN_STATS
         bool "Log per-turn uplink/latency statistics"
         default y
@@ -93,6 +105,6 @@ menu "Homunculus agent"
         help
             Single-key commands read from the USB-Serial-JTAG console:
             t = touch, w = wake word, s = system stats, r = HDP reconnect,
-            d = Wi-Fi disconnect. Development builds only.
+            d = Wi-Fi disconnect, u = firmware update. Development builds only.
 
 endmenu

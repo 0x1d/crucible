@@ -330,7 +330,7 @@ Same setup with first segment 4–12 words and without the voice rule: first dow
 | External side effects | send message, create calendar event, home automation | **ask on device** (`confirm.request`) |
 | Host access | shell, file write | deny (opt-in per profile, sandboxed `cwd`) |
 
-Device tools: allow list in `server/src/tools/policy.ts` (`device.set_volume`, `set_brightness`, `show_text`, `show_qr`, `show_image`, `get_status`, `get_motion`, `set_timer`); any other device tool is `ask`. `ask` tools are not in `allowedTools`; `canUseTool` sends `confirm.request` (timeout 30 s; denied on timeout, abort/barge-in, disconnect) and resolves on `confirm.result`. Avatar state `confirming` while a confirmation waits. Permission mode `default` when device tools exist, else `dontAsk`.
+Device tools: allow list in `server/src/tools/policy.ts` (`device.set_volume`, `set_brightness`, `show_text`, `show_qr`, `show_image`, `get_status`, `get_time`, `set_timezone`, `get_motion`, `set_timer`); any other device tool (e.g. `device.update_firmware`) is `ask`. `ask` tools are not in `allowedTools`; `canUseTool` sends `confirm.request` (timeout 30 s; denied on timeout, abort/barge-in, disconnect) and resolves on `confirm.result`. Avatar state `confirming` while a confirmation waits. Permission mode `default` when device tools exist, else `dontAsk`.
 
 ## 5.7 Persistence
 
@@ -343,5 +343,7 @@ SQLite tables: `devices` (id, model, token hash, profile id, last seen), `profil
 - Debug mode: record uplink/downlink audio per turn (opt-in, privacy).
 
 ## 5.9 Admin interface
+
+OTA images (implemented): the gateway's HTTP server answers `GET` / `HEAD /ota/{model}/firmware.bin` with `${HOMUNCULUS_OTA_DIR}/{model}.bin` (default `server/.data/ota`, model `[A-Za-z0-9_-]{1,64}`), device bearer token required (401), 404 when absent. The image version is read by the device from the image header (spec 03 §3.6); no manifest.
 
 CLI + minimal web UI: pair devices (confirm pairing code), edit profiles, select backend/model/voice, view turn history and latency, push OTA.
