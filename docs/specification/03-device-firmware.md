@@ -137,6 +137,7 @@ Kconfig (`Homunculus agent` menu):
 | `HOMUNCULUS_MAX_UTTERANCE_MS` | 15000 | Device-side utterance limit |
 | `HOMUNCULUS_THINKING_TIMEOUT_MS` | 90000 | Thinking → Idle without `tts{start}` |
 | `HOMUNCULUS_DEVICE_ENDPOINT`, `_MIN_MS` | n, 1200 | Reserved (device-side VAD endpointing, not implemented) |
+| `HOMUNCULUS_SPEAKER_VOLUME` | 100 | AudioPlayback `SetVolume` at boot (Brookesia default and persisted value: 75 %) |
 | `HOMUNCULUS_TURN_STATS` | y | Per-turn uplink / latency log |
 | `HOMUNCULUS_SYSTEM_STATS_INTERVAL_S` | 5 | Per-core CPU load, heap, thread stack log interval (0 = off) |
 | `HOMUNCULUS_DEV_CONSOLE` | y | USB-Serial-JTAG single-key console (`t` tap, `w` wake word, `s` stats, `r` HDP reconnect, `d` Wi-Fi disconnect) |

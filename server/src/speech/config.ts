@@ -3,6 +3,7 @@ import type { Logger } from "../log.js";
 import { modelDir } from "./paths.js";
 import { WhisperCppProvider } from "./stt/whisper-cpp.js";
 import { KokoroTtsProvider } from "./tts/kokoro.js";
+import { LoudnessTtsProvider } from "./tts/loudness.js";
 import { PiperTtsProvider } from "./tts/piper.js";
 import type { SttProvider, TtsProvider, VadModel } from "./types.js";
 import type { ShaperOptions } from "./shaper.js";
@@ -29,9 +30,14 @@ export function createStt(log: Logger, language = "en"): SttProvider {
   });
 }
 
-/** TTS provider: HOMUNCULUS_TTS overrides the persona's provider. */
+/** TTS provider: HOMUNCULUS_TTS overrides the persona's provider; output gain HOMUNCULUS_TTS_GAIN_DB. */
 export function createTts(personaProvider: string, log: Logger): TtsProvider {
-  const provider = env.HOMUNCULUS_TTS ?? personaProvider;
+  const gainDb = num(env.HOMUNCULUS_TTS_GAIN_DB, 8);
+  const tts = createTtsProvider(env.HOMUNCULUS_TTS ?? personaProvider, log);
+  return gainDb === 0 ? tts : new LoudnessTtsProvider(tts, gainDb);
+}
+
+function createTtsProvider(provider: string, log: Logger): TtsProvider {
   switch (provider) {
     case "kokoro":
       return new KokoroTtsProvider({ dtype: (env.HOMUNCULUS_KOKORO_DTYPE as "fp32" | "q8") ?? "fp32" });

@@ -322,6 +322,17 @@ extern "C" void app_main(void)
     auto &service_manager = service::ServiceManager::get_instance();
     BROOKESIA_CHECK_FALSE_EXIT(service_manager.start(), "Failed to start ServiceManager");
 
+    // Speaker volume (Brookesia default 75 % is too quiet on the 1.75C).
+    using AudioPlaybackHelper = service::helper::AudioPlayback;
+    auto playback_binding = service_manager.bind(AudioPlaybackHelper::get_name().data());
+    if (playback_binding.is_valid()) {
+        auto vol = AudioPlaybackHelper::call_function_sync(AudioPlaybackHelper::FunctionId::SetVolume,
+                                                           static_cast<double>(CONFIG_HOMUNCULUS_SPEAKER_VOLUME));
+        BROOKESIA_LOGI("[audio] volume %1% %%: %2%", CONFIG_HOMUNCULUS_SPEAKER_VOLUME, vol ? "ok" : vol.error());
+    } else {
+        BROOKESIA_LOGW("[audio] AudioPlayback bind failed; volume unchanged");
+    }
+
     // Start the AgentManager service so its functions can be called.
     auto agent_manager_binding = service_manager.bind("AgentManager");
     BROOKESIA_CHECK_FALSE_EXIT(agent_manager_binding.is_valid(), "Failed to bind AgentManager");

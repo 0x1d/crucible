@@ -275,6 +275,7 @@ Kokoro measurements (kokoro-js 1.2.1, onnxruntime-node 1.21, CPU i7-1165G7 4C/8T
 - ONNX Runtime intra-op threads: default (0) 535 / 909 ms (4 / 6 words); 1: 1254 / 2156; 2: 738 / 1248; 4: 535 / 876; 8: 622 / 1522.
 - kokoro-js `stream()` splits text into sentences (`TextSplitterStream`) and synthesises each sentence whole; with a string argument it does not terminate in 1.2.1. Not used.
 - Default: fp32 (`HOMUNCULUS_KOKORO_DTYPE`), synthesis per shaper segment.
+- Loudness stage after any TTS provider: +8 dB gain (`HOMUNCULUS_TTS_GAIN_DB`), soft-knee limiter (knee 0.5, ceiling 0.97 FS). Kokoro bf_emma mean −20.6 → −12.9 dBFS, peak −1.6 → −0.3 dBFS.
 
 ### 5.4.3 Persona
 
