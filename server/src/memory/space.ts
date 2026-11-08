@@ -1,7 +1,7 @@
 // Memory space (spec 10 §10.2): directory layout, git versioning of the wiki.
 import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
 
@@ -31,7 +31,8 @@ export async function openSpace(rootDir: string, name: string): Promise<MemorySp
     mkdir(join(s.wiki, "concepts"), { recursive: true }),
   ]);
   const ignore = join(s.root, ".gitignore");
-  if (!existsSync(ignore)) await writeFile(ignore, "*.graph*\n");
+  const ignored = existsSync(ignore) ? await readFile(ignore, "utf8") : "";
+  if (!ignored.split("\n").includes("*.graph*")) await writeFile(ignore, `${ignored}*.graph*\n`);
   if (!existsSync(join(s.root, ".git"))) {
     await git(s, "init", "-q");
     await commit(s, "init");
