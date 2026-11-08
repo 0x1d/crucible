@@ -17,9 +17,11 @@
     "@homunculus/protocol": "workspace:*",
     "@huggingface/transformers": "3.8.1",
     "kokoro-js": "^1.2.1",
+    "minigraf": "2.0.11",
     "onnxruntime-node": "1.21.0",
     "opusscript": "^0.1.1",
     "ws": "^8.22.1",
+    "yaml": "^2.9.1",
     "zod": "^4.0.0"
   },
   "devDependencies": {

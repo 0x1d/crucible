@@ -40,6 +40,9 @@ importers:
       kokoro-js:
         specifier: ^1.2.1
         version: 1.2.1
+      minigraf:
+        specifier: 2.0.11
+        version: 2.0.11
       onnxruntime-node:
         specifier: 1.21.0
         version: 1.21.0
@@ -49,6 +52,9 @@ importers:
       ws:
         specifier: ^8.22.1
         version: 8.22.1
+      yaml:
+        specifier: ^2.9.1
+        version: 2.9.1
       zod:
         specifier: ^4.0.0
         version: 4.6.7
@@ -466,6 +472,30 @@ packages:
   '@isaacs/fs-minipass@4.0.1':
     resolution: {integrity: sha512-wgm9Ehl2jpeqP3zw/7mo3kRHFp5MEDhqAdwy1fTGkHAwnkGOVsgpvQhL8B5n1qlb01jV3n/bI0ZfZp5lWA1k4w==}
     engines: {node: '>=18.0.0'}
+
+  '@minigraf/darwin-universal@2.0.11':
+    resolution: {integrity: sha512-DMKPSanZOPKvAoDzxVH03SiCJJbMUxXW8/DPSx04zSIumnq/cerO4ESBkYLV5zK96PgCncJTjOF1pFQ4pW2QMw==}
+    engines: {node: '>=18'}
+    cpu: [x64, arm64]
+    os: [darwin]
+
+  '@minigraf/linux-arm64-gnu@2.0.11':
+    resolution: {integrity: sha512-U9UArdwrEFgQ71qB7vS9Vs9imoaD16VPqLipXxkYcNB0ei6B21Ktt5LmKRb9VaL3ACAOHA53wZdepWfNhRJXFg==}
+    engines: {node: '>=18'}
+    cpu: [arm64]
+    os: [linux]
+
+  '@minigraf/linux-x64-gnu@2.0.11':
+    resolution: {integrity: sha512-QzcPj0hu00Dgdg6DIy0f1uWPOI8uVZd0lz1LShXMom3nL+dxnYRAeAnQJik9z8wmTdz4NaSfV5rftfFrgRLcrQ==}
+    engines: {node: '>=18'}
+    cpu: [x64]
+    os: [linux]
+
+  '@minigraf/win32-x64-msvc@2.0.11':
+    resolution: {integrity: sha512-zuzXRMc14m1+2e9pbzA/A5KDKFVkQTfCjgOh9cyAQGT6w1s9+ocj1zO1MeeM4jLN3nuyA+6dFfiqk5ye6XFQBg==}
+    engines: {node: '>=18'}
+    cpu: [x64]
+    os: [win32]
 
   '@modelcontextprotocol/sdk@1.32.2':
     resolution: {integrity: sha512-SWsVtH/0vULSQStoZ6xxH2K09Li8fXYTMC64ZeogCdpZ3XSi1eCPOByV1OpuJxuI3OcmHhosDWYyii07tpPsLw==}
@@ -936,6 +966,10 @@ packages:
     resolution: {integrity: sha512-Lbgzdk0h4juoQ9fCKXW4by0UJqj+nOOrI9MJ1sSj4nI8aI2eo1qmvQEie4VD1glsS250n15LsWsYtCugiStS5A==}
     engines: {node: '>=18'}
 
+  minigraf@2.0.11:
+    resolution: {integrity: sha512-gzONhRvCV6nExBwKjpAXw7dH1ndO8jKJcXIwdNzGjYclEvq35S7l8UwlOYaH92rc2bcBBd1prYqSD7Ej/2KCtA==}
+    engines: {node: '>=18'}
+
   minipass@7.1.3:
     resolution: {integrity: sha512-tEBHqDnIoM/1rXME1zgka9g6Q2lcoCkxHLuc7ODJ5BxbP5d4c2Z5cGgtXAku59200Cx7diuHTOYfSBD8n6mm8A==}
     engines: {node: '>=16 || 14 >=14.17'}
@@ -1169,6 +1203,11 @@ packages:
   yallist@5.0.0:
     resolution: {integrity: sha512-YgvUTfwqyc7UXVMrB+SImsVYSmTS8X/tSrtdNZMImM+n7+QTriRXyXim0mBrTXNeqzVF0KWGgHPeiyViFFrNDw==}
     engines: {node: '>=18'}
+
+  yaml@2.9.1:
+    resolution: {integrity: sha512-3NxN8+78OdzbT7C/WjGsyfPAtJaN3FNDsWxv7Y7mcDsT/oOmgW8BpyQQFFBnvZE3j9Y2Sdz1ULFLezL7Eb2yFw==}
+    engines: {node: '>= 14.6'}
+    hasBin: true
 
   zod-to-json-schema@3.25.2:
     resolution: {integrity: sha512-O/PgfnpT1xKSDeQYSCfRI5Gy3hPf91mKVDuYLUHZJMiDFptvP41MSnWofm8dnCm0256ZNfZIM7DSzuSMAFnjHA==}
@@ -1425,6 +1464,18 @@ snapshots:
   '@isaacs/fs-minipass@4.0.1':
     dependencies:
       minipass: 7.1.3
+
+  '@minigraf/darwin-universal@2.0.11':
+    optional: true
+
+  '@minigraf/linux-arm64-gnu@2.0.11':
+    optional: true
+
+  '@minigraf/linux-x64-gnu@2.0.11':
+    optional: true
+
+  '@minigraf/win32-x64-msvc@2.0.11':
+    optional: true
 
   '@modelcontextprotocol/sdk@1.32.2(zod@4.6.7)':
     dependencies:
@@ -1867,6 +1918,13 @@ snapshots:
     dependencies:
       mime-db: 1.54.0
 
+  minigraf@2.0.11:
+    optionalDependencies:
+      '@minigraf/darwin-universal': 2.0.11
+      '@minigraf/linux-arm64-gnu': 2.0.11
+      '@minigraf/linux-x64-gnu': 2.0.11
+      '@minigraf/win32-x64-msvc': 2.0.11
+
   minipass@7.1.3: {}
 
   minizlib@3.1.0:
@@ -2158,6 +2216,8 @@ snapshots:
   ws@8.22.1: {}
 
   yallist@5.0.0: {}
+
+  yaml@2.9.1: {}
 
   zod-to-json-schema@3.25.2(zod@4.6.7):
     dependencies:
