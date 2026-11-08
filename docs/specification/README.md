@@ -12,6 +12,7 @@ Draft 0.1 · 2026-11-07
 | 06 | [Avatar](06-avatar.md) | Layered avatar model, procedural face, states, emotion vocabulary, lip-sync |
 | 07 | [Security and Privacy](07-security-and-privacy.md) | Threat model, privacy principles, authentication |
 | 08 | [Roadmap and Open Items](08-roadmap-and-open-items.md) | Repo layout, phases, risks, open questions |
+| 09 | [Apps and Launcher](09-apps-and-launcher.md) | Brookesia system/app stack, current usage, launcher plan, open items |
 | — | [Research Notes](research-notes.md) | Background research on Brookesia, XiaoZhi, Agent SDKs, speech |
 
 ## Architecture at a glance

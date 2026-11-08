@@ -93,6 +93,7 @@ gantt
 | OI-07 | Persona definition: name, voice, personality, default emotional range | **Decided** → D-04 (default emotional range still to be detailed in Phase 2) |
 | OI-08 | Server hosting: LAN-only vs remote access (tunnel / reverse proxy) | **Decided** → D-05 |
 | OI-09 | Memory: rely on backend session memory, or add long-term memory MCP server | Phase 3 |
+| OI-10..13 | Launcher / multi-app on Brookesia `system_super` (round display, avatar integration, audio arbitration, heap) | See 09-apps-and-launcher.md §9.5 |
 
 ## 8.5 Decisions
 
