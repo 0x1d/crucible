@@ -67,7 +67,7 @@ gantt
 | 2 — Audio visualizer | Ring waveform follows speaker output ≥ 15 fps; palette per UI state; speech without stutter (spec 06 §6.5) | **Done 2026-11-08**; underruns / CPU during speech not measured |
 | 2F — Procedural face | All states and emotes rendered ≥ 20 fps; lip-sync; agent drives emotions ([06-avatar-face-deferred.md](06-avatar-face-deferred.md)) | **Deferred** (D-20) |
 | 3B — Device tools + confirmations | Agent calls device tools; confirmation flow on the device replaces D-18 | **Done 2026-11-08** (tool calls verified on hardware) |
-| 3C — Provisioning, pairing, OTA | Wi-Fi provisioning + server pairing on the device; OTA firmware update | In progress: Wi-Fi provisioning (SoftAP + web form) implemented 2026-11-08; OTA (esp_https_ota, dual slots, rollback; spec 03 §3.6) implemented 2026-11-08, not verified on hardware; pairing open |
+| 3C — Provisioning, pairing, OTA | Wi-Fi provisioning + server pairing on the device; OTA firmware update | In progress: Wi-Fi provisioning (SoftAP + web form) implemented 2026-11-08; OTA (esp_https_ota, dual slots, rollback; spec 03 §3.6) verified on hardware 2026-11-08 (4.7 MB in ≈ 90 s, confirmed after reboot into ota_1); pairing open |
 | 3D — Long-term memory | Facts and wiki pages from past sessions answer questions in a new session; preference supersede + history query; librarian ingest and lint runs ([10-memory.md](10-memory.md)) | Open (D-23) |
 | 3A — OpenCode backend | Backend switchable (Claude / OpenCode) per device profile (spec 05 §5.3.3) | **Deferred** (D-22) |
 | 4 — Multi-device | Second board with different display shape runs the same firmware and server unchanged | Open |
