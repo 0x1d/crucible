@@ -76,6 +76,8 @@
           export PYTHONPATH=${
             pkgs.lib.concatMapStringsSep ":" (w: "${w}/lib/python3.13/site-packages") idfComponentManager
           }''${PYTHONPATH:+:$PYTHONPATH}
+          # Server tools (piper-tts) bring their own python3; idf.py needs the IDF env first on PATH.
+          export PATH=${espIdf.espPython.pythonEnv}/bin:$PATH
         '';
 
         # inputsFrom merges packages and shellHook but not plain env attributes.
