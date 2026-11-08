@@ -257,7 +257,7 @@ Planned (3C-2): server discovery via mDNS; pairing: device shows a 6-digit code,
 
 | Item | Value |
 | --- | --- |
-| Partitions | `otadata` 8 KB, `ota_0` / `ota_1` 8 MB each (no factory slot), `model` 1 MB, `littlefs_data` 14 MB; `nvs` unchanged at 0x9000 |
+| Partitions | `otadata` 8 KB, `model` 1 MB at 0x20000, `ota_0` / `ota_1` 7 MB each (no factory slot, end at 0xF20000), `littlefs_data` 16 MB; `nvs` unchanged at 0x9000. App and model partitions are cache-mapped and must end below 16 MB (ESP32-S3 quad flash) |
 | Image | `GET /ota/{model}/firmware.bin` on the HDP server host (scheme `ws` → `http`, `wss` → `https` with the certificate bundle), headers `Authorization: Bearer <token>`, `X-Device-Id`, `X-Device-Model`, `X-Firmware` |
 | Client | ESP-IDF `esp_https_ota` (no Brookesia OTA service exists); thread `hom_ota`, 6 KB internal-RAM stack (flash writes, D-17) |
 | Version | `esp_app_desc_t.version` (`git describe` at build time). An image is installed when its version differs from the running one and its project name is `homunculus` |
