@@ -10,6 +10,7 @@ import type { Logger } from "../log.js";
 import { buildSystemPrompt, loadPersona, type Persona } from "../persona/persona.js";
 import { conversationTimeouts, createStt, createTts, createVad, endpointerOptions, shaperOptions } from "../speech/config.js";
 import type { SttProvider, TtsProvider, VadModel } from "../speech/types.js";
+import { DeviceBridge } from "../tools/device-bridge.js";
 import { Conversation, type ConversationTimeouts } from "./conversation.js";
 
 export interface PipelineDeps {
@@ -27,6 +28,7 @@ export interface PipelineDeps {
 interface Entry {
   conn: DeviceConnection;
   conv: Conversation;
+  bridge: DeviceBridge;
   hdpSession: string;
 }
 
@@ -55,6 +57,7 @@ export function createPipeline(d: PipelineDeps): Pipeline {
   /** Closes the conversation (idempotent) and records its backend session id for resume. */
   const endConversation = (e: Entry) =>
     e.conv.close().then((id) => {
+      e.bridge.close();
       if (id) agentSessions.set(e.hdpSession, id);
     });
 
@@ -72,7 +75,9 @@ export function createPipeline(d: PipelineDeps): Pipeline {
           prev.conn.close(4000, "replaced");
         }
         const cwd = join(d.sandboxRoot, deviceDirName(deviceId));
+        const bridge = new DeviceBridge(conn, () => conn.hello?.tools);
         const conv = new Conversation(conn, {
+          bridge,
           stt: d.stt,
           tts: d.tts,
           vad: d.vad,
@@ -80,12 +85,19 @@ export function createPipeline(d: PipelineDeps): Pipeline {
           language: d.persona.language,
           // The replaced conversation's agent session is closed before its id is resumed here.
           resumeSessionId: prevClosed.then(() => agentSessions.get(hdpSession)),
-          openAgent: (resumeSessionId) => d.backend.openSession({ systemPrompt, resumeSessionId, cwd }),
+          openAgent: (resumeSessionId) =>
+            d.backend.openSession({
+              systemPrompt,
+              resumeSessionId,
+              cwd,
+              tools: bridge.tools(),
+              confirm: (req, signal) => bridge.confirm(req, signal),
+            }),
           endpointer: endpointerOptions(),
           shaper: shaperOptions(),
           timeouts: d.timeouts,
         });
-        const entry: Entry = { conn, conv, hdpSession };
+        const entry: Entry = { conn, conv, bridge, hdpSession };
         devices.set(deviceId, entry);
         conn.on("close", () => {
           if (devices.get(deviceId) === entry) devices.delete(deviceId);

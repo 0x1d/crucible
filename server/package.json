@@ -19,7 +19,8 @@
     "kokoro-js": "^1.2.1",
     "onnxruntime-node": "1.21.0",
     "opusscript": "^0.1.1",
-    "ws": "^8.22.1"
+    "ws": "^8.22.1",
+    "zod": "^4.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

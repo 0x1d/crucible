@@ -19,6 +19,33 @@ export interface SessionContext {
   resumeSessionId?: string;
   /** Working directory for file-producing tools (per-device sandbox). */
   cwd?: string;
+  /** Host-side tools exposed to the agent (device tools), with their permission policy. */
+  tools?: HostTool[];
+  /** Asks the user on the device to approve a tool call; resolves false on denial, timeout, abort. */
+  confirm?: (req: ConfirmRequest, signal?: AbortSignal) => Promise<boolean>;
+}
+
+export interface HostTool {
+  /** Agent-facing name, [A-Za-z0-9_-]. */
+  name: string;
+  description: string;
+  /** JSON Schema of the arguments (object). */
+  inputSchema: Record<string, unknown>;
+  /** `ask`: every call needs `confirm` (spec §5.6). */
+  policy: "allow" | "ask";
+  call(args: unknown, signal?: AbortSignal): Promise<ToolOutcome>;
+}
+
+export interface ToolOutcome {
+  ok: boolean;
+  text: string;
+}
+
+export interface ConfirmRequest {
+  tool: string;
+  title: string;
+  detail: string;
+  timeoutMs?: number;
 }
 
 export interface AgentSession {

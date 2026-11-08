@@ -9,13 +9,14 @@ import { OpusDecoder, OpusFramer, type OpusRate } from "../speech/audio.js";
 import { SpeechShaper, type ShaperOptions } from "../speech/shaper.js";
 import type { SttProvider, SttStream, TtsProvider, VadModel } from "../speech/types.js";
 import { defaultEndpointerOptions, VadSegmenter, type EndpointerOptions, type VadEvent } from "../speech/vad/endpointer.js";
+import type { DeviceBridge } from "../tools/device-bridge.js";
 import { TurnTimer } from "./latency.js";
 import { SpeechOutput, type PacedItem } from "./speech-out.js";
 import { settlesWithin, Watchdog, WatchdogError, within } from "./watchdog.js";
 
 export type TurnState = "idle" | "listening" | "transcribing" | "running" | "speaking" | "error";
 
-type AvatarState = "idle" | "listening" | "thinking" | "working" | "speaking" | "error";
+type AvatarState = "idle" | "listening" | "thinking" | "working" | "speaking" | "confirming" | "error";
 
 /** The parts of a DeviceConnection the orchestrator uses (fakeable in tests). */
 export type DeviceLink = Pick<DeviceConnection, "log" | "downlink" | "send" | "sendAudio"> & {
@@ -68,6 +69,8 @@ export interface ConversationDeps {
   playedTimeoutMs?: number;
   prebufferFrames?: number;
   timeouts?: Partial<ConversationTimeouts>;
+  /** Device tool bridge: its confirmations drive the `confirming` avatar state; barge-in denies them. */
+  bridge?: Pick<DeviceBridge, "cancelConfirms"> & { onConfirmChange?: (waiting: boolean) => void };
 }
 
 const FRAME_MS = 60;
@@ -141,7 +144,7 @@ export class Conversation {
   private readonly pacer: Pacer<PacedItem>;
   private readonly log: Logger;
   private readonly opts: Required<
-    Omit<ConversationDeps, "endpointer" | "openAgent" | "resumeSessionId" | "stt" | "tts" | "vad" | "timeouts" | "shaper">
+    Omit<ConversationDeps, "endpointer" | "openAgent" | "resumeSessionId" | "stt" | "tts" | "vad" | "timeouts" | "shaper" | "bridge">
   > & {
     endpointer: EndpointerOptions;
     shaper: Partial<ShaperOptions>;
@@ -181,6 +184,15 @@ export class Conversation {
         return deps.openAgent(id);
       }),
     );
+
+    if (deps.bridge) {
+      deps.bridge.onConfirmChange = (waiting) => {
+        const turn = this.turn;
+        if (!turn || turn.aborted) return;
+        if (waiting) this.sendAvatar("confirming");
+        else if (this.avatarState === "confirming") this.sendAvatar("working");
+      };
+    }
 
     link.on("message", (m) => {
       switch (m.type) {
@@ -684,6 +696,7 @@ export class Conversation {
     turn.aborted = true;
     turn.working = false;
     turn.abort.abort(); // → AgentSession.interrupt()
+    this.deps.bridge?.cancelConfirms();
     turn.speech.cancel();
     this.pacer.clear();
     this.framer.reset();

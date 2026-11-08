@@ -1,7 +1,11 @@
 // Claude Agent SDK backend (spec §5.3.2).
 import { mkdirSync } from "node:fs";
+import { z } from "zod";
 import {
+  createSdkMcpServer,
   query,
+  tool,
+  type CanUseTool,
   type EffortLevel,
   type Query,
   type SDKMessage,
@@ -13,8 +17,44 @@ import type {
   AgentInput,
   AgentSession,
   BackendCapabilities,
+  HostTool,
   SessionContext,
 } from "../types.js";
+
+const DEVICE_SERVER = "device";
+const deviceToolId = (name: string) => `mcp__${DEVICE_SERVER}__${name}`;
+
+/** In-process MCP server exposing the host tools (device bridge, spec §5.6). */
+function hostToolServer(tools: HostTool[]) {
+  return createSdkMcpServer({
+    name: DEVICE_SERVER,
+    tools: tools.map((t) => {
+      const schema = z.fromJSONSchema(t.inputSchema as Parameters<typeof z.fromJSONSchema>[0]);
+      const shape = schema instanceof z.ZodObject ? schema.shape : {};
+      return tool(t.name, t.description, shape, async (args, extra) => {
+        const signal = (extra as { signal?: AbortSignal } | undefined)?.signal;
+        const r = await t.call(args, signal);
+        return { content: [{ type: "text" as const, text: r.text }], ...(r.ok ? {} : { isError: true }) };
+      });
+    }),
+  });
+}
+
+/** Allows `ask` host tools after on-device confirmation; everything else not pre-allowed is denied. */
+function permissionGate(ctx: SessionContext): CanUseTool {
+  const asks = new Map((ctx.tools ?? []).filter((t) => t.policy === "ask").map((t) => [deviceToolId(t.name), t]));
+  return async (toolName, input, { signal }) => {
+    const t = asks.get(toolName);
+    if (!t || !ctx.confirm) return { behavior: "deny", message: `${toolName} is not permitted` };
+    const approved = await ctx.confirm(
+      { tool: t.name, title: t.description.slice(0, 80), detail: JSON.stringify(input).slice(0, 200) },
+      signal,
+    );
+    return approved
+      ? { behavior: "allow", updatedInput: input }
+      : { behavior: "deny", message: "the user declined on the device" };
+  };
+}
 
 export interface ClaudeBackendOptions {
   model: string;
@@ -84,6 +124,9 @@ class ClaudeAgentSession implements AgentSession {
   constructor(opts: ClaudeBackendOptions, ctx: SessionContext) {
     const cwd = ctx.cwd ?? opts.cwd;
     mkdirSync(cwd, { recursive: true });
+    const hostTools = ctx.tools ?? [];
+    const hostIds = hostTools.map((t) => deviceToolId(t.name));
+    const preAllowed = hostTools.filter((t) => t.policy === "allow").map((t) => deviceToolId(t.name));
     this.q = query({
       prompt: this.input,
       options: {
@@ -91,8 +134,11 @@ class ClaudeAgentSession implements AgentSession {
         effort: opts.effort,
         systemPrompt: ctx.systemPrompt,
         tools: opts.tools,
-        allowedTools: opts.tools,
-        permissionMode: "dontAsk",
+        allowedTools: [...opts.tools, ...preAllowed],
+        ...(hostTools.length
+          ? { mcpServers: { [DEVICE_SERVER]: hostToolServer(hostTools) }, canUseTool: permissionGate(ctx) }
+          : {}),
+        permissionMode: hostIds.length ? "default" : "dontAsk",
         // Don't inherit the host user's Claude Code settings, CLAUDE.md or plugins.
         settingSources: [],
         includePartialMessages: true,
