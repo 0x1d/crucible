@@ -88,7 +88,9 @@ export class FakeLink extends EventEmitter<ConnectionEvents> {
 
 /** 60 ms Opus uplink packets at 16 kHz: speech (440 Hz tone) or silence. */
 export class Uplink {
-  private readonly enc = new OpusFramer(16000);
+  /** One encoder for all uplinks: opusscript encoders are never freed by GC (WASM heap). */
+  private static readonly sharedEnc = new OpusFramer(16000);
+  private readonly enc = Uplink.sharedEnc;
   private seq = 0;
   private phase = 0;
 

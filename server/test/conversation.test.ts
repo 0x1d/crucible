@@ -12,6 +12,7 @@ interface Setup {
   fillerAfterMs?: number;
   interruptMs?: number;
   onTurn?: ConversationDeps["onTurn"];
+  quietTool?: ConversationDeps["quietTool"];
 }
 
 function setup(o: Setup = {}) {
@@ -31,6 +32,7 @@ function setup(o: Setup = {}) {
     openAgent: (resumeSessionId) => backend.openSession({ systemPrompt: "", resumeSessionId }),
     fillerAfterMs: o.fillerAfterMs ?? 0,
     ...(o.onTurn ? { onTurn: o.onTurn } : {}),
+    ...(o.quietTool ? { quietTool: o.quietTool } : {}),
     playedTimeoutMs: 200,
     timeouts: { uplinkGapMs: 1000, ...o.timeouts },
   });
@@ -100,6 +102,19 @@ test("normal turn: transcript → agent → segments → tts stop → idle", asy
   );
   const log = turnLog(t.link).at(-1);
   assert.ok(log && typeof log.t_first_downlink === "number" && typeof log.t_tts_first_chunk === "number");
+});
+
+test("quiet tools do not trigger the filler", async () => {
+  const t = setup({
+    finals: ["q"],
+    fillerAfterMs: 1,
+    quietTool: (n) => n.startsWith("mcp__memory__"),
+    scripts: [[{ wait: 20 }, { type: "tool.start", name: "mcp__memory__search" }, { wait: 20 }, text("Answer."), done]],
+  });
+  t.ask();
+  await t.idle(2);
+  assert.deepEqual(t.tts.texts, ["Answer."]);
+  await t.conv.close();
 });
 
 test("onTurn reports completed and interrupted turns (memory source log)", async () => {

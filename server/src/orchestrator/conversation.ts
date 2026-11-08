@@ -64,6 +64,8 @@ export interface ConversationDeps {
   /** Filler phrase when a tool starts and nothing was said for this long (spec §5.5); 0 disables. */
   fillerAfterMs?: number;
   fillerText?: string;
+  /** Tools that never trigger the filler (local, fast: memory, spec 10 §10.6). */
+  quietTool?: (name: string) => boolean;
   apologyText?: string;
   /** Max wait for tts.played of the last segment before tts stop. */
   playedTimeoutMs?: number;
@@ -158,7 +160,7 @@ export class Conversation {
   private readonly pacer: Pacer<PacedItem>;
   private readonly log: Logger;
   private readonly opts: Required<
-    Omit<ConversationDeps, "endpointer" | "openAgent" | "resumeSessionId" | "stt" | "tts" | "vad" | "timeouts" | "shaper" | "bridge" | "onTurn">
+    Omit<ConversationDeps, "endpointer" | "openAgent" | "resumeSessionId" | "stt" | "tts" | "vad" | "timeouts" | "shaper" | "bridge" | "onTurn" | "quietTool">
   > & {
     endpointer: EndpointerOptions;
     shaper: Partial<ShaperOptions>;
@@ -600,7 +602,7 @@ export class Conversation {
             if (turn.reply && !/\s$/.test(turn.reply)) turn.reply += " ";
             this.send({ type: "agent.status", phase: "tool", tool: ev.name });
             this.toolAvatar(turn);
-            this.maybeFiller(turn);
+            if (!this.deps.quietTool?.(ev.name)) this.maybeFiller(turn);
             break;
           case "tool.end":
             break;

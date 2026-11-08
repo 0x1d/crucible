@@ -146,6 +146,7 @@ export function createPipeline(d: PipelineDeps): Pipeline {
                 },
               }
             : {}),
+          quietTool: (name) => name.startsWith(`mcp__${MEMORY_SERVER}__`),
           endpointer: endpointerOptions(),
           shaper: shaperOptions(),
           timeouts: d.timeouts,
