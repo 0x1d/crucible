@@ -154,6 +154,16 @@ Kconfig (`Homunculus agent` menu):
 | Visualizer (`hom_vis`) | any | 6 | 6 KB (PSRAM) | Up to 30 fps while the ring moves; idle otherwise (spec 06 §6.3.4) |
 | Housekeeping (PMU poll, IMU, battery) | 0 | 3 | 4 KB | 2 Hz PMU poll (no IRQ line) |
 
+Measured idle CPU (1.75C, agent idle, `[stats] top tasks`, % of one core):
+
+| Build | Core 0 / core 1 | `audio_recorder` | `afe_feed` | `afe_fetch` | Brookesia `SvcMgrMain0..2` + `SvcMgrSec0..1` | Internal free |
+| --- | --- | --- | --- | --- | --- | --- |
+| `-Og`, worker poll 5 ms (Brookesia default) | 64 / 45 % | 22 | 17–18 | 11 | 11 + 14 + 13 + 4 + 6 ≈ 45 | 67 KB |
+| `-Og`, worker poll 10 ms | 60 / 36 % | 21 | 17 | 11 | 12 + 14 + 6 + 2 + 3 ≈ 37 | 67 KB |
+| `-O2`, worker poll 10 ms (D-21) | 54 / 36 % | 22 | 17 | 11 | 8 + 11 + 8 + 2 + 3 ≈ 32 | 72 KB |
+
+Service manager workers sleep for the poll interval only when their queue is empty (`TaskScheduler` worker loop, `io_context::poll()`); the remaining load is queued work. Kconfig range of the poll interval: 1–10 ms.
+
 ### 3.2.3 Audio configuration (reference device)
 
 | Parameter | Value |

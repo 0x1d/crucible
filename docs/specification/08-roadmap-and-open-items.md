@@ -121,6 +121,7 @@ Product decisions taken on resolved open items. Decided 2026-11-07.
 | D-18 | **Device answers `confirm.request` with `approved:false`** | Until a confirmation UI exists (Phase 3). |
 | D-19 | **Kokoro runs in a child process** | In-process inference stalled the event loop up to 219 ms (> 180 ms downlink prebuffer → device underruns, delayed aborts); child process: max 4 ms. Worker thread rejected: onnxruntime-node aborts with sessions on main thread (Silero) and a worker. |
 | D-20 | **Phase 2 = circular audio-output visualizer; procedural face deferred** | Ring waveform of the speaker signal (ES7210 DAC echo lane), colour per UI state, direct panel rendering without LVGL (spec 06). Face spec kept unchanged as 06-avatar-face-deferred.md. Decided 2026-11-08. |
+| D-21 | **Firmware built with `-O2`; Brookesia service manager worker poll 10 ms** | `CONFIG_COMPILER_OPTIMIZATION_PERF` (as the vendor example) and both service manager poll intervals at the Kconfig maximum. Idle CPU 64 / 45 % → 54 / 36 %, internal free 67 → 72 KB, visualizer test tone 12 → 19 fps (spec 03 §3.2.2, 06 §6.3.3). Decided 2026-11-08. |
 
 p1d hardware measurements (1.75C, LAN, speech pipeline):
 

@@ -83,8 +83,10 @@ The waveform is drawn in every state whenever the reference lane is above the ga
 | Rectangles, prio 3, core 0, renderer `-O2` | 164 ms | 108 ms (52 rects) | ~6 fps |
 | Framebuffer, full-width bands, prio 3 | 168 ms | 113 ms (378 rows) | ~6 fps |
 | Framebuffer, full-width bands, prio 6 | 83 ms | 60 ms (393 rows) | ~12 fps |
+| Same, Brookesia worker poll 10 ms | 78 ms | 59 ms (362 rows) | ~13 fps |
+| Same, project `-O2` (D-21) | 53 ms | 35 ms (362 rows) | ~19 fps |
 
-- Per-task CPU at idle (agent idle, no rendering): `audio_recorder` 22 %, `afe_feed` 17 %, `afe_fetch` 11 %, Brookesia service manager workers (`SvcMgrMain0/1/2`, `SvcMgrSec0/1`, prio 5) 9–15 % each, ~45 % of one core in total. A render thread at prio 3 waits behind them after every transfer.
+- Per-task CPU at idle: see spec 03 §3.2.2. A render thread at prio 3 waited behind the Brookesia service manager workers (prio 5) after every transfer.
 
 ### 6.3.4 Thread and memory
 
@@ -118,7 +120,7 @@ Kconfig (`Homunculus visualizer` menu):
 | Criterion | Status |
 | --- | --- |
 | Ring follows speaker output during agent speech, in time with the audio | Pending hardware |
-| ≥ 25 fps during speech (`[stats] visualizer`) | Not met: ~12 fps with the test tone (§6.3.3) |
+| ≥ 25 fps during speech (`[stats] visualizer`) | Not met: ~19 fps with the test tone (§6.3.3) |
 | Palette changes with UI state | Pending hardware |
 | No added downlink underruns or AFE overruns; CPU per core and internal heap minimum measured against p1d (§8.7) | Pending hardware |
 | Reference lane carries the speaker signal (lane `R` of `RMNN`) | Pending hardware |
