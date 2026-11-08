@@ -157,8 +157,11 @@ class ClaudeAgentSession implements AgentSession {
             }
           : {}),
         permissionMode: hasAsk ? "default" : "dontAsk",
-        // Don't inherit the host user's Claude Code settings, CLAUDE.md or plugins.
+        // Don't inherit the host user's Claude Code settings, CLAUDE.md or plugins; no Claude Code
+        // auto-memory (it would load the host user's MEMORY.md of the enclosing git repo).
         settingSources: [],
+        settings: { autoMemoryEnabled: false },
+        env: { ...process.env, CLAUDE_CODE_DISABLE_AUTO_MEMORY: "1" },
         includePartialMessages: true,
         cwd,
         ...(ctx.resumeSessionId ? { resume: ctx.resumeSessionId } : {}),
