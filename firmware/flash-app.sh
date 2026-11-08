@@ -22,8 +22,9 @@ print(a["app"]["offset"], "build/" + a["app"]["file"], s["flash_mode"], s["flash
 EOF
 )
 
+# --diff-with takes a list: it must come after the address / file pair.
 diff=()
 [ -f "$last" ] && diff=(--diff-with "$last")
 python -m esptool --chip esp32s3 -p "$port" --before default-reset --after hard-reset \
-    write-flash --flash-mode "$mode" --flash-freq "$freq" --flash-size "$size" "${diff[@]}" "$offset" "$file"
+    write-flash --flash-mode "$mode" --flash-freq "$freq" --flash-size "$size" "$offset" "$file" "${diff[@]}"
 cp "$file" "$last"

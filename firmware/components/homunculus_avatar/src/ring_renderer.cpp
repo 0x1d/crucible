@@ -49,9 +49,9 @@ void Renderer::Span::add(int a, int b)
     }
 }
 
-Renderer::Renderer(int width, int height, uint8_t *intensity, uint8_t *colour, uint16_t *tx)
+Renderer::Renderer(int width, int height, uint8_t *intensity, uint8_t *colour, uint16_t *fb)
     : w_(width), h_(height), hw_(width / 2), bands_((height + BAND - 1) / BAND), intensity_(intensity),
-      colour_(colour), tx_(tx), prev_(bands_), env_(ENV_FLOOR)
+      colour_(colour), fb_(fb), prev_(bands_), env_(ENV_FLOOR)
 {
     const float m = static_cast<float>(std::min(width, height));
     r0_ = BASE_RADIUS * m;
@@ -110,8 +110,9 @@ float Renderer::update(const int16_t *window, float gate, float dt)
     return max_disp;
 }
 
-void Renderer::render(const Flush &flush)
+Rows Renderer::render()
 {
+    Rows dirty;
     // Right half, top (theta 0) to bottom (theta pi).
     for (int k = 0; k < POINTS; k++) {
         const float th = PI * k / (POINTS - 1);
@@ -135,13 +136,11 @@ void Renderer::render(const Flush &flush)
         if (span.empty()) continue;
 
         stamp_band(y0, rows);
-        if (span.lo <= 1) {
-            flush_rect(hw_ - 1 - span.hi, hw_ + span.hi + 1, y0, rows, flush);
-        } else {
-            flush_rect(hw_ - 1 - span.hi, hw_ - span.lo, y0, rows, flush);
-            flush_rect(hw_ + span.lo, hw_ + span.hi + 1, y0, rows, flush);
-        }
+        write_span(span.lo, span.hi, y0, rows);
+        if (dirty.y1 >= dirty.y2) dirty.y1 = y0;
+        dirty.y2 = y0 + rows;
     }
+    return dirty;
 }
 
 void Renderer::stamp_band(int y0, int rows)
@@ -178,20 +177,18 @@ void Renderer::stamp_band(int y0, int rows)
     }
 }
 
-void Renderer::flush_rect(int x1, int x2, int y0, int rows, const Flush &flush)
+void Renderer::write_span(int lo, int hi, int y0, int rows)
 {
-    x1 = std::max(0, x1 & ~1);
-    x2 = std::min(w_, (x2 + 1) & ~1);
-    const int bw = x2 - x1;
+    // Half-plane columns lo..hi map to screen columns hw+lo..hw+hi (right) and hw-1-hi..hw-1-lo (left).
     for (int yy = 0; yy < rows; yy++) {
-        uint16_t *out = tx_ + yy * bw;
-        for (int x = x1; x < x2; x++) {
-            const int u = x >= hw_ ? x - hw_ : hw_ - 1 - x;
-            const uint8_t v = intensity_[yy * hw_ + u];
-            *out++ = v ? lut_[colour_[yy * hw_ + u]][v >> 2] : 0;
+        const uint8_t *in = intensity_ + yy * hw_, *ci = colour_ + yy * hw_;
+        uint16_t *row = fb_ + (y0 + yy) * w_;
+        for (int u = lo; u <= hi; u++) {
+            const uint16_t px = in[u] ? lut_[ci[u]][in[u] >> 2] : 0;
+            row[hw_ + u] = px;
+            row[hw_ - 1 - u] = px;
         }
     }
-    flush(x1, y0, x2, y0 + rows, tx_);
 }
 
 }  // namespace homunculus::ring

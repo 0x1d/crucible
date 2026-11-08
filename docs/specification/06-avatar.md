@@ -70,22 +70,32 @@ The waveform is drawn in every state whenever the reference lane is above the ga
 ### 6.3.3 Rasterisation and flush
 
 - Only the right half is rasterised; stamps crossing the vertical axis are reflected.
-- Per band of 10 rows (Brookesia max transfer: 10 lines × 466 px × 2 B = 9320 B): intensity plane and colour-index plane (233 × 10 B each, PSRAM), converted through a 8 × 64 LUT into byte-swapped RGB565 in one internal DMA buffer (9320 B), flushed with `draw_bitmap_sync` (100 ms timeout).
-- Per band the flushed columns are the union of this frame's and the previous frame's drawn columns: one rectangle across the axis, or two (left and right arc). Bands with neither are skipped.
-- CO5300: rectangle x start and width rounded to even.
+- Per band of 10 rows: intensity plane and colour-index plane (233 × 10 B each, PSRAM). The band's changed columns (union of this frame's and the previous frame's drawn columns) are converted through an 8 × 64 LUT into byte-swapped RGB565 in a full framebuffer (466 × 466 × 2 B, PSRAM). Bands with neither are skipped.
+- Flush: each changed band is copied into one internal DMA buffer (10 rows × 466 px × 2 B = 9320 B, the Brookesia max transfer) and sent full width with `draw_bitmap_sync` (100 ms timeout). Full width keeps x start and width even (CO5300).
+- Rejected: a single `draw_bitmap_sync` straight from the PSRAM framebuffer timed out at the first full-screen transfer, then `spi_device_release_bus` asserted (boot loop). Per-band rectangles of the changed columns only (1–2 per band, ~60 per speech frame): fixed cost per transfer dominated, 0.9 ms each at prio 3.
 - Frame rate `HOMUNCULUS_VIS_FPS` (30) while the ring is deflected or the state changed; otherwise the thread polls every 50 ms without drawing.
-- Host measurement (`test/host/run.sh`, synthetic speech): 73 k px flushed per speech frame (34 % of 466²); flat ring: 17.6 k px.
+- Host measurement (`test/host/run.sh`, synthetic speech): 393 changed rows per speech frame.
+- Device measurement (1.75C, idle agent, development console `v` test tone, 180 / 720 / 2100 Hz):
+
+| Variant | Frame | Flush | Frame rate |
+| --- | --- | --- | --- |
+| Rectangles, prio 3, `-Og` | 103 ms | 56 ms (60 rects) | ~10 fps |
+| Rectangles, prio 3, core 0, renderer `-O2` | 164 ms | 108 ms (52 rects) | ~6 fps |
+| Framebuffer, full-width bands, prio 3 | 168 ms | 113 ms (378 rows) | ~6 fps |
+| Framebuffer, full-width bands, prio 6 | 83 ms | 60 ms (393 rows) | ~12 fps |
+
+- Per-task CPU at idle (agent idle, no rendering): `audio_recorder` 22 %, `afe_feed` 17 %, `afe_fetch` 11 %, Brookesia service manager workers (`SvcMgrMain0/1/2`, `SvcMgrSec0/1`, prio 5) 9–15 % each, ~45 % of one core in total. A render thread at prio 3 waits behind them after every transfer.
 
 ### 6.3.4 Thread and memory
 
 | Item | Value |
 | --- | --- |
-| Thread | `hom_vis`, prio 3, no core affinity, 6 KB stack in PSRAM |
+| Thread | `hom_vis`, prio 6 (above the Brookesia service manager workers at 5, below `hom_player` 7), no core affinity, 6 KB stack in PSRAM |
 | Internal RAM | 9320 B DMA buffer + 2 KB tap ring buffer |
-| PSRAM | 2 × 2330 B planes, renderer state (~5 KB) |
+| PSRAM | Framebuffer 434 KB, 2 × 2330 B planes, renderer state (~5 KB) |
 | Ownership | After `Visualizer::start()` the render thread does all panel drawing; it clears the screen once at start |
 | Fallback | Visualizer disabled or start failure (panel not 16 bpp or odd width, allocation failure): solid state colours (Phase 1 behaviour) |
-| Stats | `[stats] visualizer N frames, avg X ms, max Y ms` with each system stats line |
+| Stats | `[stats] visualizer N frames, avg X ms (flush F ms, R rows), max Y ms` and `[stats] top tasks` (CPU % of one core per task) with each system stats line |
 
 ## 6.4 Code
 
@@ -108,7 +118,7 @@ Kconfig (`Homunculus visualizer` menu):
 | Criterion | Status |
 | --- | --- |
 | Ring follows speaker output during agent speech, in time with the audio | Pending hardware |
-| ≥ 25 fps during speech (`[stats] visualizer`) | Pending hardware |
+| ≥ 25 fps during speech (`[stats] visualizer`) | Not met: ~12 fps with the test tone (§6.3.3) |
 | Palette changes with UI state | Pending hardware |
 | No added downlink underruns or AFE overruns; CPU per core and internal heap minimum measured against p1d (§8.7) | Pending hardware |
 | Reference lane carries the speaker signal (lane `R` of `RMNN`) | Pending hardware |

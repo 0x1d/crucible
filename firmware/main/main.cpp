@@ -2,7 +2,9 @@
 // wake-word / touch / audio over to the agent_manager-driven HomunculusAgent. The display
 // shows the Phase 2 circular audio-output visualizer (spec 06), coloured by agent state.
 
+#include <algorithm>
 #include <atomic>
+#include <map>
 #include <chrono>
 #include <cstdint>
 #include <mutex>
@@ -200,8 +202,9 @@ void print_heap(const char *label)
 // (FreeRTOS run-time stats, esp_timer time base).
 class CpuLoad {
 public:
-    // Also fills `stacks` with "name:min_free_bytes" for the Homunculus threads.
-    void sample(int load_out[2], std::string &stacks)
+    // Also fills `stacks` with "name:min_free_bytes" for the Homunculus threads and `top` with
+    // the busiest tasks since the previous call ("name/core:percent", percent of one core).
+    void sample(int load_out[2], std::string &stacks, std::string &top)
     {
         const UBaseType_t n = uxTaskGetNumberOfTasks() + 4;
         std::vector<TaskStatus_t> tasks(n);
@@ -209,8 +212,20 @@ public:
         const UBaseType_t got = uxTaskGetSystemState(tasks.data(), n, &total);
         const int64_t now = esp_timer_get_time();
         configRUN_TIME_COUNTER_TYPE idle[2] = {0, 0};
+        const int64_t dt_us = now - last_us_;
+        std::vector<std::pair<int, std::string>> busy;
+        std::map<TaskHandle_t, configRUN_TIME_COUNTER_TYPE> run;
         for (UBaseType_t i = 0; i < got; i++) {
             const std::string name = tasks[i].pcTaskName;
+            run[tasks[i].xHandle] = tasks[i].ulRunTimeCounter;
+            auto it = last_run_.find(tasks[i].xHandle);
+            if (last_us_ > 0 && dt_us > 0 && it != last_run_.end()) {
+                const int pct = static_cast<int>(static_cast<int64_t>(tasks[i].ulRunTimeCounter - it->second) * 100 / dt_us);
+                const int core = tasks[i].xCoreID > 1 ? -1 : static_cast<int>(tasks[i].xCoreID);
+                if (pct > 0 && name.rfind("IDLE", 0) != 0) {
+                    busy.emplace_back(pct, name + "/" + (core < 0 ? "*" : std::to_string(core)) + ":" + std::to_string(pct));
+                }
+            }
             if (name == "hom_worker" || name == "hom_player" || name == "hdp_ws" || name == "touch" ||
                     name == "console" || name == "hom_vis") {
                 stacks += " " + name + ":" + std::to_string(tasks[i].usStackHighWaterMark);
@@ -228,9 +243,13 @@ public:
             last_idle_[core] = idle[core];
         }
         last_us_ = now;
+        last_run_ = std::move(run);
+        std::sort(busy.begin(), busy.end(), [](const auto &a, const auto &b) { return a.first > b.first; });
+        for (size_t i = 0; i < busy.size() && i < 8; i++) top += " " + busy[i].second;
     }
 
 private:
+    std::map<TaskHandle_t, configRUN_TIME_COUNTER_TYPE> last_run_;
     int64_t last_us_ = 0;
     configRUN_TIME_COUNTER_TYPE last_idle_[2] = {0, 0};
 };
@@ -242,8 +261,8 @@ void print_system_stats()
 {
     std::lock_guard lock(g_stats_mutex);
     int load[2];
-    std::string stacks;
-    g_cpu_load.sample(load, stacks);
+    std::string stacks, top;
+    g_cpu_load.sample(load, stacks, top);
     BROOKESIA_LOGI(
         "[stats] ui %1%, cpu core0 %2% %%, core1 %3% %%, internal free %4% KB (min %5% KB), PSRAM free %6% KB, "
         "stack min free%7%",
@@ -252,6 +271,7 @@ void print_system_stats()
         heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL) / 1024, heap_caps_get_free_size(MALLOC_CAP_SPIRAM) / 1024,
         stacks
     );
+    BROOKESIA_LOGI("[stats] top tasks (%% of one core):%1%", top);
     if (g_visualizer) {
         BROOKESIA_LOGI("[stats] visualizer %1%", homunculus::Visualizer::get_instance().take_stats());
     }

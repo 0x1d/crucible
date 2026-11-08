@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cstring>
 #include <functional>
 #include <new>
 #include "esp_heap_caps.h"
@@ -75,11 +76,11 @@ std::string Visualizer::take_stats()
     const uint32_t sum = frame_us_sum_.exchange(0);
     const uint32_t max = frame_us_max_.exchange(0);
     const uint32_t flush = flush_us_sum_.exchange(0);
-    const uint32_t rects = rects_.exchange(0);
+    const uint32_t rows = rows_.exchange(0);
     char buf[112];
-    std::snprintf(buf, sizeof(buf), "%u frames, avg %.1f ms (flush %.1f ms, %u rects), max %.1f ms",
+    std::snprintf(buf, sizeof(buf), "%u frames, avg %.1f ms (flush %.1f ms, %u rows), max %.1f ms",
                   static_cast<unsigned>(n), n ? sum / n / 1000.0 : 0.0, n ? flush / n / 1000.0 : 0.0,
-                  static_cast<unsigned>(n ? rects / n : 0), max / 1000.0);
+                  static_cast<unsigned>(n ? rows / n : 0), max / 1000.0);
     return buf;
 }
 
@@ -124,7 +125,7 @@ bool Visualizer::start(esp_brookesia::hal::display::PanelIface *panel)
                  static_cast<unsigned>(stride_), layout.c_str());
     }
 
-    thread_ = spawn("hom_vis", 6 * 1024, 3, [this] { render_loop(); });
+    thread_ = spawn("hom_vis", 6 * 1024, 6, [this] { render_loop(); });
     return true;
 }
 
@@ -146,20 +147,28 @@ void Visualizer::render_loop()
     const int W = info.h_res, H = info.v_res;
     auto *intensity = static_cast<uint8_t *>(heap_caps_malloc(ring::BAND * W / 2, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
     auto *colour = static_cast<uint8_t *>(heap_caps_malloc(ring::BAND * W / 2, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
-    auto *tx = static_cast<uint16_t *>(heap_caps_calloc(ring::BAND * W, 2, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL));
-    if (!intensity || !colour || !tx) {
+    // Full framebuffer in PSRAM (434 KB at 466²). Dirty rows are copied through an internal DMA
+    // buffer of BAND rows and sent as full-width transfers: direct DMA from PSRAM through the
+    // panel driver timed out (and then asserted in spi_device_release_bus).
+    auto *fb = static_cast<uint16_t *>(heap_caps_calloc(W * H, 2, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+    auto *tx = static_cast<uint16_t *>(heap_caps_malloc(ring::BAND * W * 2, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL));
+    if (!intensity || !colour || !fb || !tx) {
         ESP_LOGE(TAG, "buffer allocation failed");
         return;
     }
-    auto flush = [this](int x1, int y1, int x2, int y2, const uint16_t *px) {
+    auto flush = [&](int y1, int y2) {
         const int64_t t = esp_timer_get_time();
-        panel_->draw_bitmap_sync(x1, y1, x2, y2, reinterpret_cast<const uint8_t *>(px), 100);
+        for (int y = y1 & ~1; y < y2; y += ring::BAND) {
+            const int rows = std::min(ring::BAND, H - y);
+            std::memcpy(tx, fb + y * W, rows * W * 2);
+            panel_->draw_bitmap_sync(0, y, W, y + rows, reinterpret_cast<const uint8_t *>(tx), 100);
+            rows_ += static_cast<uint32_t>(rows);
+        }
         flush_us_sum_ += static_cast<uint32_t>(esp_timer_get_time() - t);
-        rects_++;
     };
-    for (int y = 0; y < H; y += ring::BAND) flush(0, y, W, std::min(y + ring::BAND, H), tx);  // clear
+    flush(0, H);  // clear
     flush_us_sum_ = 0;
-    rects_ = 0;
+    rows_ = 0;
 
     // Renderer state (~5 KB) and the sample window in PSRAM: internal RAM is the scarce resource.
     void *mem = heap_caps_malloc(sizeof(ring::Renderer), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
@@ -168,7 +177,7 @@ void Visualizer::render_loop()
         ESP_LOGE(TAG, "renderer allocation failed");
         return;
     }
-    auto *renderer = new (mem) ring::Renderer(W, H, intensity, colour, tx);
+    auto *renderer = new (mem) ring::Renderer(W, H, intensity, colour, fb);
     const float gate = 32768.0f * std::pow(10.0f, CONFIG_HOMUNCULUS_VIS_GATE_DBFS / 20.0f);
     const int64_t period_us = 1000000 / CONFIG_HOMUNCULUS_VIS_FPS;
     UiState shown = UiState::Offline;
@@ -211,12 +220,13 @@ void Visualizer::render_loop()
         }
 
         const int64_t t0 = esp_timer_get_time();
-        renderer->render(flush);
+        const ring::Rows dirty = renderer->render();
+        if (dirty.y1 < dirty.y2) flush(dirty.y1, dirty.y2);
         flat_drawn = max_disp == 0;
-        const auto dt = static_cast<uint32_t>(esp_timer_get_time() - t0);
+        const auto frame_us = static_cast<uint32_t>(esp_timer_get_time() - t0);
         frames_++;
-        frame_us_sum_ += dt;
-        if (dt > frame_us_max_) frame_us_max_ = dt;
+        frame_us_sum_ += frame_us;
+        if (frame_us > frame_us_max_) frame_us_max_ = frame_us;
 
         next_us += period_us;
         const int64_t now = esp_timer_get_time();

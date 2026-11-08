@@ -1,5 +1,5 @@
-// Host test for the ring rasteriser: flat ring geometry, mirror symmetry, CO5300 rectangle
-// alignment, dirty-span clearing, and a PPM contact sheet (argv[1]) for visual review.
+// Host test for the ring rasteriser: flat ring geometry, mirror symmetry, dirty rows,
+// erase on silence, and a PPM contact sheet (argv[1]) for visual review.
 #include <cassert>
 #include <cmath>
 #include <cstdio>
@@ -15,20 +15,6 @@ constexpr int W = 466, H = 466;
 
 struct Screen {
     std::vector<uint16_t> px = std::vector<uint16_t>(W * H, 0);
-    int rects = 0, pixels = 0;
-    Renderer::Flush flush()
-    {
-        return [this](int x1, int y1, int x2, int y2, const uint16_t *p) {
-            if (x1 % 2 || x2 % 2 || x1 < 0 || x2 > W || y1 < 0 || y2 > H || x2 <= x1 || y2 - y1 > BAND) {
-                std::fprintf(stderr, "bad rect [%d,%d)x[%d,%d)\n", x1, x2, y1, y2);
-                std::exit(1);
-            }
-            for (int y = y1; y < y2; y++)
-                for (int x = x1; x < x2; x++) px[y * W + x] = *p++;
-            rects++;
-            pixels += (x2 - x1) * (y2 - y1);
-        };
-    }
     bool lit(int x, int y) const
     {
         return px[y * W + x] != 0;
@@ -76,8 +62,8 @@ void write_ppm(const char *path, const std::vector<Screen> &frames)
 int main(int argc, char **argv)
 {
     std::vector<uint8_t> intensity(BAND * W / 2), colour(BAND * W / 2);
-    std::vector<uint16_t> tx(BAND * W);
-    Renderer r(W, H, intensity.data(), colour.data(), tx.data());
+    Screen fb;  // the renderer's framebuffer
+    Renderer r(W, H, intensity.data(), colour.data(), fb.px.data());
     const Palette speaking{{0xc020e0, 0x6f8af6, 0xe9dbfc}, 1.0f};
     const Palette idle{{0x00a050, 0x40e080, 0xc0ffd0}, 0.45f};
     std::vector<int16_t> win(WINDOW, 0);
@@ -85,10 +71,12 @@ int main(int argc, char **argv)
     std::vector<Screen> sheet;
 
     // Flat ring
-    Screen s;
     r.set_palette(idle);
     check(r.update(win.data(), gate) == 0, "silence gives a flat ring");
-    r.render(s.flush());
+    Rows rows = r.render();
+    const Screen s = fb;
+    const float r0f = 0.30f * W;
+    check(rows.y1 <= (W - 1) / 2.0f - r0f - BRUSH_R && rows.y2 >= (W - 1) / 2.0f + r0f + BRUSH_R, "dirty rows cover the ring");
     const float r0 = 0.30f * W, c = (W - 1) / 2.0f;
     bool on_ring = true, symmetric = true, off_ring_dark = true;
     for (int y = 0; y < H; y++)
@@ -109,14 +97,16 @@ int main(int argc, char **argv)
 
     // Speech: deflection, symmetry, bounded radius
     r.set_palette(speaking);
-    Screen sp = s;
     float t = 0;
+    int dirty_rows = 0;
     for (int f = 0; f < 8; f++, t += 1 / 30.0f) {
         speech_like(win, t, 8000);
         check(r.update(win.data(), gate) > 0.2f, "speech deflects the ring");
-        r.render(sp.flush());
-        if (f == 3 || f == 7) sheet.push_back(sp);
+        rows = r.render();
+        dirty_rows += rows.y2 - rows.y1;
+        if (f == 3 || f == 7) sheet.push_back(fb);
     }
+    const Screen &sp = fb;
     bool sym = true, inside = true;
     for (int y = 0; y < H; y++)
         for (int x = 0; x < W; x++) {
@@ -126,29 +116,24 @@ int main(int argc, char **argv)
         }
     check(sym, "speech frame is mirror-symmetric");
     check(inside, "deflection stays within base radius +- amplitude");
-    std::printf("speech frame: %d rects, %d px flushed\n", sp.rects, sp.pixels);
+    std::printf("speech frame: %d dirty rows\n", dirty_rows / 8);
 
     // Back to silence: old waveform fully erased
     std::fill(win.begin(), win.end(), 0);
     float m = 1;
     int frames = 0;
     while ((m = r.update(win.data(), gate)) > 0 && frames < 100) {
-        r.render(sp.flush());
+        r.render();
         frames++;
     }
     r.set_palette(idle);
-    r.render(sp.flush());
+    r.render();
     bool same = true;
     for (int i = 0; i < W * H; i++)
         if ((sp.px[i] != 0) != (s.px[i] != 0)) same = false;
     check(frames < 30, "ring relaxes within 1 s");
     check(same, "silence after speech restores the flat ring exactly");
-    sheet.push_back(sp);
-
-    // Steady flat ring flushes nothing new
-    Screen idle_screen;
-    r.render(idle_screen.flush());
-    std::printf("flat redraw: %d rects, %d px\n", idle_screen.rects, idle_screen.pixels);
+    sheet.push_back(fb);
 
     if (argc > 1) write_ppm(argv[1], sheet);
     return 0;

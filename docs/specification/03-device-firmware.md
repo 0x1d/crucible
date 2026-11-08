@@ -151,7 +151,7 @@ Kconfig (`Homunculus agent` menu):
 | Opus encode | 0 | 18 | 24–32 KB | 60 ms frames |
 | Opus decode + I²S write | 0 | 19 | 24–32 KB | Jitter buffer 120–240 ms |
 | WebSocket / network | 0 | 10 | 8 KB | TLS buffers in PSRAM |
-| Visualizer (`hom_vis`) | any | 3 | 6 KB (PSRAM) | 30 fps while the ring moves; idle otherwise (spec 06 §6.3.4) |
+| Visualizer (`hom_vis`) | any | 6 | 6 KB (PSRAM) | Up to 30 fps while the ring moves; idle otherwise (spec 06 §6.3.4) |
 | Housekeeping (PMU poll, IMU, battery) | 0 | 3 | 4 KB | 2 Hz PMU poll (no IRQ line) |
 
 ### 3.2.3 Audio configuration (reference device)

@@ -35,8 +35,8 @@ make help          # list all targets
 4. **Build, flash and monitor**:
 
    ```bash
-   make fw-build
-   make fw-flash-monitor
+   make fw-flash-full      # first time on a board: all partitions
+   make fw-flash-monitor   # afterwards: only changed app sectors, then monitor
    ```
 
    Use `PORT=/dev/ttyACM1` for a different serial port. Exit the monitor with `Ctrl-]`.
@@ -53,7 +53,7 @@ make sim-play
 | --- | --- |
 | `setup` | `deps` + `models` + `fw-config` |
 | `models-piper` | Also fetch the Piper TTS fallback voice |
-| `fw-config` / `fw-build` / `fw-flash` / `fw-monitor` / `fw-flash-monitor` | Firmware build and flash (`BOARD`, `PORT` overridable) |
+| `fw-config` / `fw-build` / `fw-flash` / `fw-flash-full` / `fw-monitor` / `fw-flash-monitor` | Firmware build and flash (`BOARD`, `PORT` overridable) |
 | `fw-menuconfig` / `fw-clean` / `fw-test` | Config UI, clean, host tests |
 | `server` (`backend`) | Run the backend |
 | `sim` / `sim-play` | Device simulator |

@@ -51,6 +51,10 @@ idf.py build
 idf.py -p /dev/ttyACM0 flash monitor
 ```
 
+Development flash (`make fw-flash`, `firmware/flash-app.sh`): builds, then writes only the app image with `esptool write-flash --diff-with build/last-flashed-app.bin` (only changed 4 KB sectors). `idf.py flash` (`make fw-flash-full`) also writes the bootloader, partition table, `model` and the 16 MB `littlefs_data` image (~50 s of ~90 s); needed on a fresh board or after partition / bootloader changes.
+
+Measured (i7-1165G7, USB-Serial-JTAG): link of `homunculus.elf` ~85 s, single-threaded, CPU-bound; unchanged by dropping `--cref` or debug info. App image 4.5 MB: ~34 s full write.
+
 `gen-bmgr-config` generates `components/gen_bmgr_codes/` (git-ignored) from the Brookesia board definition; run it once per checkout or board change. Component versions are locked in `firmware/dependencies.lock`.
 
 Per-machine settings go into the git-ignored `firmware/sdkconfig.local` (appended to `SDKCONFIG_DEFAULTS` if present):
@@ -75,7 +79,7 @@ Ring visualizer rasteriser host test (spec 06; optional argument writes a PPM co
 firmware/components/homunculus_avatar/test/host/run.sh /tmp/ring.ppm
 ```
 
-Development console (`CONFIG_HOMUNCULUS_DEV_CONSOLE`, USB-Serial-JTAG, e.g. in `idf.py monitor`): `t` tap, `w` wake word, `s` CPU / heap / stack stats, `r` HDP reconnect (session resume), `d` Wi-Fi disconnect. Serial capture without resetting the board: open `/dev/ttyACM0` with DTR and RTS deasserted (pyserial `dtr=False`, `rts=False` before `open()`).
+Development console (`CONFIG_HOMUNCULUS_DEV_CONSOLE`, USB-Serial-JTAG, e.g. in `idf.py monitor`): `t` tap, `w` wake word, `s` CPU / heap / stack / per-task CPU stats, `v` visualizer test tone (5 s), `r` HDP reconnect (session resume), `d` Wi-Fi disconnect. Serial capture without resetting the board: open `/dev/ttyACM0` with DTR and RTS deasserted (pyserial `dtr=False`, `rts=False` before `open()`).
 
 Device log lines: `hom_agent: uplink: ...` (per utterance), `hom_agent: turn: after listen.stop: tts_start, first_rx, first_fed, play_end` (ms), `[stats] ui, cpu core0/core1 %, internal free (min), stack min free` every `CONFIG_HOMUNCULUS_SYSTEM_STATS_INTERVAL_S`.
 

@@ -2,14 +2,13 @@
 //
 // The picture is mirror-symmetric about the vertical axis, so only the right half is
 // rasterised: an intensity plane and a colour-index plane per band of BAND rows (stamps
-// that cross the axis are reflected). Each band is converted through the palette LUT into
-// byte-swapped RGB565 and flushed as one rectangle (or two: left and right arc) covering
-// the union of this frame's and the previous frame's drawn columns. Rectangles start on
-// an even column and have an even width (CO5300).
+// that cross the axis are reflected). Each band's changed columns (union of this frame's
+// and the previous frame's drawn columns) are converted through the palette LUT into
+// byte-swapped RGB565 in a full framebuffer; render() returns the changed rows, which the
+// caller sends to the panel as one full-width transfer.
 #pragma once
 
 #include <cstdint>
-#include <functional>
 #include <vector>
 
 namespace homunculus::ring {
@@ -30,14 +29,16 @@ struct Palette {
 // Byte-swapped RGB565 (panel byte order).
 uint16_t to_panel565(uint32_t rgb, float scale);
 
+// Changed rows [y1, y2); empty when y1 >= y2.
+struct Rows {
+    int y1 = 0, y2 = 0;
+};
+
 class Renderer {
 public:
-    // [x1, x2) x [y1, y2) screen rectangle, row-major pixels of width x2 - x1.
-    using Flush = std::function<void(int x1, int y1, int x2, int y2, const uint16_t *pixels)>;
-
-    // Buffers: `intensity` and `colour` hold BAND * width / 2 bytes, `tx` BAND * width pixels.
-    // Width must be even.
-    Renderer(int width, int height, uint8_t *intensity, uint8_t *colour, uint16_t *tx);
+    // Buffers: `intensity` and `colour` hold BAND * width / 2 bytes; `fb` is the width x height
+    // framebuffer (byte-swapped RGB565), initially black. Width must be even.
+    Renderer(int width, int height, uint8_t *intensity, uint8_t *colour, uint16_t *fb);
 
     void set_palette(const Palette &p);
 
@@ -46,8 +47,8 @@ public:
     // `dt` is the time since the previous update in seconds (smoothing is time-based).
     float update(const int16_t *window, float gate, float dt = 1.0f / 30);
 
-    // Renders the current waveform; only bands whose drawn columns changed are flushed.
-    void render(const Flush &flush);
+    // Renders the current waveform into the framebuffer; returns the rows that changed.
+    Rows render();
 
     int bands() const
     {
@@ -69,12 +70,12 @@ private:
     };
 
     void stamp_band(int y0, int rows);
-    void flush_rect(int x1, int x2, int y0, int rows, const Flush &flush);
+    void write_span(int lo, int hi, int y0, int rows);
 
     int w_, h_, hw_, bands_;
     float r0_, amp_, cy_;
     uint8_t *intensity_, *colour_;
-    uint16_t *tx_;
+    uint16_t *fb_;
     std::vector<Span> prev_;
     uint16_t lut_[COLOURS][LEVELS] = {};
     uint8_t brush_[2 * BRUSH_R + 1][2 * BRUSH_R + 1] = {};
