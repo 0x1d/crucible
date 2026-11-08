@@ -240,7 +240,7 @@ Wi-Fi provisioning (Phase 3C-1, implemented):
 
 | Item | Value |
 | --- | --- |
-| Settings | NVS namespace `homunculus`: `ssid`, `pass`, `url`, `token`. A stored value wins over the Kconfig default; a stored empty `ssid` means provisioning requested (Kconfig credentials ignored) |
+| Settings | NVS namespace `homunculus`: `ssid`, `pass`, `url`, `token`, read once into RAM by `settings::init()` (flash access with the cache disabled asserts on tasks whose stack is in PSRAM, e.g. the agent worker, D-17). A stored value wins over the Kconfig default; a stored empty `ssid` means provisioning requested (Kconfig credentials ignored) |
 | Trigger | No credentials (stored, or Kconfig) at boot; stored credentials without a connection for 90 s (setup AP runs beside the station, stops once connected); console key `p` |
 | Access point | SoftAP `Homunculus-XXXX` (last two MAC bytes), WPA2, password = last four MAC bytes in hex; both shown on a text card (spec 06 §6.6) |
 | Setup page | `http://192.168.4.1/` (any other URL redirects): SSID (suggestions from a scan taken before the AP starts), Wi-Fi password, server URL (default: current), device token (optional) |
