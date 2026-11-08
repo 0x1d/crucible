@@ -130,6 +130,22 @@ export class Librarian {
     this.opts = { ...defaultLibrarianOptions, ...opts };
     this.log = log.child({ component: "librarian", space: mem.space.name });
     this.scheduleLint();
+    void this.resume();
+  }
+
+  /** Startup: notes or turns left from before a restart (timers are not persisted) get an ingest run. */
+  private async resume(): Promise<void> {
+    try {
+      const [inbox, state] = await Promise.all([this.mem.inbox(), this.mem.librarianState()]);
+      if (inbox.length) this.inboxChanged();
+      else if ((await this.mem.sources.pending(state.cursor)).length) {
+        const t = setTimeout(() => void this.request("ingest"), this.opts.idleMs);
+        t.unref();
+        this.idleTimers.set("startup", t);
+      }
+    } catch (e) {
+      this.log.warn("librarian_resume_failed", { error: (e as Error).message });
+    }
   }
 
   /** A turn was appended to `session`: ingest once the session has been idle for `idleMs`. */

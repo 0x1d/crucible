@@ -173,7 +173,7 @@ RRULE subset: `FREQ` (DAILY, WEEKLY, MONTHLY, YEARLY), `INTERVAL`, `COUNT`, `UNT
 
 | Item | Value |
 | --- | --- |
-| Content | `### User` (page `user`: title, summary, sections except Related; ≤ 900 chars), `### Preferences` (current, top 20 by valid-from), `### Recent decisions` (current, valid-from in the last 30 days, ≤ 15), `### Upcoming events` (next 7 days, ≤ 15), `### Key pages` (10 most-referenced pages: inbound links + fact subjects; `user` excluded) |
+| Content | `### Just noted (not yet filed)` (unfiled inbox entries, ≤ 20, at session open; first), `### User` (page `user`: title, summary, sections except Related; ≤ 900 chars), `### Preferences` (current, top 20 by valid-from), `### Recent decisions` (current, valid-from in the last 30 days, ≤ 15), `### Upcoming events` (next 7 days, ≤ 15), `### Key pages` (10 most-referenced pages: inbound links + fact subjects; `user` excluded) |
 | Size | ≤ 6000 chars (≈ 1500 tokens), truncated |
 | Producer | Server, deterministically, at the end of each librarian run (`wiki/brief.md`); event section regenerated at session open (time-dependent) |
 | Injection | Appended to the persona system prompt at every agent session open (including reopen after errors), after a `## Memory` heading, with the current date/time and the tool usage rule (§10.6); brief failure → persona prompt only |
@@ -184,9 +184,9 @@ RRULE subset: `FREQ` (DAILY, WEEKLY, MONTHLY, YEARLY), `INTERVAL`, `COUNT`, `UNT
 | Tool | Input | Output | Policy |
 | --- | --- | --- | --- |
 | `memory.index` | `type?`, `kind?` | `index.md` lines (filtered), ≤ 200 lines | allow |
-| `memory.search` | `query`, `limit?` | Search results (§10.3.2) + matching facts (term overlap with text, subject, attribute values; all valid times) | allow |
+| `memory.search` | `query`, `limit?` | Unfiled remember notes sharing a term + search results (§10.3.2) + matching facts (term overlap with text, subject, attribute values; all valid times) | allow |
 | `memory.read` | `slug`, `section?` | Page frontmatter + body, or one H2 section; linked facts resolved to `:fact/text` + valid window | allow |
-| `memory.facts` | `kind?`, `subject?`, `topic?` (key prefix or words), `at?` (ISO), `as_of?` (ISO), `history?` (bool), `from?`/`to?` (events; default to = from + 30 days) | Facts: id, kind, text, valid-from, valid-to, source; ≤ 100; without `at`/`as_of`/`history` also ≤ 20 superseded versions | allow |
+| `memory.facts` | `kind?`, `subject?`, `topic?` (key prefix or words), `at?` (ISO), `as_of?` (ISO), `history?` (bool), `from?`/`to?` (events; default to = from + 30 days) | Facts: id, kind, text, valid-from, valid-to, source; ≤ 100; without `at`/`as_of`/`history` also ≤ 20 superseded versions; without `at`/`as_of` also unfiled remember notes | allow |
 | `memory.remember` | `text`, `kind_hint?` | Ack; note appended to `inbox.md`; librarian run scheduled (§10.7) | allow |
 | `memory.forget` | `text` (what to forget) | Ack; forget request appended to `inbox.md` | ask on device (`confirm.request`) |
 
@@ -244,6 +244,8 @@ Source cursor and run counters in `wiki/log.md` frontmatter:
 | `last_lint` | ISO time of the last lint |
 
 `ingested_before` = min(today − 7 days, date of the oldest still-pending turn).
+
+Startup: inbox entries → ingest after the inbox debounce; pending turns → ingest after `idleMs` (timers are not persisted).
 
 Queue: one run at a time per space; pending run types held as a set (ingest before lint before rebuild); idle timer per source session, inbox debounce timer; timers cleared on shutdown, running agent aborted.
 

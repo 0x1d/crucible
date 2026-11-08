@@ -114,7 +114,18 @@ export async function sessionBrief(mem: Memory, now = new Date(), timeZone?: str
   } else {
     text = `${text.trimEnd()}\n\n${events}\n`;
   }
-  return clip(text.replace(/^# Brief\n+/, "").trim(), MAX_BRIEF_CHARS);
+  // Notes the librarian has not filed yet count as known (spec §10.5); first, so clipping keeps them.
+  const notes = await inboxSection(mem);
+  const body = text.replace(/^# Brief\n+/, "").trim();
+  return clip(notes ? `${notes}\n\n${body}` : body, MAX_BRIEF_CHARS);
+}
+
+/** `### Just noted` from unfiled inbox entries (≤ 20, newest last). */
+export async function inboxSection(mem: Memory): Promise<string> {
+  const entries = (await mem.inbox()).slice(-20);
+  if (!entries.length) return "";
+  const lines = entries.map((e) => (e.op === "remember" ? `- ${e.text}` : `- Asked to forget: ${e.text}`));
+  return `### Just noted (not yet filed)\n\n${lines.join("\n")}`;
 }
 
 function clip(s: string, max: number): string {

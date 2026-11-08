@@ -14,7 +14,7 @@ import { occurrences } from "../src/memory/rrule.js";
 import { advanceCursor } from "../src/memory/source-log.js";
 import { MEMORY_ADMIN_SERVER, memoryAdminTools, memoryTools } from "../src/memory/tools.js";
 import { parsePage, serializePage } from "../src/memory/wiki.js";
-import { captureLog } from "./fakes.js";
+import { captureLog, until } from "./fakes.js";
 
 const tmp = () => mkdtempSync(join(tmpdir(), "hom-mem-"));
 const open = async () => Memory.open(tmp(), "test", captureLog());
@@ -151,6 +151,10 @@ test("voice-agent tools: search, read, facts, remember, forget policy", async ()
       ["forget", undefined, "2026-11-08/y#t3", "the cat"],
     ],
   );
+  // Unfiled notes are visible at once: brief, search, facts.
+  assert.match(await sessionBrief(mem), /^### Just noted \(not yet filed\)\n\n- Alice's birthday is 3 May\.\n- Asked to forget: the cat/);
+  assert.match((await call(tools, "search", { query: "birthday" })).text, /Just noted \(not yet filed\):\n- 2026-\d\d-\d\d: Alice's birthday is 3 May\./);
+  assert.match((await call(tools, "facts", {})).text, /Just noted \(not yet filed\):\n- .*Alice's birthday/);
   await mem.ackInbox(entries.slice(0, 1));
   assert.equal((await mem.inbox()).length, 1);
   mem.close();
@@ -261,6 +265,26 @@ test("librarian ingest: cursor, inbox, index, brief, git commit; idle run skippe
   assert.doesNotMatch(sb, /^# Brief/);
   assert.match(memoryPrompt(sb, new Date()), /^## Memory\n\nNow: /);
   await lib.close();
+  mem.close();
+});
+
+test("librarian resumes unfiled notes after a restart", async () => {
+  const mem = await open();
+  await mem.addInbox({ at: "2026-11-08T10:00:02Z", op: "remember", text: "Call me Operator." });
+  const calls: string[] = [];
+  const lib = new Librarian(
+    mem,
+    async ({ servers, prompt }) => {
+      calls.push(prompt);
+      await call(servers[MEMORY_ADMIN_SERVER]!, "inbox_take");
+      return { ok: true, summary: "filed" };
+    },
+    { lintHour: undefined, inboxDebounceMs: 10 },
+    captureLog(),
+  );
+  await until(() => calls.length === 1);
+  await lib.close();
+  assert.equal((await mem.inbox()).length, 0);
   mem.close();
 });
 

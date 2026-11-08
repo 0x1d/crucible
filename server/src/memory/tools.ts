@@ -102,11 +102,17 @@ export function memoryTools(mem: Memory, ctx: MemoryToolContext): HostTool[] {
       "search",
       "Search long-term memory (wiki pages and remembered facts) about the user's life, people, places, plans and preferences.",
       z.object({ query: z.string().min(1).max(200), limit: z.number().int().min(1).max(20).optional() }),
-      ({ query, limit }) => {
+      async ({ query, limit }) => {
         const pages = mem.search.search(query, limit ?? 8);
         // All valid times: superseded preferences answer "before" questions; the window is in each line.
         const facts = searchFacts(mem.temporal.facts({ history: true }), query, limit ?? 8);
+        const q = new Set(tokens(query));
+        const notes = (await mem.inbox()).filter((e) => e.op === "remember" && tokens(e.text).some((t) => q.has(t)));
         const out: string[] = [];
+        if (notes.length) {
+          out.push("Just noted (not yet filed):");
+          for (const e of notes.slice(-(limit ?? 8))) out.push(`- ${e.at.slice(0, 10)}: ${e.text}`);
+        }
         if (pages.length) {
           out.push("Pages:");
           for (const p of pages) {
@@ -145,7 +151,7 @@ export function memoryTools(mem: Memory, ctx: MemoryToolContext): HostTool[] {
         from: iso.optional(),
         to: iso.optional(),
       }),
-      ({ kind, subject, topic, at, as_of, history, from, to }) => {
+      async ({ kind, subject, topic, at, as_of, history, from, to }) => {
         if (from || to) {
           const f0 = new Date(from ?? Date.now());
           const t0 = new Date(to ?? f0.getTime() + 30 * 86_400_000);
@@ -176,6 +182,10 @@ export function memoryTools(mem: Memory, ctx: MemoryToolContext): HostTool[] {
             .reverse()
             .slice(0, 20);
           if (older.length) lines.push("Earlier (superseded) versions:", ...older.map((f) => `- ${factLine(f)}`));
+        }
+        if (!at && !as_of) {
+          const notes = (await mem.inbox()).filter((e) => e.op === "remember");
+          if (notes.length) lines.push("Just noted (not yet filed):", ...notes.slice(-20).map((e) => `- ${e.at.slice(0, 10)}: ${e.text}`));
         }
         return lines.length ? lines.join("\n") : "No matching facts.";
       },
