@@ -64,7 +64,7 @@ export function serializePage(p: Page): string {
       node.flow = true;
     },
   });
-  return `---\n${doc.toString({ lineWidth: 0 }).trimEnd()}\n---\n\n${p.body.trim()}\n`;
+  return `---\n${doc.toString({ lineWidth: 0, flowCollectionPadding: false }).trimEnd()}\n---\n\n${p.body.trim()}\n`;
 }
 
 export function sections(body: string): Section[] {

@@ -41,7 +41,7 @@ test("page round trip, patch, rename, merge, index", async () => {
   await w.write("ali", { ...alice, title: "Ali", aliases: [] }, "## Summary\n\nDuplicate.\n\n## Hobbies\n\nClimbing.");
   const p = parsePage("alice", serializePage(w.get("alice")!));
   assert.deepEqual(p.aliases, ["Ali", "my sister"]);
-  assert.match(serializePage(p), /aliases: \[ Ali, my sister \]|aliases: \[Ali, my sister\]/);
+  assert.match(serializePage(p), /aliases: \[Ali, my sister\]/);
 
   await w.patchSection("alice", "Details", "Works as a nurse in Graz.");
   await w.patchSection("alice", "Pets", "A cat called Mo.");
@@ -135,6 +135,8 @@ test("voice-agent tools: search, read, facts, remember, forget policy", async ()
   assert.match((await call(tools, "read", { slug: "alice", section: "work" })).text, /## Work\n\nNurse\./);
   assert.match((await call(tools, "read", { slug: "nobody" })).text, /No page/);
   assert.match((await call(tools, "facts", { topic: "coffee" })).text, /oat milk/);
+  assert.match((await call(tools, "facts", { topic: "milk in coffee" })).text, /oat milk/);
+  assert.match((await call(tools, "facts", { topic: "tea" })).text, /No matching facts/);
   assert.match((await call(tools, "index")).text, /\[\[alice\]\]/);
   assert.equal((await call(tools, "search", { query: "" })).ok, false);
 

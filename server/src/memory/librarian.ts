@@ -187,11 +187,11 @@ export class Librarian {
         const [pending, inbox] = await Promise.all([mem.sources.pending(state.cursor), mem.inbox()]);
         pendingCount = pending.length;
         if (pending.length || inbox.length) {
-          prompt = `${RUN_PROMPTS.ingest}\n\nPending: ${pending.length} turns, ${inbox.length} inbox notes. Now: ${new Date().toISOString()}.`;
+          prompt = `${RUN_PROMPTS.ingest}\n\nPending: ${pending.length} turns, ${inbox.length} inbox notes. ${this.nowLine()}`;
         }
       } else {
         const report = await lintReport(mem);
-        if (report.length) prompt = `${RUN_PROMPTS.lint}\n\nNow: ${new Date().toISOString()}.\n\n${report.join("\n")}`;
+        if (report.length) prompt = `${RUN_PROMPTS.lint}\n\n${this.nowLine()}\n\n${report.join("\n")}`;
       }
       if (!prompt) {
         this.log.debug("librarian_skip", { type });
@@ -257,6 +257,11 @@ export class Librarian {
       ...(result.ok ? {} : { error: result.summary }),
     });
     if (next.ingestsSinceLint >= this.opts.lintAfterIngests) this.queued.add("lint");
+  }
+
+  private nowLine(): string {
+    const tz = this.opts.timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return `Now: ${new Date().toISOString()}; user timezone ${tz}.`;
   }
 
   private scheduleLint(): void {

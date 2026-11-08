@@ -3,9 +3,9 @@ import { z } from "zod";
 import type { HostTool, ToolOutcome } from "../inference/types.js";
 import type { InboxEntry, Memory } from "./memory.js";
 import { eventsBetween, formatWhen } from "./brief.js";
-import { searchFacts } from "./search.js";
+import { searchFacts, tokens } from "./search.js";
 import { turnText, type SourceTurn } from "./source-log.js";
-import { FACT_KINDS, factInput, factLine, type Fact, type FactInput } from "./temporal.js";
+import { FACT_KINDS, factInput, factLine, topicMatches, type Fact, type FactInput } from "./temporal.js";
 import { pageMeta, PAGE_TYPES, sections, SLUG, type Page } from "./wiki.js";
 
 export const MEMORY_SERVER = "memory";
@@ -64,6 +64,14 @@ function renderPage(mem: Memory, p: Page, section?: string): string {
   return `${head.join("\n")}\n\n${body.trim()}${factText}`;
 }
 
+/** Topic key prefix (`coffee` ⊃ `coffee.milk`) or any shared word ("milk in coffee"). */
+export function topicLike(factTopic: string, query: string): boolean {
+  if (!factTopic) return false;
+  if (topicMatches(factTopic, query)) return true;
+  const words = new Set(tokens(factTopic.replace(/[._-]/g, " ")));
+  return tokens(query.replace(/[._-]/g, " ")).some((t) => words.has(t));
+}
+
 export interface MemoryToolContext {
   /** Source log ref of the turn in progress. */
   sourceRef(): string | undefined;
@@ -96,7 +104,8 @@ export function memoryTools(mem: Memory, ctx: MemoryToolContext): HostTool[] {
       z.object({ query: z.string().min(1).max(200), limit: z.number().int().min(1).max(20).optional() }),
       ({ query, limit }) => {
         const pages = mem.search.search(query, limit ?? 8);
-        const facts = searchFacts(mem.temporal.facts(), query, limit ?? 8);
+        // All valid times: superseded preferences answer "before" questions; the window is in each line.
+        const facts = searchFacts(mem.temporal.facts({ history: true }), query, limit ?? 8);
         const out: string[] = [];
         if (pages.length) {
           out.push("Pages:");
@@ -124,11 +133,12 @@ export function memoryTools(mem: Memory, ctx: MemoryToolContext): HostTool[] {
     hostTool(
       "facts",
       "Query remembered preferences, decisions and events with their validity time. Default: what is true now. " +
-        "`at`: what was true at that time; `as_of`: what was recorded by then; `history`: all versions; `from`/`to`: events in a range.",
+        "`history: true`: all versions including superseded ones (questions about before, used to, changes); " +
+        "`at`: what was true at that time; `as_of`: what was recorded by then; `from`/`to`: events in a range.",
       z.object({
         kind: z.enum(FACT_KINDS).optional(),
         subject: slug.optional(),
-        topic: z.string().max(100).optional(),
+        topic: z.string().max(100).optional().describe("Topic key or words, e.g. coffee.milk or coffee"),
         at: iso.optional(),
         as_of: iso.optional(),
         history: z.boolean().optional(),
@@ -146,16 +156,28 @@ export function memoryTools(mem: Memory, ctx: MemoryToolContext): HostTool[] {
             .map((e) => `- ${formatWhen(e.start, ctx.timeZone)} (${e.start.toISOString()}): ${e.fact.text} [${e.fact.id}]`)
             .join("\n");
         }
-        const facts = mem.temporal.facts({
-          ...(kind ? { kind } : {}),
-          ...(subject ? { subject } : {}),
-          ...(topic ? { topic } : {}),
-          ...(at ? { at } : {}),
-          ...(as_of ? { asOf: as_of } : {}),
-          ...(history ? { history } : {}),
-        });
-        if (!facts.length) return "No matching facts.";
-        return facts.slice(0, 100).map((f) => `- ${factLine(f)}`).join("\n");
+        const onTopic = (f: Fact) => !topic || topicLike(String(f.attrs.topic ?? ""), topic);
+        const facts = mem.temporal
+          .facts({
+            ...(kind ? { kind } : {}),
+            ...(subject ? { subject } : {}),
+            ...(at ? { at } : {}),
+            ...(as_of ? { asOf: as_of } : {}),
+            ...(history ? { history } : {}),
+          })
+          .filter(onTopic);
+        const lines = facts.slice(0, 100).map((f) => `- ${factLine(f)}`);
+        if (!history && !at && !as_of) {
+          // Earlier versions inline: "what did I have before" needs no second call.
+          const current = new Set(facts.map((f) => f.id));
+          const older = mem.temporal
+            .facts({ ...(kind ? { kind } : {}), ...(subject ? { subject } : {}), history: true })
+            .filter((f) => onTopic(f) && !current.has(f.id) && f.kind !== "event" && f.valid_to)
+            .reverse()
+            .slice(0, 20);
+          if (older.length) lines.push("Earlier (superseded) versions:", ...older.map((f) => `- ${factLine(f)}`));
+        }
+        return lines.length ? lines.join("\n") : "No matching facts.";
       },
     ),
     hostTool(
