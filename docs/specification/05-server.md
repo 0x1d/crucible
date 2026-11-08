@@ -174,6 +174,8 @@ The orchestrator only consumes `AgentEvent`s; backends map their native streams 
 
 ### 5.3.3 OpenCode SDK backend
 
+Status: **Deferred** (D-22, Phase 3A).
+
 | Aspect | Mapping |
 | --- | --- |
 | Package | `@opencode-ai/sdk` |
