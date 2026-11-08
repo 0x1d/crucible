@@ -278,9 +278,12 @@ void register_device_tools(HomunculusAgent &agent)
         wifi_ap_record_t ap = {};
         const bool wifi = esp_wifi_sta_get_ap_info(&ap) == ESP_OK;
         char buf[160];
-        std::snprintf(buf, sizeof(buf), "uptime %lld s, free memory %u KB, Wi-Fi signal %s%d dBm",
+        // Caps passed to heap_caps_get_free_size() are ANDed: query each memory type separately.
+        std::snprintf(buf, sizeof(buf),
+                      "uptime %lld s, free memory: internal %u KB, PSRAM %u KB, Wi-Fi signal %s%d dBm",
                       static_cast<long long>(esp_timer_get_time() / 1000000),
-                      static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_SPIRAM) / 1024),
+                      static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024),
+                      static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_SPIRAM) / 1024),
                       wifi ? "" : "n/a ", wifi ? ap.rssi : 0);
         return {true, buf};
     });
@@ -323,22 +326,24 @@ void hide_provisioning_card()
     }
 }
 
-// Waits for a connection; hides the card and stops the setup AP once connected.
-void provision_wait_task()
+// Runs for the whole uptime: opens the setup AP when no connection comes up for PROVISION_FALLBACK_S,
+// and closes it (and its card) as soon as the station is connected, however provisioning was started.
+void provision_watch_task()
 {
-    for (int s = 0; s < PROVISION_FALLBACK_S && !homunculus::wifi::provisioning(); s++) {
-        if (homunculus::wifi::is_connected()) return;
+    int offline_s = 0;
+    while (true) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
-    }
-    if (!homunculus::wifi::is_connected() && !homunculus::wifi::provisioning()) {
-        BROOKESIA_LOGW("[prov] no Wi-Fi after %1% s: starting setup AP", PROVISION_FALLBACK_S);
-        if (homunculus::wifi::start_provisioning()) show_provisioning_card();
-    }
-    while (!homunculus::wifi::is_connected()) std::this_thread::sleep_for(std::chrono::seconds(1));
-    BROOKESIA_LOGI("[prov] Wi-Fi connected");
-    if (homunculus::wifi::provisioning()) {
-        homunculus::wifi::stop_provisioning();
-        hide_provisioning_card();
+        if (homunculus::wifi::is_connected()) {
+            offline_s = 0;
+            if (homunculus::wifi::provisioning()) {
+                BROOKESIA_LOGI("[prov] Wi-Fi connected: closing setup AP");
+                homunculus::wifi::stop_provisioning();
+                hide_provisioning_card();
+            }
+        } else if (!homunculus::wifi::provisioning() && ++offline_s == PROVISION_FALLBACK_S) {
+            BROOKESIA_LOGW("[prov] no Wi-Fi for %1% s: starting setup AP", PROVISION_FALLBACK_S);
+            if (homunculus::wifi::start_provisioning()) show_provisioning_card();
+        }
     }
 }
 
@@ -595,7 +600,7 @@ extern "C" void app_main(void)
         BROOKESIA_LOGW("[wifi] no saved access point: provisioning");
         if (homunculus::wifi::start_provisioning()) show_provisioning_card();
     }
-    start_thread("prov_wait", 6 * 1024, provision_wait_task);
+    start_thread("prov_watch", 6 * 1024, provision_watch_task);
 
     // Activate the Homunculus agent through the agent_manager state machine.
     auto &agent_manager = esp_brookesia::agent::Manager::get_instance();
