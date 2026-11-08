@@ -25,6 +25,7 @@ homunculus/
 │   ├── src/inference/            # AgentBackend + claude/ + opencode/
 │   ├── src/speech/               # stt/, tts/, vad/, shaper/
 │   ├── src/tools/                # avatar MCP, device bridge, meta tools
+│   ├── src/memory/               # Phase 3D: wiki, temporal store, librarian (spec 10)
 │   └── src/admin/
 ├── protocol/                     # HDP JSON schemas, shared test vectors
 └── tools/                        # device simulator (PC client speaking HDP), asset pipeline
@@ -52,6 +53,7 @@ gantt
     section Phase 3 - Agent features
     3B Device tools bridge + confirmations         :p3b, after p2a, 10d
     3C Provisioning, pairing, OTA                  :p3c, after p3b, 14d
+    3D Long-term memory (wiki + temporal store)    :p3d, after p3c, 14d
     section Deferred
     3A OpenCode backend (D-22)                     :p3a, after p3c, 10d
     section Phase 4 - Multi-device
@@ -66,6 +68,7 @@ gantt
 | 2F — Procedural face | All states and emotes rendered ≥ 20 fps; lip-sync; agent drives emotions ([06-avatar-face-deferred.md](06-avatar-face-deferred.md)) | **Deferred** (D-20) |
 | 3B — Device tools + confirmations | Agent calls device tools; confirmation flow on the device replaces D-18 | **Done 2026-11-08** (tool calls verified on hardware) |
 | 3C — Provisioning, pairing, OTA | Wi-Fi provisioning + server pairing on the device; OTA firmware update | In progress: Wi-Fi provisioning (SoftAP + web form) implemented 2026-11-08; OTA (esp_https_ota, dual slots, rollback; spec 03 §3.6) implemented 2026-11-08, not verified on hardware; pairing open |
+| 3D — Long-term memory | Facts and wiki pages from past sessions answer questions in a new session; preference supersede + history query; librarian ingest and lint runs ([10-memory.md](10-memory.md)) | Open (D-23) |
 | 3A — OpenCode backend | Backend switchable (Claude / OpenCode) per device profile (spec 05 §5.3.3) | **Deferred** (D-22) |
 | 4 — Multi-device | Second board with different display shape runs the same firmware and server unchanged | Open |
 
@@ -95,8 +98,9 @@ gantt
 | OI-06 | Custom wake word "Homunculus" (WakeNet custom model via Espressif) vs stock wake word | **Decided** → D-03 |
 | OI-07 | Persona definition: name, voice, personality, default emotional range | **Decided** → D-04 (default emotional range deferred with the procedural face, D-20) |
 | OI-08 | Server hosting: LAN-only vs remote access (tunnel / reverse proxy) | **Decided** → D-05 |
-| OI-09 | Memory: rely on backend session memory, or add long-term memory MCP server | Phase 3 |
+| OI-09 | Memory: rely on backend session memory, or add long-term memory MCP server | **Decided** → D-23 |
 | OI-10..13 | Launcher / multi-app on Brookesia `system_super` (round display, avatar integration, audio arbitration, heap) | See 09-apps-and-launcher.md §9.5 |
+| OI-14..16 | Memory: proactive reminders, speaker identification, minigraf addon in nix | See 10-memory.md §10.10 |
 
 ## 8.5 Decisions
 
@@ -126,6 +130,7 @@ Product decisions taken on resolved open items. Decided 2026-11-07.
 | D-20 | **Phase 2 = circular audio-output visualizer; procedural face deferred** | Ring waveform of the speaker signal (ES7210 DAC echo lane), colour per UI state, direct panel rendering without LVGL (spec 06). Face spec kept unchanged as 06-avatar-face-deferred.md. Decided 2026-11-08. |
 | D-21 | **Firmware built with `-O2`** | `CONFIG_COMPILER_OPTIMIZATION_PERF` (as the vendor example). Idle CPU 64 / 45 % → 57 / 36 %, internal free 67 → 72 KB (spec 03 §3.2.2). Brookesia service manager worker poll stays at 5 ms: 10 ms saved ~8 % of one core at `-Og` but adds up to 10 ms to every downlink audio write. Decided 2026-11-08. |
 | D-22 | **Phase 3 order: 3B, then 3C; 3A (OpenCode backend) deferred** | Claude Agent SDK stays the only backend. The backend abstraction (spec 05 §5.3) is kept. Decided 2026-11-08. |
+| D-23 | **Long-term memory: server-side markdown wiki + minigraf temporal store, curated by a background librarian agent (Phase 3D, after 3C)** | Wiki = entities/concepts, progressive disclosure via `memory.*` tools; temporal store = preferences, decisions, events with valid time (minigraf 2.0.11 npm addon, no port of `temporal_reasoning`). Brief at session open, no per-turn injection. Spec 10. Decided 2026-11-08. |
 
 p1d hardware measurements (1.75C, LAN, speech pipeline):
 

@@ -318,23 +318,24 @@ Same setup with first segment 4–12 words and without the voice rule: first dow
 | Avatar | In-process: `avatar.express(emote, intensity?, duration_ms?)`, `avatar.gesture(name)` | Claude: in-process SDK MCP server; OpenCode: local HTTP MCP endpoint |
 | Device bridge | Generated from `hello.tools` (`DeviceBridge`): agent tool name = device name without `device.` prefix, in-process MCP server `device` (JSON Schema → zod via `z.fromJSONSchema`); calls forwarded as `tool.call` over HDP, awaiting `tool.result` (timeout 5 s → error result) | as above |
 | Built-ins | Claude: `WebSearch`, `WebFetch`, etc.; OpenCode: its built-in tools | backend-native |
-| External MCP | Configured per profile (e.g. calendar, home automation, notes, memory) | backend-native MCP config |
-| Server meta-tools | `homunculus.remember`, `homunculus.set_timer`, `homunculus.switch_backend` | as avatar |
+| Memory | In-process MCP server `memory`: `index`, `search`, `read`, `facts`, `remember`, `forget` (spec 10 §10.6); session brief appended to the system prompt at session open | as avatar |
+| External MCP | Configured per profile (e.g. calendar, home automation, notes) | backend-native MCP config |
+| Server meta-tools | `homunculus.set_timer`, `homunculus.switch_backend` | as avatar |
 
 ### Permission policy
 
 | Class | Examples | Default |
 | --- | --- | --- |
-| Safe read | web search/fetch, device status, avatar | allow |
+| Safe read | web search/fetch, device status, avatar, memory read + `memory.remember` | allow |
 | Device actuation | volume, brightness, show text | allow |
-| External side effects | send message, create calendar event, home automation | **ask on device** (`confirm.request`) |
+| External side effects | send message, create calendar event, home automation, `memory.forget` | **ask on device** (`confirm.request`) |
 | Host access | shell, file write | deny (opt-in per profile, sandboxed `cwd`) |
 
 Device tools: allow list in `server/src/tools/policy.ts` (`device.set_volume`, `set_brightness`, `show_text`, `show_qr`, `show_image`, `get_status`, `get_time`, `set_timezone`, `get_motion`, `set_timer`); any other device tool (e.g. `device.update_firmware`) is `ask`. `ask` tools are not in `allowedTools`; `canUseTool` sends `confirm.request` (timeout 30 s; denied on timeout, abort/barge-in, disconnect) and resolves on `confirm.result`. Avatar state `confirming` while a confirmation waits. Permission mode `default` when device tools exist, else `dontAsk`.
 
 ## 5.7 Persistence
 
-SQLite tables: `devices` (id, model, token hash, profile id, last seen), `profiles` (persona, voice, language, backend, model, tool policy), `sessions` (device id, backend, backend session id, created, last turn), `turns` (transcript, response text, heard-so-far, latency metrics, tool calls). Conversation content itself is owned by the backend session store (Claude SDK session files / OpenCode storage); Homunculus stores only what it needs for resume, captions and metrics.
+SQLite tables: `devices` (id, model, token hash, profile id, last seen), `profiles` (persona, voice, language, backend, model, tool policy), `sessions` (device id, backend, backend session id, created, last turn), `turns` (transcript, response text, heard-so-far, latency metrics, tool calls). Conversation content itself is owned by the backend session store (Claude SDK session files / OpenCode storage); Homunculus stores only what it needs for resume, captions and metrics. Long-term memory (source log, wiki, temporal store): spec 10; `profiles.memory_space` selects the memory space.
 
 ## 5.8 Observability
 

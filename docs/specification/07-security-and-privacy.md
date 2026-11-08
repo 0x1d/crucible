@@ -22,6 +22,7 @@
 - Wake word detection runs **locally**; no audio leaves the device before activation (wake word, touch, button).
 - Visual indication whenever the microphone is streaming (listening state ring); hardware-independent mic mute via PWR key / quick settings.
 - Audio recordings are not stored by default; debug recording is opt-in per device.
+- Long-term memory (turn source log, wiki, temporal store) stays on the server host; forget is confirmed on the device; erase/compact via admin CLI (spec 10 §10.8).
 - Local-only operation is possible: local STT/TTS + OpenCode with a local model provider.
 
 ## 7.3 Authentication
