@@ -32,7 +32,7 @@ export function createStt(log: Logger, language = "en"): SttProvider {
 
 /** TTS provider: HOMUNCULUS_TTS overrides the persona's provider; output gain HOMUNCULUS_TTS_GAIN_DB. */
 export function createTts(personaProvider: string, log: Logger): TtsProvider {
-  const gainDb = num(env.HOMUNCULUS_TTS_GAIN_DB, 5);
+  const gainDb = num(env.HOMUNCULUS_TTS_GAIN_DB, 0);
   const tts = createTtsProvider(env.HOMUNCULUS_TTS ?? personaProvider, log);
   return gainDb === 0 ? tts : new LoudnessTtsProvider(tts, gainDb);
 }

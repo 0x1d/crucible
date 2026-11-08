@@ -115,7 +115,7 @@ pnpm --filter homunculus-server dev
 | `HOMUNCULUS_WHISPER_THREADS` | `4` | whisper-server threads |
 | `HOMUNCULUS_STT_PARTIAL_MS` | `1000` | Audio between partial transcriptions; `0` disables |
 | `HOMUNCULUS_TTS`, `HOMUNCULUS_TTS_VOICE` | persona | `kokoro` or `piper`; voice |
-| `HOMUNCULUS_TTS_GAIN_DB` | `5` | TTS output gain with soft limiter (ceiling −0.3 dBFS); `0` disables |
+| `HOMUNCULUS_TTS_GAIN_DB` | `0` | TTS output gain with soft limiter (ceiling −0.3 dBFS); `0` disables |
 | `HOMUNCULUS_KOKORO_DTYPE` | `fp32` | Kokoro ONNX weights (`q8` is slower on x86, spec §5.4.2) |
 | `HOMUNCULUS_PIPER_BIN` | `piper` | Piper binary |
 | `HOMUNCULUS_VAD_HANGOVER_MS`, `HOMUNCULUS_VAD_THRESHOLD` | `600`, `0.5` | Endpointing |
