@@ -60,7 +60,8 @@ export interface AgentSession {
 }
 
 export type AgentInput =
-  | { kind: "utterance"; text: string; heardSoFar?: string }
+  /** `context`: host-retrieved context for this turn (memory, spec 10 §10.5), shown before the text. */
+  | { kind: "utterance"; text: string; heardSoFar?: string; context?: string }
   | { kind: "event"; name: string; data: unknown };
 
 export interface Usage {

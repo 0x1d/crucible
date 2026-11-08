@@ -7,10 +7,10 @@ import type { DeviceConnection } from "../gateway/connection.js";
 import { ClaudeAgentBackend } from "../inference/claude/backend.js";
 import type { AgentBackend } from "../inference/types.js";
 import type { Logger } from "../log.js";
-import { memoryPrompt, sessionBrief } from "../memory/brief.js";
-import { claudeRunner, Librarian } from "../memory/librarian.js";
 import { Memory } from "../memory/memory.js";
-import { MEMORY_SERVER, memoryTools } from "../memory/tools.js";
+import { memoryPrompt } from "../memory/prompt.js";
+import { claudeSampler } from "../memory/sampler.js";
+import { MEMORY_SERVER, WIKI_SERVER, wikiTools } from "../memory/tools.js";
 import { buildSystemPrompt, loadPersona, type Persona } from "../persona/persona.js";
 import { conversationTimeouts, createStt, createTts, createVad, endpointerOptions, shaperOptions } from "../speech/config.js";
 import type { SttProvider, TtsProvider, VadModel } from "../speech/types.js";
@@ -33,7 +33,6 @@ export interface PipelineDeps {
 
 export interface PipelineMemory {
   mem: Memory;
-  librarian: Pick<Librarian, "turnAppended" | "inboxChanged" | "close">;
   timeZone?: string;
 }
 
@@ -89,24 +88,16 @@ export function createPipeline(d: PipelineDeps): Pipeline {
         const cwd = join(d.sandboxRoot, deviceDirName(deviceId));
         const bridge = new DeviceBridge(conn, () => conn.hello?.tools);
         const m = d.memory;
-        const source = m?.mem.sources.newSession(deviceId);
-        const servers = m && source
-          ? {
-              [MEMORY_SERVER]: memoryTools(m.mem, {
-                sourceRef: () => source.nextRef(),
-                onInbox: () => m.librarian.inboxChanged(),
-                ...(m.timeZone ? { timeZone: m.timeZone } : {}),
-              }),
-            }
+        const servers = m
+          ? { [MEMORY_SERVER]: m.mem.temporal.tools(), [WIKI_SERVER]: wikiTools(m.mem) }
           : undefined;
-        // Brief at every agent session open (spec 10 §10.5); a memory failure must not block the session.
-        const prompt = async () => {
+        // Memory section at every agent session open (spec 10 §10.5); a memory failure must not block the session.
+        const prompt = () => {
           if (!m) return systemPrompt;
           try {
-            const now = new Date();
-            return `${systemPrompt}\n\n${memoryPrompt(await sessionBrief(m.mem, now, m.timeZone), now, m.timeZone)}`;
+            return `${systemPrompt}\n\n${memoryPrompt(m.mem, new Date(), m.timeZone)}`;
           } catch (e) {
-            log.warn("memory_brief_failed", { error: (e as Error).message });
+            log.warn("memory_prompt_failed", { error: (e as Error).message });
             return systemPrompt;
           }
         };
@@ -121,32 +112,25 @@ export function createPipeline(d: PipelineDeps): Pipeline {
           resumeSessionId: prevClosed.then(() => agentSessions.get(hdpSession)),
           openAgent: async (resumeSessionId) =>
             d.backend.openSession({
-              systemPrompt: await prompt(),
+              systemPrompt: prompt(),
               resumeSessionId,
               cwd,
               tools: bridge.tools(),
               ...(servers ? { servers } : {}),
               confirm: (req, signal) => bridge.confirm(req, signal),
             }),
-          ...(m && source
+          ...(m
             ? {
-                // Source log append after each turn (spec 10 §10.1); then the session's idle timer restarts.
+                // Per-turn memory, as temporal-reasoning's Claude Code hooks (spec 10 §10.5).
+                turnContext: (text: string) => m.mem.temporal.prepare(text),
                 onTurn: (t) => {
-                  void source
-                    .append({
-                      at: t.at,
-                      user: t.text,
-                      assistant: t.reply,
-                      tools: t.tools,
-                      ...(t.heard !== undefined ? { heard: t.heard } : {}),
-                      ...(t.error ? { error: t.error } : {}),
-                    })
-                    .then(() => m.librarian.turnAppended(source.ref))
-                    .catch((e: Error) => log.warn("source_log_failed", { error: e.message }));
+                  if (t.error || !t.reply) return;
+                  const reply = t.heard !== undefined ? `${t.heard} (interrupted)` : t.reply;
+                  void m.mem.temporal.finalize(`User: ${t.text}\nAssistant: ${reply}`);
                 },
               }
             : {}),
-          quietTool: (name) => name.startsWith(`mcp__${MEMORY_SERVER}__`),
+          quietTool: (name) => name.startsWith(`mcp__${MEMORY_SERVER}__`) || name.startsWith(`mcp__${WIKI_SERVER}__`),
           endpointer: endpointerOptions(),
           shaper: shaperOptions(),
           timeouts: d.timeouts,
@@ -161,8 +145,7 @@ export function createPipeline(d: PipelineDeps): Pipeline {
     },
     async close() {
       await Promise.all([...devices.values()].map((e) => e.conv.close()));
-      await d.memory?.librarian.close();
-      d.memory?.mem.close();
+      await d.memory?.mem.close();
       await Promise.all([d.stt.close?.(), d.tts.close?.()]);
     },
   };
@@ -216,17 +199,15 @@ async function openMemory(log: Logger): Promise<PipelineMemory | undefined> {
   const root = env.HOMUNCULUS_MEMORY_DIR ?? fileURLToPath(new URL("../../.data/memory", import.meta.url));
   const space = env.HOMUNCULUS_MEMORY_SPACE ?? "default";
   const timeZone = env.HOMUNCULUS_TIMEZONE || undefined;
-  const mem = await Memory.open(root, space, log, { watch: true });
-  const model = env.HOMUNCULUS_LIBRARIAN_MODEL ?? "claude-sonnet-5-5";
-  const librarian = new Librarian(
-    mem,
-    claudeRunner(model),
-    {
-      ...(env.HOMUNCULUS_LIBRARIAN_IDLE_MS ? { idleMs: Number(env.HOMUNCULUS_LIBRARIAN_IDLE_MS) } : {}),
-      ...(timeZone ? { timeZone } : {}),
+  const model = env.HOMUNCULUS_MEMORY_MODEL ?? "claude-sonnet-5-5";
+  const command = env.HOMUNCULUS_MEMORY_MCP?.split(/\s+/).filter(Boolean);
+  const mem = await Memory.open(root, space, log, {
+    watch: true,
+    temporal: {
+      sample: claudeSampler(model, timeZone),
+      ...(command?.length ? { command: command[0]!, args: command.slice(1) } : {}),
     },
-    log,
-  );
-  log.info("memory_ready", { root, space, librarian_model: model });
-  return { mem, librarian, ...(timeZone ? { timeZone } : {}) };
+  });
+  log.info("memory_ready", { root, space, extraction_model: model });
+  return { mem, ...(timeZone ? { timeZone } : {}) };
 }

@@ -1,5 +1,4 @@
-// In-memory BM25 search over wiki pages (spec 10 §10.3.2) and fact texts.
-import type { Fact } from "./temporal.js";
+// In-memory BM25 search over wiki pages (spec 10 §10.3.2).
 import { sections, type Page } from "./wiki.js";
 
 export interface SearchResult {
@@ -110,21 +109,4 @@ export class SearchIndex {
 
 function rep<T>(xs: T[], n: number): T[] {
   return Array.from({ length: n }, () => xs).flat();
-}
-
-/** Facts whose text (or topic, value, title) shares terms with the query, best first. */
-export function searchFacts(facts: Fact[], query: string, limit = 8): Fact[] {
-  const q = new Set(tokens(query));
-  if (!q.size) return [];
-  return facts
-    .map((f) => {
-      const t = new Set(tokens([f.text, f.subject, ...Object.values(f.attrs).flat().map(String)].join(" ")));
-      let hits = 0;
-      for (const x of q) if (t.has(x)) hits++;
-      return { f, hits };
-    })
-    .filter((x) => x.hits > 0)
-    .sort((a, b) => b.hits - a.hits || b.f.valid_from.localeCompare(a.f.valid_from))
-    .slice(0, limit)
-    .map((x) => x.f);
 }

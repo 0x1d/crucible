@@ -318,7 +318,7 @@ Same setup with first segment 4–12 words and without the voice rule: first dow
 | Avatar | In-process: `avatar.express(emote, intensity?, duration_ms?)`, `avatar.gesture(name)` | Claude: in-process SDK MCP server; OpenCode: local HTTP MCP endpoint |
 | Device bridge | Generated from `hello.tools` (`DeviceBridge`): agent tool name = device name without `device.` prefix, in-process MCP server `device` (JSON Schema → zod via `z.fromJSONSchema`); calls forwarded as `tool.call` over HDP, awaiting `tool.result` (timeout 5 s → error result) | as above |
 | Built-ins | Claude: `WebSearch`, `WebFetch`, etc.; OpenCode: its built-in tools | backend-native |
-| Memory | In-process MCP server `memory`: `index`, `search`, `read`, `facts`, `remember`, `forget` (spec 10 §10.6); session brief appended to the system prompt at session open | as avatar |
+| Memory | MCP server `memory` (temporal-reasoning tools proxied: `minigraf_query`, `minigraf_transact`, `minigraf_retract`, `minigraf_rule`) and `wiki` (spec 10 §10.4.2, §10.6); per-turn `<memory-context>` before the utterance; memory section appended to the system prompt at session open | as avatar |
 | External MCP | Configured per profile (e.g. calendar, home automation, notes) | backend-native MCP config |
 | Server meta-tools | `homunculus.set_timer`, `homunculus.switch_backend` | as avatar |
 
@@ -335,7 +335,7 @@ Device tools: allow list in `server/src/tools/policy.ts` (`device.set_volume`, `
 
 ## 5.7 Persistence
 
-SQLite tables: `devices` (id, model, token hash, profile id, last seen), `profiles` (persona, voice, language, backend, model, tool policy), `sessions` (device id, backend, backend session id, created, last turn), `turns` (transcript, response text, heard-so-far, latency metrics, tool calls). Conversation content itself is owned by the backend session store (Claude SDK session files / OpenCode storage); Homunculus stores only what it needs for resume, captions and metrics. Long-term memory (source log, wiki, temporal store): spec 10; `profiles.memory_space` selects the memory space.
+SQLite tables: `devices` (id, model, token hash, profile id, last seen), `profiles` (persona, voice, language, backend, model, tool policy), `sessions` (device id, backend, backend session id, created, last turn), `turns` (transcript, response text, heard-so-far, latency metrics, tool calls). Conversation content itself is owned by the backend session store (Claude SDK session files / OpenCode storage); Homunculus stores only what it needs for resume, captions and metrics. Long-term memory (temporal graph, wiki): spec 10; `profiles.memory_space` selects the memory space.
 
 ## 5.8 Observability
 

@@ -256,6 +256,7 @@ function toUserMessage(input: AgentInput): SDKUserMessage {
     } else {
       text = `(The user interrupted your previous answer; they only heard: "${input.heardSoFar}")\n\n${input.text}`;
     }
+    if (input.context) text = `<memory-context>\n${input.context}\n</memory-context>\n\n${text}`;
   } else {
     text = `[device event: ${input.name}] ${JSON.stringify(input.data)}`;
   }

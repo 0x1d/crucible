@@ -71,7 +71,9 @@ export interface ConversationDeps {
   playedTimeoutMs?: number;
   prebufferFrames?: number;
   timeouts?: Partial<ConversationTimeouts>;
-  /** Called once per completed or interrupted turn (memory source log, spec 10 §10.1). */
+  /** Context retrieved for a user utterance before it is sent to the agent (memory prepare, spec 10 §10.5). */
+  turnContext?: (text: string) => Promise<string | undefined>;
+  /** Called once per completed or interrupted turn (memory finalize, spec 10 §10.5). */
   onTurn?: (t: CompletedTurn) => void;
   /** Device tool bridge: its confirmations drive the `confirming` avatar state; barge-in denies them. */
   bridge?: Pick<DeviceBridge, "cancelConfirms"> & { onConfirmChange?: (waiting: boolean) => void };
@@ -92,6 +94,8 @@ const FRAME_MS = 60;
 const PREROLL_FRAMES = 8; // ~480 ms of audio kept before speech start (auto mode)
 /** Max wait for the previous agent session (open/close) when reopening. */
 const REOPEN_WAIT_MS = 2000;
+/** Max wait for turnContext before the turn is sent without it. */
+const TURN_CONTEXT_MS = 800;
 
 interface Utterance {
   id: number;
@@ -160,7 +164,7 @@ export class Conversation {
   private readonly pacer: Pacer<PacedItem>;
   private readonly log: Logger;
   private readonly opts: Required<
-    Omit<ConversationDeps, "endpointer" | "openAgent" | "resumeSessionId" | "stt" | "tts" | "vad" | "timeouts" | "shaper" | "bridge" | "onTurn" | "quietTool">
+    Omit<ConversationDeps, "endpointer" | "openAgent" | "resumeSessionId" | "stt" | "tts" | "vad" | "timeouts" | "shaper" | "bridge" | "onTurn" | "quietTool" | "turnContext">
   > & {
     endpointer: EndpointerOptions;
     shaper: Partial<ShaperOptions>;
@@ -561,6 +565,22 @@ export class Conversation {
     await this.finishTurn(turn);
   }
 
+  /** Per-turn context (memory prepare, spec 10 §10.5): bounded wait, never fails the turn. */
+  private async turnContext(text: string): Promise<string | undefined> {
+    const fn = this.deps.turnContext;
+    if (!fn) return undefined;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<undefined>((r) => (timer = setTimeout(r, TURN_CONTEXT_MS)));
+    try {
+      return await Promise.race([fn(text).catch((e: Error) => {
+        this.log.warn("turn_context_failed", { error: e.message });
+        return undefined;
+      }), timeout]);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   private async runAgent(turn: Turn, heardSoFar: string | undefined): Promise<void> {
     const { timer, shaper } = turn;
     const say = (segments: string[]) => {
@@ -573,9 +593,10 @@ export class Conversation {
     let fatal: string | undefined;
     let it: AsyncIterator<AgentEvent> | undefined;
     try {
-      const session = await wd.guard(this.agent);
+      const [session, context] = await Promise.all([wd.guard(this.agent), this.turnContext(turn.text)]);
       if (turn.aborted) return;
-      it = session.send({ kind: "utterance", text: turn.text, heardSoFar }, turn.abort.signal)[Symbol.asyncIterator]();
+      const input = { kind: "utterance" as const, text: turn.text, heardSoFar, ...(context ? { context } : {}) };
+      it = session.send(input, turn.abort.signal)[Symbol.asyncIterator]();
       // Events after an abort are drained (not acted on) so the session is idle for the next turn.
       for (;;) {
         const r = await wd.guard(it.next());

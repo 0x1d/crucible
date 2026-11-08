@@ -1,23 +1,34 @@
-// Long-term memory (spec 10): wiki, search, source log, tools, librarian runs, brief.
+// Long-term memory (spec 10): wiki, search, temporal-reasoning client, wiki tools, prompt.
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync } from "node:fs";
+import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 import { hostToolServer } from "../src/inference/claude/backend.js";
 import type { HostTool } from "../src/inference/types.js";
-import { memoryPrompt, sessionBrief } from "../src/memory/brief.js";
-import { Librarian, lintReport, type AgentRunner } from "../src/memory/librarian.js";
 import { Memory } from "../src/memory/memory.js";
-import { occurrences } from "../src/memory/rrule.js";
-import { advanceCursor } from "../src/memory/source-log.js";
-import { MEMORY_ADMIN_SERVER, memoryAdminTools, memoryTools } from "../src/memory/tools.js";
+import { memoryPrompt } from "../src/memory/prompt.js";
+import { normalizeBlock } from "../src/memory/sampler.js";
+import { AGENT_TOOLS } from "../src/memory/temporal-reasoning.js";
+import { wikiTools } from "../src/memory/tools.js";
 import { parsePage, serializePage } from "../src/memory/wiki.js";
-import { captureLog, until } from "./fakes.js";
+import { captureLog } from "./fakes.js";
 
+const FAKE_SERVER = fileURLToPath(new URL("./fixtures/fake-temporal-mcp.mjs", import.meta.url));
 const tmp = () => mkdtempSync(join(tmpdir(), "hom-mem-"));
-const open = async () => Memory.open(tmp(), "test", captureLog());
+const open = async (sampled: string[] = [], reply = "[]") =>
+  Memory.open(tmp(), "test", captureLog(), {
+    temporal: {
+      command: process.execPath,
+      args: [FAKE_SERVER],
+      sample: async (prompt) => {
+        sampled.push(prompt);
+        return reply;
+      },
+    },
+  });
 
 const alice = {
   type: "entity" as const,
@@ -64,7 +75,7 @@ test("page round trip, patch, rename, merge, index", async () => {
   ]);
   await assert.rejects(w.write("Bad Slug", alice, ""));
   await assert.rejects(w.write("big", alice, "x".repeat(9000)));
-  mem.close();
+  await mem.close();
 });
 
 test("search ranks title and alias matches, reports sections", async () => {
@@ -78,269 +89,76 @@ test("search ranks title and alias matches, reports sections", async () => {
   assert.equal(mem.search.search("sister")[0]!.slug, "alice");
   await mem.wiki.delete("alice");
   assert.deepEqual(mem.search.search("nurse"), []);
-  mem.close();
+  await mem.close();
 });
 
-test("source log append, pending, redact, cursor", async () => {
-  const mem = await open();
-  const s = mem.sources.newSession("dev-1", new Date("2026-11-08T10:00:00Z"));
-  assert.match(s.ref, /^2026-11-08\/100000-[0-9a-f]{6}$/);
-  assert.equal(s.nextRef(), `${s.ref}#t1`);
-  await s.append({ at: "2026-11-08T10:00:01Z", user: "I take oat milk now.", assistant: "Got it,\noat milk.", tools: [] });
-  await s.append({ at: "2026-11-08T10:01:00Z", user: "Weather?", assistant: "Sunny", tools: ["WebSearch"], heard: "Sun" });
-  const turns = await mem.sources.read(s.ref);
-  assert.equal(turns.length, 2);
-  assert.equal(turns[0]!.assistant, "Got it, oat milk.");
-  assert.deepEqual(turns[1]!.tools, ["WebSearch"]);
-  assert.equal(turns[1]!.heard, "Sun");
+test("temporal-reasoning: agent tools proxied, prepare, finalize via sampling", async () => {
+  const sampled: string[] = [];
+  const mem = await open(sampled, '[[:preference/address-as :description "The user wants to be called Operator"]]');
+  const tools = mem.temporal.tools();
+  assert.deepEqual(tools.map((t) => t.name).sort(), [...AGENT_TOOLS].sort());
+  assert.ok(tools.every((t) => t.policy === "allow"));
+  assert.doesNotThrow(() => hostToolServer("memory", tools));
 
-  assert.equal((await mem.sources.pending({ sessions: {} })).length, 2);
-  assert.equal((await mem.sources.pending({ sessions: { [s.ref]: 1 } })).length, 1);
-  assert.equal(await mem.sources.redact(`${s.ref}#t1`), true);
-  const after = await mem.sources.read(s.ref);
-  assert.equal(after[0]!.redacted, true);
-  assert.equal(after[0]!.user, "");
-  assert.equal(after[1]!.user, "Weather?");
+  const ok = await call(tools, "minigraf_transact", { facts: '[[:preference/coffee-milk :description "The user takes oat milk"]]', reason: "stated" });
+  assert.equal(ok.ok, true);
+  const bad = await call(tools, "minigraf_transact", { facts: '[[:person/alice :description "Sister"]]', reason: "x" });
+  assert.equal(bad.ok, false);
+  assert.match(bad.text, /unknown type/);
+  assert.match((await call(tools, "minigraf_query", { datalog: "[:find ?d :where [?e :description ?d]]" })).text, /oat milk/);
 
-  const c = advanceCursor({ sessions: {} }, turns, [], new Date("2026-11-20T00:00:00Z"));
-  assert.equal(c.before, "2026-11-13");
-  assert.deepEqual(c.sessions, {});
-  const c2 = advanceCursor({ sessions: {} }, turns.slice(0, 1), turns.slice(1), new Date("2026-11-20T00:00:00Z"));
-  assert.equal(c2.before, "2026-11-08");
-  assert.deepEqual(c2.sessions, { [s.ref]: 1 });
-  mem.close();
+  assert.match(await mem.temporal.prepare("what milk do I take?"), /oat milk/);
+  assert.equal(await mem.temporal.prepare("weather tomorrow"), "");
+
+  await mem.temporal.finalize("User: Call me Operator.\nAssistant: Sure, Operator.");
+  assert.equal(sampled.length, 1);
+  assert.match(sampled[0]!, /User: Call me Operator\./);
+  assert.match(await mem.temporal.prepare("what do you call the operator"), /Operator/);
+  await mem.close();
 });
 
-test("voice-agent tools: search, read, facts, remember, forget policy", async () => {
+test("wiki tools write, read, search, delete (ask); writes are committed", async () => {
   const mem = await open();
-  await mem.wiki.write("alice", { ...alice, facts: [] }, "## Summary\n\nSister.\n\n## Work\n\nNurse.");
-  const f = mem.temporal.assert({
-    kind: "preference",
-    subject: "user",
-    text: "The user takes oat milk in coffee.",
-    source: "2026-11-08/x#t1",
-    stated_at: "2026-11-08T10:00:00.000Z",
-    topic: "coffee.milk",
-    value: "oat milk",
-    polarity: "likes",
-  });
-  let inbox = 0;
-  const tools = memoryTools(mem, { sourceRef: () => "2026-11-08/y#t3", onInbox: () => inbox++ });
-  assert.equal(tools.find((t) => t.name === "forget")!.policy, "ask");
-  assert.ok(tools.filter((t) => t.name !== "forget").every((t) => t.policy === "allow"));
-
-  const s = await call(tools, "search", { query: "Alice coffee milk" });
-  assert.match(s.text, /- alice \(person\) Alice/);
-  assert.match(s.text, new RegExp(f.id));
+  const tools = wikiTools(mem);
+  assert.doesNotThrow(() => hostToolServer("wiki", tools));
+  assert.equal(tools.find((t) => t.name === "delete")!.policy, "ask");
+  const w = await call(tools, "write_page", { slug: "alice", meta: alice, body: "## Summary\n\nSister.\n\n## Work\n\nNurse." });
+  assert.equal(w.ok, true, w.text);
   assert.match((await call(tools, "read", { slug: "alice", section: "work" })).text, /## Work\n\nNurse\./);
-  assert.match((await call(tools, "read", { slug: "nobody" })).text, /No page/);
-  assert.match((await call(tools, "facts", { topic: "coffee" })).text, /oat milk/);
-  assert.match((await call(tools, "facts", { topic: "milk in coffee" })).text, /oat milk/);
-  assert.match((await call(tools, "facts", { topic: "tea" })).text, /No matching facts/);
+  assert.match((await call(tools, "search", { query: "nurse" })).text, /alice \(person\) Alice/);
   assert.match((await call(tools, "index")).text, /\[\[alice\]\]/);
-  assert.equal((await call(tools, "search", { query: "" })).ok, false);
-
-  await call(tools, "remember", { text: "Alice's birthday is 3 May.", kind_hint: "event" });
-  await call(tools, "forget", { text: "the cat" });
-  assert.equal(inbox, 2);
-  const entries = await mem.inbox();
-  assert.deepEqual(
-    entries.map((e) => [e.op, e.kindHint, e.source, e.text]),
-    [
-      ["remember", "event", "2026-11-08/y#t3", "Alice's birthday is 3 May."],
-      ["forget", undefined, "2026-11-08/y#t3", "the cat"],
-    ],
-  );
-  // Unfiled notes are visible at once: brief, search, facts.
-  assert.match(await sessionBrief(mem), /^### Just noted \(not yet filed\)\n\n- Alice's birthday is 3 May\.\n- Asked to forget: the cat/);
-  assert.match((await call(tools, "search", { query: "birthday" })).text, /Just noted \(not yet filed\):\n- 2026-\d\d-\d\d: Alice's birthday is 3 May\./);
-  assert.match((await call(tools, "facts", {})).text, /Just noted \(not yet filed\):\n- .*Alice's birthday/);
-  await mem.ackInbox(entries.slice(0, 1));
-  assert.equal((await mem.inbox()).length, 1);
-  mem.close();
+  assert.equal((await call(tools, "write_page", { slug: "Bad", meta: alice, body: "" })).ok, false);
+  await call(tools, "patch_section", { slug: "alice", heading: "Pets", content: "A cat." });
+  await call(tools, "delete", { slug: "alice" });
+  assert.equal(mem.wiki.get("alice"), undefined);
+  const log = execFileSync("git", ["-C", mem.space.root, "log", "--format=%s"], { encoding: "utf8" });
+  assert.deepEqual(log.trim().split("\n"), ["deleted alice", "patched alice#Pets", "wrote entity alice", "init"]);
+  await mem.close();
 });
 
-test("tool schemas convert for the SDK MCP server", async () => {
+test("memory prompt: time, tools, wiki pages", async () => {
   const mem = await open();
-  const run = { delivered: [], taken: [], changes: [] };
-  const all = [...memoryTools(mem, { sourceRef: () => undefined, onInbox: () => {} }), ...memoryAdminTools(mem, run, async () => [])];
-  assert.doesNotThrow(() => hostToolServer("memory", all));
-  mem.close();
-});
-
-test("rrule expansion", () => {
-  const start = new Date("2026-11-02T08:00:00Z"); // Monday
-  const from = new Date("2026-11-08T00:00:00Z");
-  const to = new Date("2026-11-22T00:00:00Z");
-  const weekly = occurrences(start, 3600_000, "FREQ=WEEKLY;BYDAY=MO,TH", from, to).map((o) => o.start.toISOString());
-  assert.deepEqual(weekly, [
-    "2026-11-09T08:00:00.000Z",
-    "2026-11-12T08:00:00.000Z",
-    "2026-11-16T08:00:00.000Z",
-    "2026-11-19T08:00:00.000Z",
-  ]);
-  assert.equal(occurrences(start, 1000, "FREQ=DAILY;COUNT=3", from, to).length, 0);
-  assert.equal(occurrences(start, 1000, "FREQ=DAILY;UNTIL=20261110", from, to).length, 3);
-  assert.equal(occurrences(new Date("2026-11-10T08:00:00Z"), 1000, undefined, from, to).length, 1);
-});
-
-/** Fake librarian agent: files the oat-milk turn and the inbox note through the admin tools. */
-const scriptedRunner = (calls: string[]): AgentRunner => async ({ servers, prompt }) => {
-  const admin = servers[MEMORY_ADMIN_SERVER]!;
-  calls.push(prompt.split("\n")[0]!);
-  const notes = await call(admin, "inbox_take");
-  const src = await call(admin, "sources_read");
-  if (/oat milk/.test(src.text)) {
-    const ref = /\[(\S+#t\d+) /.exec(src.text)![1]!;
-    await call(admin, "wiki_write_page", {
-      slug: "user",
-      meta: { type: "entity", kind: "person", title: "Sam", summary: "The user; lives in Vienna." },
-      body: "## Summary\n\nSam lives in Vienna.\n\n## Related\n\n[[alice]]",
-    });
-    const r = await call(admin, "facts_assert", {
-      fact: {
-        kind: "preference",
-        subject: "user",
-        text: "Sam takes oat milk in coffee.",
-        source: ref,
-        stated_at: "2026-11-08T10:00:01.000Z",
-        topic: "coffee.milk",
-        value: "oat milk",
-        polarity: "likes",
-      },
-    });
-    assert.ok(r.ok, r.text);
-  }
-  if (/birthday/.test(notes.text)) {
-    await call(admin, "wiki_write_page", { slug: "alice", meta: alice, body: "## Summary\n\nSister." });
-    const ev = await call(admin, "facts_assert", {
-      fact: {
-        kind: "event",
-        subject: "alice",
-        text: "Alice's birthday.",
-        source: "2026-11-08/y#t3",
-        stated_at: "2026-11-08T10:00:00.000Z",
-        valid_from: new Date(Date.now() + 2 * 86_400_000).toISOString(),
-        title: "Alice's birthday",
-        recurrence: "FREQ=YEARLY",
-      },
-    });
-    assert.ok(ev.ok, ev.text);
-  }
-  return { ok: true, summary: "filed", costUsd: 0.01 };
-};
-
-test("librarian ingest: cursor, inbox, index, brief, git commit; idle run skipped", async () => {
-  const mem = await open();
-  const s = mem.sources.newSession("dev-1");
-  await s.append({ at: "2026-11-08T10:00:01Z", user: "I take oat milk in my coffee.", assistant: "Noted.", tools: [] });
-  await mem.addInbox({ at: "2026-11-08T10:00:02Z", op: "remember", text: "Alice's birthday is in two days." });
-  const calls: string[] = [];
-  const lib = new Librarian(mem, scriptedRunner(calls), { lintHour: undefined }, captureLog());
-  await lib.request("ingest");
-  assert.deepEqual(calls, ["Ingest run."]);
-  assert.equal((await mem.inbox()).length, 0);
-  const st = await mem.librarianState();
-  assert.equal(st.cursor.sessions[s.ref], 1);
-  assert.equal(st.ingestsSinceLint, 1);
-  assert.match(readFileSync(mem.space.index, "utf8"), /- \[\[user\]\] \(person\) — The user; lives in Vienna\./);
-  const brief = readFileSync(mem.space.brief, "utf8");
-  assert.match(brief, /### User\n\nSam: The user; lives in Vienna\./);
-  assert.match(brief, /### Preferences\n\n- Sam takes oat milk in coffee\./);
-  assert.match(brief, /### Upcoming events\n\n- .*: Alice's birthday\./);
-  assert.match(readFileSync(mem.space.log, "utf8"), /ingest\n\n.*1 turns · 1 notes\n\n- wrote entity user/);
-  const gitLog = execFileSync("git", ["-C", mem.space.root, "log", "--format=%s"], { encoding: "utf8" });
-  assert.match(gitLog, /^\S+ ingest\ninit\n$/);
-  assert.match(execFileSync("git", ["-C", mem.space.root, "ls-files"], { encoding: "utf8" }), /wiki\/entities\/user\.md/);
-  assert.doesNotMatch(execFileSync("git", ["-C", mem.space.root, "ls-files"], { encoding: "utf8" }), /memory\.graph/);
-
-  await lib.request("ingest"); // nothing pending: no agent run
-  assert.equal(calls.length, 1);
-  await s.append({ at: "2026-11-08T10:05:00Z", user: "Thanks.", assistant: "Sure.", tools: [] });
-  await lib.request("ingest");
-  assert.equal(calls.length, 2);
-  assert.equal((await mem.librarianState()).cursor.sessions[s.ref], 2);
-
-  const sb = await sessionBrief(mem);
-  assert.doesNotMatch(sb, /^# Brief/);
-  assert.match(memoryPrompt(sb, new Date()), /^## Memory\n\nNow: /);
-  await lib.close();
-  mem.close();
-});
-
-test("librarian resumes unfiled notes after a restart", async () => {
-  const mem = await open();
-  await mem.addInbox({ at: "2026-11-08T10:00:02Z", op: "remember", text: "Call me Operator." });
-  const calls: string[] = [];
-  const lib = new Librarian(
-    mem,
-    async ({ servers, prompt }) => {
-      calls.push(prompt);
-      await call(servers[MEMORY_ADMIN_SERVER]!, "inbox_take");
-      return { ok: true, summary: "filed" };
-    },
-    { lintHour: undefined, inboxDebounceMs: 10 },
-    captureLog(),
-  );
-  await until(() => calls.length === 1);
-  await lib.close();
-  assert.equal((await mem.inbox()).length, 0);
-  mem.close();
-});
-
-test("librarian failure keeps cursor and inbox", async () => {
-  const mem = await open();
-  const s = mem.sources.newSession("dev-1");
-  await s.append({ at: "2026-11-08T10:00:01Z", user: "Hi", assistant: "Hello", tools: [] });
-  await mem.addInbox({ at: "2026-11-08T10:00:02Z", op: "remember", text: "x" });
-  const lib = new Librarian(
-    mem,
-    async ({ servers }) => {
-      await call(servers[MEMORY_ADMIN_SERVER]!, "inbox_take");
-      await call(servers[MEMORY_ADMIN_SERVER]!, "sources_read");
-      return { ok: false, summary: "error_max_turns" };
-    },
-    { lintHour: undefined },
-    captureLog(),
-  );
-  await lib.request("ingest");
-  assert.equal((await mem.inbox()).length, 1);
-  assert.deepEqual((await mem.librarianState()).cursor.sessions, {});
-  assert.match(readFileSync(mem.space.log, "utf8"), /ingest \(failed\)/);
-  await lib.close();
-  mem.close();
-});
-
-test("admin supersede, merge resubjects facts; lint findings", async () => {
-  const mem = await open();
-  const run = { delivered: [], taken: [], changes: [] };
-  const admin = memoryAdminTools(mem, run, async () => []);
-  const pref = (value: string) => ({
-    kind: "preference",
-    subject: "ali",
-    text: `Ali likes ${value}.`,
-    source: "2026-11-08/x#t1",
-    stated_at: "2026-01-01T00:00:00.000Z",
-    topic: "drink",
-    value,
-    polarity: "likes",
-    holder: "ali",
-  });
-  const a = await call(admin, "facts_assert", { fact: pref("tea") });
-  const id = /pref:[0-9a-f-]{36}/.exec(a.text)![0];
-  const sup = await call(admin, "facts_supersede", { id, at: "2026-06-01T00:00:00.000Z", fact: pref("coffee") });
-  assert.ok(sup.ok, sup.text);
   await mem.wiki.write("alice", alice, "## Summary\n\nSister.");
-  await mem.wiki.write("ali", { ...alice, title: "Ali", aliases: [], facts: [] }, "## Summary\n\nDup.");
-  assert.match((await lintReport(mem)).join("\n"), /Possible duplicates \(name "ali"\): ali, alice/);
-  await call(admin, "wiki_merge", { from: "ali", into: "alice" });
-  const hist = mem.temporal.facts({ history: true, subject: "alice" });
-  assert.deepEqual(hist.map((f) => [f.attrs.value, f.attrs.holder, f.valid_to]), [
-    ["tea", "alice", "2026-06-01T00:00:00.000Z"],
-    ["coffee", "alice", undefined],
-  ]);
-  assert.equal(mem.temporal.facts({ history: true, subject: "ali" }).length, 0);
-  assert.deepEqual(run.changes.slice(-1), ["merged ali → alice"]);
-  assert.equal((await call(admin, "facts_query", { datalog: "(retract [[:a :b 1]])" })).ok, false);
-  mem.close();
+  const p = memoryPrompt(mem, new Date("2026-11-08T10:00:00Z"), "Europe/Vienna");
+  assert.match(p, /Sunday, 8 November 2026 at 11:00 \(2026-11-08T10:00:00.000Z\)/);
+  assert.match(p, /mcp__memory__minigraf_query/);
+  assert.match(p, /<memory-context>/);
+  assert.match(p, /- \[\[alice\]\] \(person\) — User's younger sister/);
+  await mem.close();
+});
+
+test("sampled memory blocks are normalised to triples", () => {
+  assert.equal(
+    normalizeBlock('```datalog\n[[:preference/tea :description "Tea with honey." :alias "tea, honey"]]\n```'),
+    '[[:preference/tea :description "Tea with honey."]\n [:preference/tea :alias "tea, honey"]]',
+  );
+  assert.equal(normalizeBlock('[\n  [:a/b :description "x [y] \\"q\\""],\n  [:a/c :description "z"]\n]'), '[[:a/b :description "x [y] \\"q\\""]\n [:a/c :description "z"]]');
+  assert.equal(normalizeBlock('; valid-at: 2026-01-01\n[[:a/b :description "x"]]'), '; valid-at: 2026-01-01\n[[:a/b :description "x"]]');
+  assert.equal(normalizeBlock("[]"), "[]");
+  assert.equal(
+    normalizeBlock('I extracted:\n\n```\n[[:constraint/home :description "Lives in Linz"]]\n```\n\n(Check the spelling.)'),
+    '[[:constraint/home :description "Lives in Linz"]]',
+  );
+  assert.equal(normalizeBlock('Here: [[:a/b :description "x"]] done.'), '[[:a/b :description "x"]]');
+  assert.equal(normalizeBlock("Nothing to store."), "Nothing to store.");
 });

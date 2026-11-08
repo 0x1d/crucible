@@ -14,7 +14,7 @@ Draft 0.1 · 2026-11-07
 | 07 | [Security and Privacy](07-security-and-privacy.md) | Threat model, privacy principles, authentication |
 | 08 | [Roadmap and Open Items](08-roadmap-and-open-items.md) | Repo layout, phases, risks, open questions |
 | 09 | [Apps and Launcher](09-apps-and-launcher.md) | Brookesia system/app stack, current usage, launcher plan, open items |
-| 10 | [Long-term Memory](10-memory.md) | Source log, markdown wiki (entities/concepts), minigraf temporal store (preferences, decisions, events), memory tools, librarian agent |
+| 10 | [Long-term Memory](10-memory.md) | temporal-reasoning MCP server (minigraf bi-temporal graph) with per-turn prepare / finalize, markdown wiki on request, memory tools |
 | — | [Research Notes](research-notes.md) | Background research on Brookesia, XiaoZhi, Agent SDKs, speech |
 
 ## Architecture at a glance

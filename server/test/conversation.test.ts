@@ -13,6 +13,7 @@ interface Setup {
   interruptMs?: number;
   onTurn?: ConversationDeps["onTurn"];
   quietTool?: ConversationDeps["quietTool"];
+  turnContext?: ConversationDeps["turnContext"];
 }
 
 function setup(o: Setup = {}) {
@@ -33,6 +34,7 @@ function setup(o: Setup = {}) {
     fillerAfterMs: o.fillerAfterMs ?? 0,
     ...(o.onTurn ? { onTurn: o.onTurn } : {}),
     ...(o.quietTool ? { quietTool: o.quietTool } : {}),
+    ...(o.turnContext ? { turnContext: o.turnContext } : {}),
     playedTimeoutMs: 200,
     timeouts: { uplinkGapMs: 1000, ...o.timeouts },
   });
@@ -117,7 +119,7 @@ test("quiet tools do not trigger the filler", async () => {
   await t.conv.close();
 });
 
-test("onTurn reports completed and interrupted turns (memory source log)", async () => {
+test("onTurn reports completed and interrupted turns (memory finalize)", async () => {
   const turns: CompletedTurn[] = [];
   const t = setup({
     finals: ["first", "second"],
@@ -136,6 +138,32 @@ test("onTurn reports completed and interrupted turns (memory source log)", async
     ],
   );
   assert.ok(turns.every((x) => !Number.isNaN(Date.parse(x.at))));
+});
+
+test("turnContext is sent with the utterance; slow or failing lookups are skipped", async () => {
+  const seen: string[] = [];
+  const t = setup({
+    finals: ["coffee?", "slow", "broken"],
+    scripts: [[text("Oat."), done], [text("Ok."), done], [text("Ok."), done]],
+    turnContext: async (q) => {
+      seen.push(q);
+      if (q === "slow") await sleep(2000);
+      if (q === "broken") throw new Error("down");
+      return q === "coffee?" ? "Relevant memory context:\n  oat milk" : undefined;
+    },
+  });
+  for (let i = 0; i < 3; i++) {
+    const from = t.link.sent.length;
+    t.ask();
+    await t.idle(from + 1, 4000);
+  }
+  assert.deepEqual(seen, ["coffee?", "slow", "broken"]);
+  assert.deepEqual(t.backend.inputs, [
+    { kind: "utterance", text: "coffee?", heardSoFar: undefined, context: "Relevant memory context:\n  oat milk" },
+    { kind: "utterance", text: "slow", heardSoFar: undefined },
+    { kind: "utterance", text: "broken", heardSoFar: undefined },
+  ]);
+  await t.conv.close();
 });
 
 test("barge-in while listening cancels the first utterance", async () => {

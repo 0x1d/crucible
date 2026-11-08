@@ -6,6 +6,8 @@
 
 BOARD ?= esp32_s3_touch_amoled_1_75c
 PORT  ?= /dev/ttyACM0
+# Keep in sync with TEMPORAL_REASONING_PACKAGE (server/src/memory/temporal-reasoning.ts).
+MEMORY_MCP := temporal-reasoning==0.9.0
 
 ifeq ($(IN_NIX_SHELL),)
 FW_SHELL  := nix develop $(CURDIR)\#firmware --command
@@ -18,7 +20,7 @@ endif
 IDF := cd firmware && $(FW_SHELL) idf.py
 
 .DEFAULT_GOAL := help
-.PHONY: help setup deps models models-piper \
+.PHONY: help setup deps models models-piper memory-mcp \
         fw-config fw-build fw-flash fw-flash-full fw-publish fw-monitor fw-flash-monitor fw-menuconfig fw-clean fw-test \
         server sim sim-play test typecheck backend check
 
@@ -28,7 +30,7 @@ help: ## Show this help
 
 # ---- setup -----------------------------------------------------------------
 
-setup: deps models fw-config ## One-time setup: JS deps, speech models, board config
+setup: deps models memory-mcp fw-config ## One-time setup: JS deps, speech models, memory MCP server, board config
 
 deps: ## Install JS dependencies (pnpm workspace)
 	$(SRV_SHELL) pnpm install
@@ -38,6 +40,9 @@ models: deps ## Download speech models (whisper base.en, VAD) into server/models
 
 models-piper: deps ## Also download the Piper TTS fallback voice
 	$(SRV_SHELL) pnpm --filter homunculus-server exec tsx scripts/fetch-models.ts --piper
+
+memory-mcp: ## Fetch the temporal-reasoning MCP server (memory) into the uv cache
+	$(SRV_SHELL) env -u PYTHONPATH -u PYTHONHOME uvx --from $(MEMORY_MCP) python -c "import mcp_server"
 
 # ---- firmware --------------------------------------------------------------
 

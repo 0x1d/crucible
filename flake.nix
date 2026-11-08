@@ -98,6 +98,7 @@
           ffmpeg-headless
           whisper-cpp # STT (D-01): whisper-server
           piper-tts # TTS fallback (D-02)
+          uv # memory (D-23): uvx runs the temporal-reasoning MCP server
         ];
 
         docsTools = with pkgs; [
