@@ -49,6 +49,10 @@ int main(int argc, char **argv)
     std::vector<uint16_t> a(w * h, 0xFFFF), b(w * h, 0xFFFF);
     homunculus::card::draw_confirm(a.data(), w, h, "Open the garage door?", "device.open_garage {\"door\":\"main\"}");
     homunculus::card::draw_text(b.data(), w, h, "Call 555 0199 for a table at 7 pm");
+    std::vector<uint8_t> qr(25 * 25);
+    for (int i = 0; i < 25 * 25; i++) qr[i] = ((i % 25) + (i / 25)) % 3 == 0;
+    std::vector<uint16_t> d(w * h, 0xFFFF);
+    homunculus::card::draw_qr(d.data(), w, h, "Scan to join Wi-Fi", qr, 25, "Homunculus-AB12 password 1a2b3c4d");
     auto lit = [&](const std::vector<uint16_t> &fb, int x0, int y0, int x1, int y1) {
         int n = 0;
         for (int y = y0; y < y1; y++) for (int x = x0; x < x1; x++) n += fb[y * w + x] != 0;
@@ -59,7 +63,10 @@ int main(int argc, char **argv)
     CHECK(lit(a, 90, 330, 180, 410) > 4000 && lit(a, 290, 330, 380, 410) > 4000, "both buttons drawn");
     CHECK(lit(a, 215, 330, 250, 410) == 0, "gap between buttons");
     CHECK(lit(b, 60, 150, 400, 320) > 500 && lit(b, 90, 330, 380, 410) == 0, "text card");
-    if (argc > 1) write_ppm(argv[1], {a, b}, w, h);
+    int white = 0;
+    for (int y = 100; y < 400; y++) for (int x = 100; x < 366; x++) white += d[y * w + x] == 0xFFFF;
+    CHECK(white > 10000 && lit(d, 0, 0, 5, 5) == 0, "qr card drawn on white square");
+    if (argc > 1) write_ppm(argv[1], {a, b, d}, w, h);
     std::printf("%d failures\n", g_failures);
     return g_failures ? 1 : 0;
 }

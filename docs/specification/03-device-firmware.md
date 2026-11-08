@@ -236,16 +236,17 @@ Device tools are declared in the `hello` message and bridged by the server into 
 
 ## 3.5 Provisioning and pairing
 
-Wi-Fi provisioning (Phase 3C-1, implemented):
+Wi-Fi provisioning (Phase 3C-1, implemented) uses the Brookesia Wi-Fi service (`espressif/brookesia_service_wifi` 0.8.x; HAL adaptor `WiFi:*` interfaces):
 
 | Item | Value |
 | --- | --- |
-| Settings | NVS namespace `homunculus`: `ssid`, `pass`, `url`, `token`, read once into RAM by `settings::init()` (flash access with the cache disabled asserts on tasks whose stack is in PSRAM, e.g. the agent worker, D-17). A stored value wins over the Kconfig default; a stored empty `ssid` means provisioning requested (Kconfig credentials ignored) |
-| Trigger | No credentials (stored, or Kconfig) at boot; stored credentials without a connection for 90 s (setup AP runs beside the station, stops once connected); console key `p` |
-| Access point | SoftAP `Homunculus-XXXX` (last two MAC bytes), WPA2, password = last four MAC bytes in hex; both shown on a text card (spec 06 §6.6) |
-| Setup page | `http://192.168.4.1/` (any other URL redirects): SSID (suggestions from a scan taken before the AP starts), Wi-Fi password, server URL (default: current), device token (optional) |
-| Validation | SSID 1–32 bytes; password empty or 8–63; URL empty or `ws://` / `wss://` with host; token ≤ 128 printable ASCII without spaces |
-| Save | Stores to NVS, answers, restarts after 1.5 s |
+| Credentials | Owned by the service (scan, saved access points persisted through the Storage service, auto-connect after `Start`). Kconfig `HOMUNCULUS_WIFI_SSID` / `_PASSWORD` are offered once (`SetConnectAp` + `Connect`) when no access point is saved; NVS flag `seeded` prevents re-seeding after a reset |
+| Settings | NVS namespace `homunculus`: `url`, `token`, `seeded`, read once into RAM by `settings::init()` (flash access with the cache disabled asserts on tasks whose stack is in PSRAM, e.g. the agent worker, D-17) |
+| Trigger | No saved access point at boot; saved access points without a connection for 90 s (setup AP runs beside retries, stops once connected); console key `p` (`ResetData` + provisioning) |
+| Access point | SoftAP `Homunculus-XXXX` (last two MAC bytes), WPA2, password = last four MAC bytes in hex |
+| Screen | QR card `WIFI:T:WPA;S:<ssid>;P:<password>;;` (phones join the AP by scanning) with SSID, password and `192.168.4.1` (spec 06 §6.6) |
+| Setup page | Served by the HAL adaptor at `http://192.168.4.1/`: network scan list, manual SSID, password (`/api/wifi/scan`, `/api/wifi/connect`, `/api/wifi/status`); on success the service connects and saves the access point, the card disappears |
+| Not covered | Server URL and token are not part of the page: Kconfig / NVS defaults until pairing (3C-2) |
 
 Planned (3C-2): server discovery via mDNS; pairing: device shows a 6-digit code, the user confirms it in the server CLI, the server issues a per-device token stored in NVS (encrypted NVS when flash encryption is enabled).
 

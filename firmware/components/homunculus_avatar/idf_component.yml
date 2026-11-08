@@ -8,3 +8,5 @@ dependencies:
   espressif/brookesia_service_audio:
     version: "0.8.*"
     require: public
+  espressif/qrcode:
+    version: "^0.1"

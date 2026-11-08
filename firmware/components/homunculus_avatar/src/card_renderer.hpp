@@ -22,4 +22,9 @@ void draw_confirm(uint16_t *fb, int w, int h, const std::string &title, const st
 // Centred text card without buttons. Clears the framebuffer first.
 void draw_text(uint16_t *fb, int w, int h, const std::string &text);
 
+// QR card: `modules` is size × size row-major (non-zero = dark), drawn on a white square with quiet
+// zone and an optional caption below; `title` above. Clears the framebuffer first.
+void draw_qr(uint16_t *fb, int w, int h, const std::string &title, const std::vector<uint8_t> &modules, int size,
+             const std::string &caption);
+
 }  // namespace homunculus::card

@@ -1,32 +1,23 @@
-// Persistent device settings in NVS (namespace "homunculus"): Wi-Fi credentials, server URL, device token.
-// A stored value wins over the Kconfig default; a stored empty SSID means "provisioning requested"
-// (the Kconfig credentials are then ignored).
+// Persistent device settings in NVS (namespace "homunculus"): server URL, device token, and the
+// one-time Wi-Fi seed flag. Wi-Fi credentials are owned by the Brookesia Wi-Fi service (wifi.hpp).
+// Values are read once into RAM by init(): flash access with the cache disabled asserts on tasks
+// whose stack is in PSRAM (agent worker, D-17), so only init() and the setters touch NVS.
 #pragma once
 
 #include <string>
 
 namespace homunculus::settings {
 
-// Initialises NVS (idempotent).
+// Initialises NVS and loads the values (idempotent). Call from a task with an internal-RAM stack.
 bool init();
 
-struct Network {
-    std::string ssid;
-    std::string password;
-    bool configured() const
-    {
-        return !ssid.empty();
-    }
-};
-
-Network network();
+// Stored value, else the Kconfig default.
 std::string server_url();
 std::string token();
+bool set_server(const std::string &url, const std::string &token);
 
-// Stores credentials; empty `server_url` / `token` keep the Kconfig defaults.
-bool save(const std::string &ssid, const std::string &password, const std::string &server_url,
-          const std::string &token);
-// Drops the credentials and enters provisioning on the next boot.
-bool request_provisioning();
+// The Kconfig Wi-Fi credentials are offered to the Wi-Fi service once (development convenience).
+bool wifi_seeded();
+bool set_wifi_seeded();
 
 }  // namespace homunculus::settings

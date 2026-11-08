@@ -212,6 +212,17 @@ dependencies:
       registry_url: https://components.espressif.com/
       type: service
     version: 0.8.3
+  espressif/brookesia_service_wifi:
+    component_hash: 1d548373328920fcf9a91873edbf92529890a5ddbc8630472aa0784cc519085d
+    dependencies:
+    - name: espressif/brookesia_service_storage
+      registry_url: https://components.espressif.com
+      require: private
+      version: 0.8.*
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 0.8.3
   espressif/cjson:
     component_hash: e788323270d90738662d66fffa910bfe1fba019bba087f01557e70c40485b469
     dependencies:
@@ -771,6 +782,13 @@ dependencies:
       registry_url: https://components.espressif.com
       type: service
     version: 0.9.3
+  espressif/qrcode:
+    component_hash: 3b493771bc5d6ad30cbf87c25bf784aada8a08c941504355b55d6b75518ed7bc
+    dependencies: []
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 0.1.0~2
   espressif/usb:
     component_hash: 99eee72ea224d9117d4c342442717a1f20bf8112e2ab5d7d7038b827874f4c92
     dependencies:
@@ -905,10 +923,12 @@ direct_dependencies:
 - espressif/brookesia_hal_interface
 - espressif/brookesia_service_audio
 - espressif/brookesia_service_storage
+- espressif/brookesia_service_wifi
 - espressif/esp_lcd_co5300
 - espressif/esp_websocket_client
+- espressif/qrcode
 - idf
 - waveshare/esp_lcd_touch_cst9217
-manifest_hash: b85675c22e165e9114d35034c0633c2c385f4fa3e807cf320b50ecd66f7d9258
+manifest_hash: 802d21261b82c954c945f49f34ad5d0aea4070bfb67c09ae44232c485be969da
 target: esp32s3
 version: 3.0.0

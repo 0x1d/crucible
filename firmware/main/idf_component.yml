@@ -3,6 +3,8 @@ dependencies:
     version: ">=6.0,<6.3"
   espressif/brookesia_service_audio:
     version: "0.8.*"
+  espressif/brookesia_service_wifi:
+    version: "0.8.*"
   espressif/brookesia_service_storage:
     version: "0.8.*"
   espressif/brookesia_hal_adaptor:

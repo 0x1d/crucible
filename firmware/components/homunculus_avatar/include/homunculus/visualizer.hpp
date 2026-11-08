@@ -11,6 +11,7 @@
 #include <mutex>
 #include <string>
 #include <thread>
+#include <vector>
 #include "brookesia/hal_interface.hpp"
 #include "brookesia/lib_utils/signal.hpp"
 #include "homunculus/agent.hpp"
@@ -31,6 +32,8 @@ public:
     // Confirmation: title, detail, deny / approve buttons. Text: centred text only.
     void show_confirm_card(const std::string &title, const std::string &detail);
     void show_text_card(const std::string &text);
+    // QR code of `payload` with a title above and a caption below; false if the payload does not fit.
+    bool show_qr_card(const std::string &title, const std::string &payload, const std::string &caption);
     void hide_card();
 
     // Frames, average/max frame time, flush time and flushed rows since the previous call (stats log).
@@ -51,8 +54,10 @@ private:
     std::atomic<UiState> state_{UiState::Offline};
 
     struct Card {
-        bool confirm = false;
+        enum class Kind { Confirm, Text, Qr } kind = Kind::Text;
         std::string title, detail;
+        std::vector<uint8_t> modules;  // Qr: size × size
+        int qr_size = 0;
     };
     std::mutex card_mutex_;
     Card card_;

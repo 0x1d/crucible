@@ -31,7 +31,6 @@
 #include "brookesia/hal_interface.hpp"
 #include "brookesia/hal_adaptor.hpp"
 #include "homunculus/agent.hpp"
-#include "homunculus/provision.hpp"
 #include "homunculus/settings.hpp"
 #include "homunculus/visualizer.hpp"
 #include "homunculus/wifi.hpp"
@@ -247,6 +246,32 @@ void register_device_tools(HomunculusAgent &agent)
         return {true, "text shown for " + std::to_string(seconds) + " seconds"};
     });
 
+    agent.add_tool("device.show_qr", "Show a QR code on the screen for a while, e.g. a link or contact",
+                   json::object{{"type", "object"},
+                                {"properties",
+                                 {{"data", {{"type", "string"}, {"maxLength", 150}}},
+                                  {"caption", {{"type", "string"}, {"maxLength", 60}}},
+                                  {"duration_s", {{"type", "integer"}, {"minimum", 1}, {"maximum", 300}, {"default", 30}}}}},
+                                {"required", {"data"}}},
+    [](const json::object &a) -> Reply {
+        const auto *d = a.if_contains("data");
+        if (!d || !d->is_string() || d->get_string().empty()) return {false, "data must be a non-empty string"};
+        const auto *c = a.if_contains("caption");
+        const std::string caption = c && c->is_string() ? std::string(c->get_string()) : "";
+        const int seconds = a.contains("duration_s") ? int_arg(a, "duration_s", 1, 300).value_or(0) : 30;
+        if (seconds == 0) return {false, "duration_s must be an integer from 1 to 300"};
+        if (!g_visualizer) return {false, "no display"};
+        std::lock_guard lock(g_card_mutex);
+        if (g_card_owner == CardOwner::Confirm) return {false, "a confirmation is showing"};
+        if (!homunculus::Visualizer::get_instance().show_qr_card("", std::string(d->get_string()), caption)) {
+            return {false, "data does not fit in a QR code"};
+        }
+        g_card_owner = CardOwner::Text;
+        esp_timer_stop(g_text_timer);
+        esp_timer_start_once(g_text_timer, static_cast<uint64_t>(seconds) * 1000000);
+        return {true, "QR code shown for " + std::to_string(seconds) + " seconds"};
+    });
+
     agent.add_tool("device.get_status", "Get device status: uptime, free memory, Wi-Fi signal strength",
                    json::object{{"type", "object"}, {"properties", json::object{}}},
     [](const json::object &) -> Reply {
@@ -272,40 +297,48 @@ void register_device_tools(HomunculusAgent &agent)
 }
 
 // ---------------------------------------------------------------------------
-// Wi-Fi provisioning (spec 03 §3.5)
+// Wi-Fi provisioning (spec 03 §3.5): Brookesia Wi-Fi service SoftAP + web page; QR code joins the AP
 
-constexpr int PROVISION_FALLBACK_S = 90;  // stored credentials that never connect open the setup AP
+constexpr int PROVISION_FALLBACK_S = 90;  // saved access points that never connect open the setup AP
 
-void start_provisioning()
+void show_provisioning_card()
 {
-    if (!homunculus::wifi::init() || !homunculus::provision::start()) {
-        BROOKESIA_LOGE("[prov] could not start provisioning");
-        return;
-    }
     if (!g_visualizer) return;
-    const std::string text = "Join Wi-Fi " + homunculus::provision::ap_ssid() + " with password " +
-                             homunculus::provision::ap_password() + " and open 192.168.4.1";
+    const std::string caption = homunculus::wifi::ap_ssid() + " password " + homunculus::wifi::ap_password() +
+                                ", then open 192.168.4.1";
     std::lock_guard lock(g_card_mutex);
-    g_card_owner = CardOwner::Text;
-    homunculus::Visualizer::get_instance().show_text_card(text);
+    if (g_card_owner == CardOwner::Confirm) return;
+    if (homunculus::Visualizer::get_instance().show_qr_card("Scan to set up Wi-Fi", homunculus::wifi::ap_join_payload(),
+                                                           caption)) {
+        g_card_owner = CardOwner::Text;
+    }
 }
 
-// Credentials are stored but the network is unreachable: offer the setup AP while the station keeps retrying.
-void provision_watch_task()
+void hide_provisioning_card()
 {
-    for (int s = 0; s < PROVISION_FALLBACK_S; s++) {
-        if (homunculus::wifi::is_connected()) return;
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-    }
-    BROOKESIA_LOGW("[prov] no Wi-Fi after %1% s: starting setup AP", PROVISION_FALLBACK_S);
-    start_provisioning();
-    while (!homunculus::wifi::is_connected()) std::this_thread::sleep_for(std::chrono::seconds(1));
-    BROOKESIA_LOGI("[prov] Wi-Fi connected: stopping setup AP");
-    homunculus::provision::stop();
     std::lock_guard lock(g_card_mutex);
     if (g_visualizer && g_card_owner == CardOwner::Text) {
         g_card_owner = CardOwner::None;
         homunculus::Visualizer::get_instance().hide_card();
+    }
+}
+
+// Waits for a connection; hides the card and stops the setup AP once connected.
+void provision_wait_task()
+{
+    for (int s = 0; s < PROVISION_FALLBACK_S && !homunculus::wifi::provisioning(); s++) {
+        if (homunculus::wifi::is_connected()) return;
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+    if (!homunculus::wifi::is_connected() && !homunculus::wifi::provisioning()) {
+        BROOKESIA_LOGW("[prov] no Wi-Fi after %1% s: starting setup AP", PROVISION_FALLBACK_S);
+        if (homunculus::wifi::start_provisioning()) show_provisioning_card();
+    }
+    while (!homunculus::wifi::is_connected()) std::this_thread::sleep_for(std::chrono::seconds(1));
+    BROOKESIA_LOGI("[prov] Wi-Fi connected");
+    if (homunculus::wifi::provisioning()) {
+        homunculus::wifi::stop_provisioning();
+        hide_provisioning_card();
     }
 }
 
@@ -482,9 +515,8 @@ void console_task()
             break;
 #endif
         case 'p':
-            BROOKESIA_LOGW("[console] provisioning requested: restarting");
-            homunculus::settings::request_provisioning();
-            esp_restart();
+            BROOKESIA_LOGW("[console] forgetting Wi-Fi, starting provisioning");
+            if (homunculus::wifi::reset_and_provision()) show_provisioning_card();
             break;
         case 'd':
             BROOKESIA_LOGI("[console] Wi-Fi disconnect (auto-reconnects)");
@@ -559,12 +591,11 @@ extern "C" void app_main(void)
     register_device_tools(agent);
 
     // Start Wi-Fi; the agent's worker thread opens the HDP connection once connected.
-    if (homunculus::wifi::start()) {
-        start_thread("prov_watch", 4 * 1024, provision_watch_task);
-    } else {
-        BROOKESIA_LOGW("[wifi] no credentials: provisioning");
-        start_provisioning();
+    if (!homunculus::wifi::start()) {
+        BROOKESIA_LOGW("[wifi] no saved access point: provisioning");
+        if (homunculus::wifi::start_provisioning()) show_provisioning_card();
     }
+    start_thread("prov_wait", 6 * 1024, provision_wait_task);
 
     // Activate the Homunculus agent through the agent_manager state machine.
     auto &agent_manager = esp_brookesia::agent::Manager::get_instance();

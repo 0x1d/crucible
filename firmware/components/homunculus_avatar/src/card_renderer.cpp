@@ -180,4 +180,35 @@ void draw_text(uint16_t *fb, int w, int h, const std::string &text)
     }
 }
 
+void draw_qr(uint16_t *fb, int w, int h, const std::string &title, const std::vector<uint8_t> &modules, int size,
+             const std::string &caption)
+{
+    Canvas c(fb, w, h);
+    c.clear();
+    const int m = std::min(w, h);
+    const int cols = columns(w);
+    int y = static_cast<int>(m * 0.10f);
+    for (const auto &l : wrap(title, cols, 1)) {
+        c.centred(y, l, rgb(0xFFFFFF));
+        y += GLYPH_H * SCALE + 4;
+    }
+    const int quiet = 2;
+    const int scale = std::max(1, static_cast<int>(m * 0.50f) / (size + 2 * quiet));
+    const int side = (size + 2 * quiet) * scale;
+    const int x0 = (w - side) / 2, y0 = y + 6;
+    const uint16_t white = rgb(0xFFFFFF), black = rgb(0x000000);
+    for (int py = 0; py < side; py++) {
+        for (int px = 0; px < side; px++) {
+            const int mx = px / scale - quiet, my = py / scale - quiet;
+            const bool dark = mx >= 0 && my >= 0 && mx < size && my < size && modules[my * size + mx];
+            c.px(x0 + px, y0 + py, dark ? black : white);
+        }
+    }
+    int ty = y0 + side + 10;
+    for (const auto &l : wrap(caption, cols, 3)) {
+        c.centred(ty, l, rgb(0xA8B0B8));
+        ty += GLYPH_H * SCALE + 2;
+    }
+}
+
 }  // namespace homunculus::card

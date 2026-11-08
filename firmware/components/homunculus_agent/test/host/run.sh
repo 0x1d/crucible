@@ -14,6 +14,3 @@ out="${TMPDIR:-/tmp}/homunculus_test_hdp"
     -DBOOST_NO_USER_CONFIG -DBOOST_JSON_NO_LIB -DBOOST_CONTAINER_NO_LIB \
     "$here/test_hdp.cpp" "$comp/src/hdp.cpp" -o "$out"
 "$out" "$repo/protocol/vectors"
-out2="${TMPDIR:-/tmp}/homunculus_test_provision_form"
-"${CXX:-c++}" -std=c++20 -O1 -Wall -Wextra -I "$comp/include" "$here/test_provision_form.cpp" "$comp/src/provision_form.cpp" -o "$out2"
-"$out2"

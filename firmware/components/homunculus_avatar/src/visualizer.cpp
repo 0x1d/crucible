@@ -15,6 +15,7 @@
 #include "freertos/FreeRTOS.h"
 #include "brookesia/service_audio/service_audio.hpp"
 #include "card_renderer.hpp"
+#include "qrcodegen.h"
 #include "ring_renderer.hpp"
 #include "sdkconfig.h"
 
@@ -83,12 +84,38 @@ void Visualizer::set_card(bool active, Card card)
 
 void Visualizer::show_confirm_card(const std::string &title, const std::string &detail)
 {
-    set_card(true, {true, title, detail});
+    Card c;
+    c.kind = Card::Kind::Confirm;
+    c.title = title;
+    c.detail = detail;
+    set_card(true, std::move(c));
 }
 
 void Visualizer::show_text_card(const std::string &text)
 {
-    set_card(true, {false, text, {}});
+    Card c;
+    c.title = text;
+    set_card(true, std::move(c));
+}
+
+bool Visualizer::show_qr_card(const std::string &title, const std::string &payload, const std::string &caption)
+{
+    std::vector<uint8_t> temp(qrcodegen_BUFFER_LEN_FOR_VERSION(10)), code(qrcodegen_BUFFER_LEN_FOR_VERSION(10));
+    if (!qrcodegen_encodeText(payload.c_str(), temp.data(), code.data(), qrcodegen_Ecc_LOW, qrcodegen_VERSION_MIN, 10,
+                              qrcodegen_Mask_AUTO, true)) {
+        return false;
+    }
+    Card c;
+    c.kind = Card::Kind::Qr;
+    c.title = title;
+    c.detail = caption;
+    c.qr_size = qrcodegen_getSize(code.data());
+    c.modules.resize(static_cast<size_t>(c.qr_size) * c.qr_size);
+    for (int y = 0; y < c.qr_size; y++) {
+        for (int x = 0; x < c.qr_size; x++) c.modules[y * c.qr_size + x] = qrcodegen_getModule(code.data(), x, y);
+    }
+    set_card(true, std::move(c));
+    return true;
 }
 
 void Visualizer::hide_card()
@@ -228,10 +255,10 @@ void Visualizer::render_loop()
                 active = card_active_;
             }
             if (active) {
-                if (card.confirm) {
-                    card::draw_confirm(fb, W, H, card.title, card.detail);
-                } else {
-                    card::draw_text(fb, W, H, card.title);
+                switch (card.kind) {
+                case Card::Kind::Confirm: card::draw_confirm(fb, W, H, card.title, card.detail); break;
+                case Card::Kind::Text: card::draw_text(fb, W, H, card.title); break;
+                case Card::Kind::Qr: card::draw_qr(fb, W, H, card.title, card.modules, card.qr_size, card.detail); break;
                 }
             } else {
                 std::memset(fb, 0, static_cast<size_t>(W) * H * 2);
