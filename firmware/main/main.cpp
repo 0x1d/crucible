@@ -1,6 +1,6 @@
-// Homunculus Phase 1 voice MVP (p1d): boots the HDP/1 agent on ESP-Brookesia,
-// connects to Wi-Fi, and hands wake-word / touch / audio / display over to the
-// agent_manager-driven HomunculusAgent.
+// Homunculus: boots the HDP/1 agent on ESP-Brookesia, connects to Wi-Fi, and hands
+// wake-word / touch / audio over to the agent_manager-driven HomunculusAgent. The display
+// shows the Phase 2 circular audio-output visualizer (spec 06), coloured by agent state.
 
 #include <atomic>
 #include <chrono>
@@ -27,6 +27,7 @@
 #include "brookesia/hal_interface.hpp"
 #include "brookesia/hal_adaptor.hpp"
 #include "homunculus/agent.hpp"
+#include "homunculus/visualizer.hpp"
 #include "homunculus/wifi.hpp"
 #include "sdkconfig.h"
 
@@ -38,8 +39,9 @@ namespace {
 hal::InterfaceHandle<hal::display::PanelIface> g_panel;
 hal::InterfaceHandle<hal::display::BacklightIface> g_backlight;
 std::mutex g_draw_mutex;
+bool g_visualizer = false;
 
-// Display feedback colours (RGB) for each coarse agent UI state.
+// Solid state colours (RGB) when the visualizer is disabled or fails to start.
 constexpr uint8_t OFFLINE[3] = {20, 20, 20};
 constexpr uint8_t IDLE[3] = {0, 80, 0};         // dim green
 constexpr uint8_t LISTENING[3] = {0, 255, 0};   // bright green
@@ -111,6 +113,12 @@ void init_display()
     const auto &info = g_panel->get_info();
     BROOKESIA_LOGI("[display] %1%x%2%, %3% bits per pixel", info.h_res, info.v_res, info.get_pixel_bits());
     paint_solid(OFFLINE);
+#if CONFIG_HOMUNCULUS_VISUALIZER
+    g_visualizer = homunculus::Visualizer::get_instance().start(g_panel.get().get());
+    if (!g_visualizer) {
+        BROOKESIA_LOGE("[display] visualizer failed to start; solid state colours");
+    }
+#endif
 
     g_backlight = hal::acquire_first_interface<hal::display::BacklightIface>();
     if (g_backlight) {
@@ -120,6 +128,10 @@ void init_display()
 
 void show_ui_state(homunculus::UiState s)
 {
+    if (g_visualizer) {
+        homunculus::Visualizer::get_instance().set_state(s);
+        return;
+    }
     switch (s) {
     case homunculus::UiState::Offline: paint_solid(OFFLINE); break;
     case homunculus::UiState::Idle: paint_solid(IDLE); break;
@@ -200,7 +212,7 @@ public:
         for (UBaseType_t i = 0; i < got; i++) {
             const std::string name = tasks[i].pcTaskName;
             if (name == "hom_worker" || name == "hom_player" || name == "hdp_ws" || name == "touch" ||
-                    name == "console") {
+                    name == "console" || name == "hom_vis") {
                 stacks += " " + name + ":" + std::to_string(tasks[i].usStackHighWaterMark);
             }
             for (int core = 0; core < 2; core++) {
@@ -240,6 +252,9 @@ void print_system_stats()
         heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL) / 1024, heap_caps_get_free_size(MALLOC_CAP_SPIRAM) / 1024,
         stacks
     );
+    if (g_visualizer) {
+        BROOKESIA_LOGI("[stats] visualizer %1%", homunculus::Visualizer::get_instance().take_stats());
+    }
 }
 
 #if CONFIG_HOMUNCULUS_DEV_CONSOLE
@@ -310,7 +325,7 @@ void start_thread(const char *name, size_t stack, void (*fn)())
 
 extern "C" void app_main(void)
 {
-    BROOKESIA_LOGI("=== Homunculus Phase 1 voice MVP ===");
+    BROOKESIA_LOGI("=== Homunculus (Phase 2: audio visualizer) ===");
     for (const char *tag : {"ESP_GMF_TASK", "ESP_GMF_PORT", "ESP_GMF_POOL", "GMF_AFE", "ESP_GMF_AENC", "AFE_MANAGER",
                             "AUD_RENDER", "AUDIO_PROCESSOR", "AUD_SDEC", "AFE_CONFIG", "NEW_DATA_BUS"}) {
         esp_log_level_set(tag, ESP_LOG_WARN);

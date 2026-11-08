@@ -1,0 +1,10 @@
+description: Homunculus display (Phase 2 circular audio-output visualizer)
+dependencies:
+  idf:
+    version: ">=6.0,<6.3"
+  espressif/brookesia_hal_interface:
+    version: "0.8.*"
+    require: public
+  espressif/brookesia_service_audio:
+    version: "0.8.*"
+    require: public

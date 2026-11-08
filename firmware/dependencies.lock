@@ -128,7 +128,7 @@ dependencies:
       require: private
       version: 0.8.*
     source:
-      registry_url: https://components.espressif.com
+      registry_url: https://components.espressif.com/
       type: service
     version: 0.8.3
   espressif/brookesia_lib_utils:
@@ -902,12 +902,13 @@ direct_dependencies:
 - espressif/brookesia_agent_manager
 - espressif/brookesia_hal_adaptor
 - espressif/brookesia_hal_boards
+- espressif/brookesia_hal_interface
 - espressif/brookesia_service_audio
 - espressif/brookesia_service_storage
 - espressif/esp_lcd_co5300
 - espressif/esp_websocket_client
 - idf
 - waveshare/esp_lcd_touch_cst9217
-manifest_hash: 24019e063da7bc2448fee68338381ce5f5f27bab3fc5949e8bfa993733774296
+manifest_hash: b85675c22e165e9114d35034c0633c2c385f4fa3e807cf320b50ecd66f7d9258
 target: esp32s3
 version: 3.0.0
