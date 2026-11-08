@@ -123,7 +123,7 @@ Turn handling:
 
 Downlink player: frames are queued (max 64, oldest dropped); playback starts after `HOMUNCULUS_JITTER_PREFILL_FRAMES` frames or when the stream is complete (last-flagged frame, `tts{stop}`), and re-prefills after an underrun. Estimated play end per fed frame: `max(now, play_end) + frame_ms`. `tts.played` is sent once per segment at the play end of its last frame; Speaking ends at the play end after `tts{stop}`.
 
-Threads: worker (`hom_worker`, 8 KB stack in PSRAM, prio 6, core 0) owns turn state, HDP messages and the display callback; player (`hom_player`, 8 KB PSRAM, prio 7, core 0) feeds `feed_audio_decoder_data()`; the Brookesia encoder thread sends uplink frames (send outside the uplink lock); the WebSocket task (`hdp_ws`, 8 KB, prio 10, core 0) posts to the worker. Measured stack high-water marks: worker 4.2 KB free, player 6.1 KB free.
+Threads: worker (`hom_worker`, 8 KB stack in PSRAM, prio 6, core 0) owns turn state, HDP messages and the UI state callback (→ visualizer palette, spec 06); player (`hom_player`, 8 KB PSRAM, prio 7, core 0) feeds `feed_audio_decoder_data()`; the Brookesia encoder thread sends uplink frames (send outside the uplink lock); the WebSocket task (`hdp_ws`, 8 KB, prio 10, core 0) posts to the worker. Measured stack high-water marks: worker 4.2 KB free, player 6.1 KB free.
 
 Kconfig (`Homunculus agent` menu):
 
@@ -151,7 +151,7 @@ Kconfig (`Homunculus agent` menu):
 | Opus encode | 0 | 18 | 24–32 KB | 60 ms frames |
 | Opus decode + I²S write | 0 | 19 | 24–32 KB | Jitter buffer 120–240 ms |
 | WebSocket / network | 0 | 10 | 8 KB | TLS buffers in PSRAM |
-| LVGL / avatar | 0 | 5 | 40 KB (PSRAM) | 30 fps target; yields to audio |
+| Visualizer (`hom_vis`) | any | 3 | 6 KB (PSRAM) | 30 fps while the ring moves; idle otherwise (spec 06 §6.3.4) |
 | Housekeeping (PMU poll, IMU, battery) | 0 | 3 | 4 KB | 2 Hz PMU poll (no IRQ line) |
 
 ### 3.2.3 Audio configuration (reference device)

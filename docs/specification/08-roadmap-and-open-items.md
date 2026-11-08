@@ -14,7 +14,7 @@ homunculus/
 │   ├── main/                     # app entry, wiring
 │   ├── components/
 │   │   ├── homunculus_agent/     # agent::Base subclass + HDP client
-│   │   ├── homunculus_avatar/    # procedural face engine (LVGL)
+│   │   ├── homunculus_avatar/    # Phase 2: circular audio visualizer (procedural face deferred)
 │   │   ├── homunculus_tools/     # device tool registry
 │   │   └── homunculus_boards/    # board extras / overrides (e.g. 1.75C flash size, mic layout)
 │   ├── partitions/
@@ -47,9 +47,8 @@ gantt
     HomunculusAgent firmware component             :p1b, after p0b, 14d
     Speech-in/out pipeline (1 STT, 1 TTS)          :p1c, after p1a, 14d
     End-to-end turn + barge-in                     :p1d, after p1b, 10d
-    section Phase 2 - Avatar
-    Procedural face engine                         :p2a, after p1b, 21d
-    Emote tool + heuristics + lip-sync             :p2b, after p2a, 10d
+    section Phase 2 - Audio visualizer
+    Circular audio-output visualizer               :p2a, after p1d, 5d
     section Phase 3 - Agent features
     OpenCode backend                               :p3a, after p1d, 10d
     Device tools bridge + confirmations            :p3b, after p1d, 10d
@@ -62,7 +61,8 @@ gantt
 | --- | --- | --- |
 | 0 — Spikes | Display + touch + audio running on upstream Brookesia board def; measured AFE CPU load; Claude SDK partial streaming + interrupt verified | **Done 2026-11-07** (§8.6) |
 | 1 — Voice MVP | Wake word → answer by voice with web search; barge-in works; latency measured per stage | **Met on hardware 2026-11-08**; in-person checks pending (§8.7) |
-| 2 — Avatar | All states and emotes rendered ≥ 20 fps; lip-sync; agent drives emotions | Open |
+| 2 — Audio visualizer | Ring waveform follows speaker output ≥ 25 fps; palette per UI state; no added audio underruns; CPU / heap measured (spec 06 §6.5) | Implemented 2026-11-08, hardware checks pending |
+| 2F — Procedural face | All states and emotes rendered ≥ 20 fps; lip-sync; agent drives emotions ([06-avatar-face-deferred.md](06-avatar-face-deferred.md)) | **Deferred** (D-20) |
 | 3 — Agent features | Backend switchable (Claude / OpenCode); device tools; confirmation flow; Wi-Fi provisioning + pairing; OTA | Open |
 | 4 — Multi-device | Second board with different display shape runs the same firmware and server unchanged | Open |
 
@@ -90,7 +90,7 @@ gantt
 | OI-04 | Can `brookesia_agent_xiaozhi` target a custom server without XiaoZhi OTA/activation? (would enable a protocol-compatible early spike) | **Answered**: yes, via `CONFIG_XIAOZHI_OTA_URL` + a server-side OTA stub (research notes) |
 | OI-05 | STT/TTS default providers (local vs cloud) and target languages | **Decided** → D-01, D-02 |
 | OI-06 | Custom wake word "Homunculus" (WakeNet custom model via Espressif) vs stock wake word | **Decided** → D-03 |
-| OI-07 | Persona definition: name, voice, personality, default emotional range | **Decided** → D-04 (default emotional range still to be detailed in Phase 2) |
+| OI-07 | Persona definition: name, voice, personality, default emotional range | **Decided** → D-04 (default emotional range deferred with the procedural face, D-20) |
 | OI-08 | Server hosting: LAN-only vs remote access (tunnel / reverse proxy) | **Decided** → D-05 |
 | OI-09 | Memory: rely on backend session memory, or add long-term memory MCP server | Phase 3 |
 | OI-10..13 | Launcher / multi-app on Brookesia `system_super` (round display, avatar integration, audio arbitration, heap) | See 09-apps-and-launcher.md §9.5 |
@@ -120,6 +120,7 @@ Product decisions taken on resolved open items. Decided 2026-11-07.
 | D-17 | **Agent thread stacks in PSRAM, 8 KB each** | Internal RAM is the scarce resource (min 50 KB during turns). Measured use: worker 4.0 KB, player 2.1 KB. |
 | D-18 | **Device answers `confirm.request` with `approved:false`** | Until a confirmation UI exists (Phase 3). |
 | D-19 | **Kokoro runs in a child process** | In-process inference stalled the event loop up to 219 ms (> 180 ms downlink prebuffer → device underruns, delayed aborts); child process: max 4 ms. Worker thread rejected: onnxruntime-node aborts with sessions on main thread (Silero) and a worker. |
+| D-20 | **Phase 2 = circular audio-output visualizer; procedural face deferred** | Ring waveform of the speaker signal (ES7210 DAC echo lane), colour per UI state, direct panel rendering without LVGL (spec 06). Face spec kept unchanged as 06-avatar-face-deferred.md. Decided 2026-11-08. |
 
 p1d hardware measurements (1.75C, LAN, speech pipeline):
 

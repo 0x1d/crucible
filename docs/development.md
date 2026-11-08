@@ -69,6 +69,12 @@ HDP codec host test (protocol vectors, needs `managed_components`):
 firmware/components/homunculus_agent/test/host/run.sh
 ```
 
+Ring visualizer rasteriser host test (spec 06; optional argument writes a PPM contact sheet of flat, speech and recovered frames):
+
+```bash
+firmware/components/homunculus_avatar/test/host/run.sh /tmp/ring.ppm
+```
+
 Development console (`CONFIG_HOMUNCULUS_DEV_CONSOLE`, USB-Serial-JTAG, e.g. in `idf.py monitor`): `t` tap, `w` wake word, `s` CPU / heap / stack stats, `r` HDP reconnect (session resume), `d` Wi-Fi disconnect. Serial capture without resetting the board: open `/dev/ttyACM0` with DTR and RTS deasserted (pyserial `dtr=False`, `rts=False` before `open()`).
 
 Device log lines: `hom_agent: uplink: ...` (per utterance), `hom_agent: turn: after listen.stop: tts_start, first_rx, first_fed, play_end` (ms), `[stats] ui, cpu core0/core1 %, internal free (min), stack min free` every `CONFIG_HOMUNCULUS_SYSTEM_STATS_INTERVAL_S`.

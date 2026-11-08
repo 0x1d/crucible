@@ -1,131 +1,114 @@
-# 6. Avatar
+# 6. Avatar — Circular Audio Visualizer (Phase 2)
 
 | | |
 | --- | --- |
 | Document | HOM-SPEC-06 |
-| Status | Draft 0.1 |
+| Status | Draft 0.2 (2026-11-08) |
+| Supersedes | Procedural face for Phase 2 (D-20); face spec kept as [06-avatar-face-deferred.md](06-avatar-face-deferred.md) |
 
-## 6.1 Design goals
+## 6.1 Scope
 
-- Communicate **conversation state** at a glance (is it listening? thinking? speaking?).
-- Express **emotion** chosen by the agent.
-- Feel **alive** when idle (blinks, micro-saccades, breathing, gaze following tilt/voice).
-- Render at ≥ 20 fps on the ESP32-S3 with headroom for audio DSP.
-- Exploit AMOLED: black background (zero power per pixel), saturated accents.
-- Scale to other display sizes and shapes (round / square / rectangular).
-
-## 6.2 Layered model
-
-```mermaid
-flowchart TB
-    subgraph Inputs
-        ST["Conversation state<br/>(from agent manager / HDP avatar.state)"]
-        EM["Emote events<br/>(HDP avatar.emote)"]
-        AU["Playback PCM envelope<br/>(lip-sync)"]
-        SE["Sensors<br/>IMU tilt, DOA, touch"]
-    end
-    subgraph Engine["Avatar engine"]
-        BASE["Base layer: state pose<br/>idle / listening / thinking / working / speaking / sleeping / error"]
-        EMO["Emotion layer: blended face parameters"]
-        PROC["Procedural layer: blink, saccades, breathing, gaze"]
-        MOUTH["Mouth layer: openness from audio envelope"]
-        FX["Overlay layer: tool icons, captions, QR, cards"]
-    end
-    R["Renderer<br/>LVGL canvas / vector primitives<br/>dirty-rect flush via QSPI"]
-    ST --> BASE
-    EM --> EMO
-    SE --> PROC
-    AU --> MOUTH
-    BASE --> EMO --> PROC --> MOUTH --> FX --> R
-```
-
-## 6.3 Rendering approach
-
-Two techniques were evaluated:
-
-| Approach | Description | Pros | Cons |
-| --- | --- | --- | --- |
-| A. Pre-rendered animations | Brookesia `expression_emote` / `esp_emote_expression`, frame sequences in flash (mmap assets) | Artist-friendly, rich visuals, existing service (`SetEmoji`, `SetAnimation`, `InsertAnimation`) | Discrete clips, no continuous blending, lip-sync hard, large flash footprint at 466² |
-| B. Procedural parametric face | Face defined by ~ 12 parameters (eye openness, eye shape curvature, pupil position, brow angle, mouth width/openness/curve, cheek glow, colour) rendered with vector primitives | Continuous blending between emotions, natural lip-sync and gaze, tiny footprint, resolution-independent | Requires custom engine; visual style is simpler |
-
-**Decision (AD-08): procedural parametric face (B) as the primary avatar; Brookesia emote assets (A) for special one-shot animations** (boot, pairing, celebrations) and for overlays (QR, event messages). The face parameters are interpolated with critically damped springs, which gives smooth, organic transitions at low cost.
-
-### 6.3.1 Face parameter vector
-
-| Parameter | Range | Notes |
-| --- | --- | --- |
-| `eye_open_l`, `eye_open_r` | 0–1 | Blink, sleepy, wink |
-| `eye_curve` | −1…1 | Happy "^ ^" (−) ↔ sad droop (+) |
-| `eye_size` | 0.5–1.5 | Surprise ↑ |
-| `pupil_x`, `pupil_y` | −1…1 | Gaze |
-| `brow_angle` | −1…1 | Concerned / angry |
-| `brow_height` | 0–1 | Surprise ↑ |
-| `mouth_open` | 0–1 | Lip-sync driven |
-| `mouth_curve` | −1…1 | Smile ↔ frown |
-| `mouth_width` | 0.5–1.5 | |
-| `hue`, `glow` | — | Accent colour / ambient glow per state |
-
-Each emote is a target vector; the engine blends `state pose ⊕ emote × intensity ⊕ procedural offsets ⊕ mouth`.
-
-### 6.3.2 Performance plan (reference device)
-
-- Render only the face's bounding regions (eyes, mouth, glow ring) into small PSRAM canvases; flush dirty rectangles only. Typical dirty area per frame < 20 % of the screen → 30 fps feasible.
-- Use the CO5300 TE signal (GPIO13) for tear-free updates if tearing is visible.
-- LVGL task on core 0 at low priority; audio tasks on core 1 always pre-empt.
-- Two LVGL draw units (`CONFIG_LV_DRAW_SW_DRAW_UNIT_CNT=2`) as in the vendor example.
-
-## 6.4 States
-
-| State | Trigger | Visual |
-| --- | --- | --- |
-| `idle` | Default | Neutral face, slow blinks, gaze wanders / follows tilt, dim |
-| `listening` | `listen.start` | Eyes wide, pupils centred, pulsing ring proportional to mic level |
-| `thinking` | Endpoint / agent started | Eyes look up-side, slow "orbit" dots |
-| `working` | `agent.status phase=tool` | Thinking pose + tool icon overlay (web, calendar, home, code); icon derived from tool name |
-| `speaking` | `tts.start` | Mouth driven by audio envelope, emote applied |
-| `confirming` | `confirm.request` | Concerned face + approve/deny buttons |
-| `sleeping` | Power policy | Closed eyes, "z" animation, very dim |
-| `offline` | Connection lost | Slightly sad face + Wi-Fi glyph |
-| `error` | Error event | Confused face, short shake |
-
-## 6.5 Emotion vocabulary
-
-The agent selects emotions through the `avatar.express` tool. The vocabulary is fixed and small so that every device can render it; devices advertise supported emotes in `hello.capabilities.avatar.emotes`.
-
-| Emote | Typical use |
+| In scope | Out of scope (deferred) |
 | --- | --- |
-| `neutral` | Default |
-| `happy` | Good news, greetings |
-| `excited` | Very good news, celebrations |
-| `curious` | Asking a clarifying question |
-| `surprised` | Unexpected information |
-| `concerned` | Bad news, warnings, confirmations |
-| `sad` | Sympathy |
-| `confused` | Did not understand |
-| `sleepy` | Late hour, going to sleep |
-| `love` | Thanks, affection |
-| `angry` | (rare) playful indignation |
+| Ring waveform of the device's audio output (speaker) | Procedural face, emotes, `avatar.express` rendering |
+| Colour per UI state (Offline, Idle, Listening, Thinking, Speaking) | Microphone input visualisation |
+| Direct panel rendering, no LVGL | Captions, overlays, cards, QR codes |
+| | HDP `avatar{emote}` handling; `hello.capabilities.avatar` is not sent |
 
-### 6.5.1 How emotions are produced
+Visual reference: the circular spectrum of `lv_demo_music` in the Waveshare 1.75 MusicPlayer firmware (`firmware/brookesia/components/MusicPlayer/gui_music/lv_demo_music_main.c`, mirrored radial bars, colour stops by radius). That example uses LVGL and precomputed spectrum tables; Homunculus renders a live waveform without LVGL.
+
+## 6.2 Signal source
 
 ```mermaid
 flowchart LR
-    A["Agent (LLM)"] -- "tool call avatar.express(happy, 0.7)" --> TH["Tool Hub"]
-    TH --> O["Orchestrator"]
-    H["Heuristics<br/>(tool start -> working,<br/>error -> confused,<br/>question mark -> curious)"] --> O
-    O -- "HDP avatar.emote" --> D["Device avatar engine"]
+    DEC["Opus decode<br/>(Brookesia)"] --> DAC["ES8311 DAC"] --> SPK["Speaker"]
+    DAC -- "analog echo" --> ADC["ES7210 lane R"]
+    ADC --> REC["Recorder read<br/>(RMNN, 16 kHz)"]
+    REC --> AFE["AFE (AEC reference)"]
+    REC -- "AudioEncoder<br/>recorder_data signal" --> TAP["Visualizer tap<br/>lane R → 1024-sample ring"]
+    TAP --> VIS["hom_vis render thread"]
 ```
 
-- **Primary**: the system prompt instructs the agent to call `avatar.express` at the start of a response that has an emotional tone. The tool returns immediately (fire-and-forget) to avoid latency.
-- **Secondary heuristics** in the orchestrator fill gaps (state-derived emotes, lightweight cues).
-- **Timing**: emotes are queued against TTS segment ids so the face changes when the corresponding sentence starts playing, not when it was generated.
+| Item | Value |
+| --- | --- |
+| Source | DAC echo lane of the raw recorder data (the AEC reference): the speaker signal after volume, in time with the speaker |
+| Access | `service::AudioEncoder::get_instance(0)->connect_recorder_data()`; published only while the encoder runs (always, for WakeNet) |
+| Format | 16 kHz; per sample frame `BITS / 16 × CHANNELS` int16 lanes (1.75C: 32 bit × 2 ch = 4 lanes, layout `RMNN`) |
+| Lane | Index of `R` in `CONFIG_BROOKESIA_HAL_ADAPTOR_AUDIO_CODEC_RECORDER_MIC_LAYOUT`; no `R` → flat ring |
+| Tap cost | Copy of one lane into a 1024-sample ring buffer in the recorder task |
 
-## 6.6 Lip-sync
+## 6.3 Rendering
 
-- Device computes RMS envelope of decoded PCM in 20 ms windows → `mouth_open = clamp((dB − floor)/range)` with attack/release smoothing. No server involvement; works with any TTS.
-- Optional upgrade: TTS providers exposing viseme/phoneme timings → server sends `avatar.visemes` alongside audio for shape-accurate mouths.
+### 6.3.1 Geometry and signal mapping
 
-## 6.7 Captions and overlays
+| Parameter | Value |
+| --- | --- |
+| Base radius | 0.30 × min(w, h) (1.75C: 140 px) |
+| Full-scale deflection | ± 0.16 × min(w, h) (± 75 px) |
+| Points | 96 per half circle, top to bottom; left half mirrored (closed, seamless, symmetric) |
+| Window | Last 480 samples (30 ms), DC removed; point k = mean of samples 5k…5k+4 |
+| Normalisation | Divide by a peak envelope: instant attack, ×0.967 per frame release (~1 s at 30 fps), floor 1500 (int16) |
+| Smoothing per point | Attack 0.6, release 0.25 per frame |
+| Silence gate | RMS < `HOMUNCULUS_VIS_GATE_DBFS` (−55 dBFS): targets 0; below 0.01 deflection the ring snaps flat |
+| Line | Soft round stamp, radius 3 px (solid core 1 px, falloff), every 1.5 px along each segment, max-blend |
+| Colour index | 8 levels by \|deflection\| × 8 (base ring → largest deflection), interpolated along segments |
 
-- Optional captions (user transcript, agent sentence) rendered along the lower arc of the round display.
-- Cards (`device.show_text`), QR codes (`device.show_qr`) and images overlay the face; the face shrinks/moves up to stay visible.
+### 6.3.2 State palettes
+
+Three colour stops (base → mid → peak deflection), scaled by brightness and by stamp intensity (64 levels).
+
+| UI state | Stops (RGB) | Brightness |
+| --- | --- | --- |
+| Offline | `303030` → `606060` → `909090` | 0.6 |
+| Idle | `00a050` → `40e080` → `c0ffd0` | 0.45 |
+| Listening | `00c060` → `60ff90` → `e0ffe0` | 1.0 |
+| Thinking | `1040e0` → `30a0ff` → `c0e8ff` | 1.0 |
+| Speaking | `c020e0` → `6f8af6` → `e9dbfc` (mid/peak from `lv_demo_music`) | 1.0 |
+
+The waveform is drawn in every state whenever the reference lane is above the gate (e.g. a late tail of speech after barge-in shows in the Listening palette).
+
+### 6.3.3 Rasterisation and flush
+
+- Only the right half is rasterised; stamps crossing the vertical axis are reflected.
+- Per band of 10 rows (Brookesia max transfer: 10 lines × 466 px × 2 B = 9320 B): intensity plane and colour-index plane (233 × 10 B each, PSRAM), converted through a 8 × 64 LUT into byte-swapped RGB565 in one internal DMA buffer (9320 B), flushed with `draw_bitmap_sync` (100 ms timeout).
+- Per band the flushed columns are the union of this frame's and the previous frame's drawn columns: one rectangle across the axis, or two (left and right arc). Bands with neither are skipped.
+- CO5300: rectangle x start and width rounded to even.
+- Frame rate `HOMUNCULUS_VIS_FPS` (30) while the ring is deflected or the state changed; otherwise the thread polls every 50 ms without drawing.
+- Host measurement (`test/host/run.sh`, synthetic speech): 73 k px flushed per speech frame (34 % of 466²); flat ring: 17.6 k px.
+
+### 6.3.4 Thread and memory
+
+| Item | Value |
+| --- | --- |
+| Thread | `hom_vis`, prio 3, no core affinity, 6 KB stack in PSRAM |
+| Internal RAM | 9320 B DMA buffer + 2 KB tap ring buffer |
+| PSRAM | 2 × 2330 B planes, renderer state (~5 KB) |
+| Ownership | After `Visualizer::start()` the render thread does all panel drawing; it clears the screen once at start |
+| Fallback | Visualizer disabled or start failure (panel not 16 bpp or odd width, allocation failure): solid state colours (Phase 1 behaviour) |
+| Stats | `[stats] visualizer N frames, avg X ms, max Y ms` with each system stats line |
+
+## 6.4 Code
+
+| Path | Content |
+| --- | --- |
+| `firmware/components/homunculus_avatar/src/ring_renderer.{hpp,cpp}` | Platform-independent rasteriser (signal mapping, palettes → LUT, bands, flush rectangles) |
+| `firmware/components/homunculus_avatar/src/visualizer.cpp` | Reference-lane tap, render thread, state palettes, stats |
+| `firmware/components/homunculus_avatar/test/host/` | Host test: flat ring geometry, mirror symmetry, rectangle alignment, erase on silence; optional PPM contact sheet |
+
+Kconfig (`Homunculus visualizer` menu):
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `HOMUNCULUS_VISUALIZER` | y | Ring visualizer; n = solid state colours |
+| `HOMUNCULUS_VIS_FPS` | 30 | Frame rate while the ring moves |
+| `HOMUNCULUS_VIS_GATE_DBFS` | −55 | Silence gate (RMS of the reference lane) |
+
+## 6.5 Phase 2 exit criteria
+
+| Criterion | Status |
+| --- | --- |
+| Ring follows speaker output during agent speech, in time with the audio | Pending hardware |
+| ≥ 25 fps during speech (`[stats] visualizer`) | Pending hardware |
+| Palette changes with UI state | Pending hardware |
+| No added downlink underruns or AFE overruns; CPU per core and internal heap minimum measured against p1d (§8.7) | Pending hardware |
+| Reference lane carries the speaker signal (lane `R` of `RMNN`) | Pending hardware |
