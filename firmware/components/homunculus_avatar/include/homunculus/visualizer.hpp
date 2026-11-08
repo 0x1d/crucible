@@ -8,6 +8,7 @@
 
 #include <atomic>
 #include <cstdint>
+#include <mutex>
 #include <string>
 #include <thread>
 #include "brookesia/hal_interface.hpp"
@@ -26,6 +27,12 @@ public:
     bool start(esp_brookesia::hal::display::PanelIface *panel);
     void set_state(UiState s);
 
+    // Full-screen cards replace the ring until hide_card() (spec 06 §6.6). Any thread.
+    // Confirmation: title, detail, deny / approve buttons. Text: centred text only.
+    void show_confirm_card(const std::string &title, const std::string &detail);
+    void show_text_card(const std::string &text);
+    void hide_card();
+
     // Frames, average/max frame time, flush time and flushed rows since the previous call (stats log).
     std::string take_stats();
 
@@ -42,6 +49,16 @@ private:
     esp_brookesia::lib_utils::scoped_connection recorder_connection_;
     std::thread thread_;
     std::atomic<UiState> state_{UiState::Offline};
+
+    struct Card {
+        bool confirm = false;
+        std::string title, detail;
+    };
+    std::mutex card_mutex_;
+    Card card_;
+    bool card_active_ = false;
+    std::atomic<uint32_t> card_version_{0};
+    void set_card(bool active, Card card);
 
     // Reference-lane ring buffer (recorder task writes, render thread reads).
     static constexpr uint32_t RING = 1024;

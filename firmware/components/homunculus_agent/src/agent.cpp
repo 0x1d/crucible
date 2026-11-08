@@ -306,6 +306,17 @@ void HomunculusAgent::set_state_callback(StateCallback cb)
     state_cb_ = std::move(cb);
 }
 
+void HomunculusAgent::set_confirm_callback(ConfirmCallback cb)
+{
+    confirm_cb_ = std::move(cb);
+}
+
+void HomunculusAgent::add_tool(std::string name, std::string description, boost::json::object input_schema,
+                               ToolHandler handler)
+{
+    tools_.push_back({{std::move(name), std::move(description), std::move(input_schema)}, std::move(handler)});
+}
+
 void HomunculusAgent::set_caption_callback(CaptionCallback cb)
 {
     caption_cb_ = std::move(cb);
@@ -320,6 +331,24 @@ void HomunculusAgent::touch()
         } else {
             start_listen("touch", nullptr, "barge_in");
         }
+    });
+}
+
+void HomunculusAgent::touch_at(int x, int y, int width, int height)
+{
+    post([=, this] {
+        if (confirm_id_.empty()) {
+            ESP_LOGI(TAG, "touch (ui %s)", to_string(ui_.load()));
+            if (ui_ == UiState::Listening) {
+                end_uplink(true, "touch");
+            } else {
+                start_listen("touch", nullptr, "barge_in");
+            }
+            return;
+        }
+        // Ignore the tap that may have been in progress when the card appeared, and the upper half.
+        if (now_us() - confirm_shown_us_ < 400 * 1000 || y < height * 62 / 100) return;
+        finish_confirm(true, x >= width / 2, "touch");
     });
 }
 
@@ -367,9 +396,17 @@ void HomunculusAgent::worker_loop()
     ESP_LOGI(TAG, "worker end");
 }
 
+std::vector<hdp::ToolDescriptor> HomunculusAgent::tool_descriptors() const
+{
+    std::vector<hdp::ToolDescriptor> out;
+    for (const auto &t : tools_) out.push_back(t.desc);
+    return out;
+}
+
 void HomunculusAgent::tick()
 {
     const int64_t now = now_us();
+    if (!confirm_id_.empty() && now > confirm_deadline_us_) finish_confirm(true, false, "timeout");
 
     if (!client_ && wifi::is_connected()) {
         connect();
@@ -508,7 +545,7 @@ void HomunculusAgent::handle_connected()
         .battery = std::nullopt,
         .avatar_engine = {},
         .emotes = {},
-        .tools = {},
+        .tools = tool_descriptors(),
         .resume_session_id = session_id_,
     };
     send(hdp::make_hello(p));
@@ -516,6 +553,7 @@ void HomunculusAgent::handle_connected()
 
 void HomunculusAgent::handle_disconnected()
 {
+    finish_confirm(false, false, "disconnected");
     const bool was_ready = session_ready_.exchange(false);
     if (was_ready) ESP_LOGW(TAG, "hdp session lost");
     abort_uplink();
@@ -578,9 +616,7 @@ void HomunculusAgent::handle_text(const std::string &text)
         handle_tool_call(m);
         break;
     case hdp::ServerType::ConfirmRequest:
-        // No confirmation UI yet (Phase 3): deny.
-        ESP_LOGW(TAG, "confirm.request %s denied (no confirmation UI)", m.request_id.c_str());
-        send(hdp::make_confirm_result(m.request_id, false));
+        handle_confirm_request(m);
         break;
     case hdp::ServerType::Notify:
         if (caption_cb_) caption_cb_(true, m.text, true);
@@ -670,8 +706,42 @@ void HomunculusAgent::handle_tts(const hdp::ServerMessage &m)
 void HomunculusAgent::handle_tool_call(const hdp::ServerMessage &m)
 {
     ESP_LOGI(TAG, "tool.call %s", m.tool_name.c_str());
-    // Phase 3 device bridge: report not-implemented for now.
-    send(hdp::make_tool_error(m.rpc_id, -32601, "device tool not implemented"));
+    const auto it = std::find_if(tools_.begin(), tools_.end(), [&](const Tool &t) { return t.desc.name == m.tool_name; });
+    if (it == tools_.end()) {
+        send(hdp::make_tool_error(m.rpc_id, -32601, "unknown device tool " + m.tool_name));
+        return;
+    }
+    const ToolReply r = it->handler(m.arguments);
+    ESP_LOGI(TAG, "tool %s -> %s: %s", m.tool_name.c_str(), r.ok ? "ok" : "error", r.text.c_str());
+    auto result = hdp::text_content(r.text);
+    if (!r.ok) result.as_object()["isError"] = true;
+    send(hdp::make_tool_result(m.rpc_id, result));
+}
+
+void HomunculusAgent::handle_confirm_request(const hdp::ServerMessage &m)
+{
+    if (!confirm_cb_ || !confirm_id_.empty()) {
+        ESP_LOGW(TAG, "confirm.request %s denied (%s)", m.request_id.c_str(),
+                 confirm_cb_ ? "another confirmation pending" : "no confirmation UI");
+        send(hdp::make_confirm_result(m.request_id, false));
+        return;
+    }
+    ESP_LOGI(TAG, "confirm.request %s: %s", m.request_id.c_str(), m.title.c_str());
+    confirm_id_ = m.request_id;
+    confirm_shown_us_ = now_us();
+    // Answer a little before the server gives up, so the denial is not lost.
+    const int64_t ms = std::max<int64_t>(500, static_cast<int64_t>(m.timeout_ms) - 500);
+    confirm_deadline_us_ = confirm_shown_us_ + ms * 1000;
+    confirm_cb_(true, m.title, m.detail);
+}
+
+void HomunculusAgent::finish_confirm(bool answer, bool approved, const char *why)
+{
+    if (confirm_id_.empty()) return;
+    ESP_LOGI(TAG, "confirm %s: %s (%s)", confirm_id_.c_str(), approved ? "approved" : "denied", why);
+    if (answer) send(hdp::make_confirm_result(confirm_id_, approved));
+    confirm_id_.clear();
+    if (confirm_cb_) confirm_cb_(false, {}, {});
 }
 
 void HomunculusAgent::send(const std::string &text)
@@ -703,6 +773,7 @@ void HomunculusAgent::start_listen(const char *trigger, const char *wake_word, c
         send(hdp::make_abort(abort_reason ? abort_reason : "barge_in"));
         stop_playback();
     }
+    finish_confirm(false, false, "listen");
 
     const int64_t t = now_us();
     {
@@ -809,6 +880,7 @@ void HomunculusAgent::speech_finished(uint32_t generation)
 
 void HomunculusAgent::to_idle()
 {
+    finish_confirm(false, false, "turn ended");
     thinking_deadline_us_ = 0;
     stop_playback();
     set_ui(UiState::Idle);

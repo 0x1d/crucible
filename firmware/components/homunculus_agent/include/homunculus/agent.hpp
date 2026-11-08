@@ -54,16 +54,32 @@ public:
     using StateCallback = std::function<void(UiState)>;
     // is_agent: true = agent speech (tts segment text), false = user transcript (stt).
     using CaptionCallback = std::function<void(bool is_agent, const std::string &text, bool final)>;
+    // Confirmation card: show = true with the request text, false to remove it. Worker thread.
+    using ConfirmCallback = std::function<void(bool show, const std::string &title, const std::string &detail)>;
+
+    // Device tool (spec 03 §3.4), declared in hello and invoked by tool.call on the worker thread:
+    // handlers must return quickly. `ok` false -> MCP isError result with `text`.
+    struct ToolReply {
+        bool ok = true;
+        std::string text;
+    };
+    using ToolHandler = std::function<ToolReply(const boost::json::object &arguments)>;
 
     static HomunculusAgent &get_instance();
 
     // Set before the agent starts; invoked from the agent worker thread.
     void set_state_callback(StateCallback cb);
     void set_caption_callback(CaptionCallback cb);
+    void set_confirm_callback(ConfirmCallback cb);
+    // Registers a device tool; `input_schema` is the JSON Schema of the arguments. Before the agent starts.
+    void add_tool(std::string name, std::string description, boost::json::object input_schema, ToolHandler handler);
 
     // Tap on the screen: start listening, end the utterance while listening,
     // or barge in while thinking / speaking.
     void touch();
+    // Tap at panel coordinates: answers a pending confirmation (lower half: left deny, right
+    // approve); otherwise as touch().
+    void touch_at(int x, int y, int width, int height);
     // Same handling as a detected wake word (development console).
     void simulate_wake_word();
     // Closes the HDP connection; the worker reconnects and resumes the session (development console).
@@ -101,7 +117,11 @@ private:
     void handle_hello(const hdp::ServerMessage &m);
     void handle_tts(const hdp::ServerMessage &m);
     void handle_tool_call(const hdp::ServerMessage &m);
+    void handle_confirm_request(const hdp::ServerMessage &m);
+    // Ends the pending confirmation; `answer` true sends confirm.result{approved}.
+    void finish_confirm(bool answer, bool approved, const char *why);
     void send(const std::string &text);
+    std::vector<hdp::ToolDescriptor> tool_descriptors() const;
 
     void on_wake_word();
     void start_listen(const char *trigger, const char *wake_word, const char *abort_reason);
@@ -131,6 +151,16 @@ private:
     std::shared_ptr<HdpClient> client_;  // written by the worker under uplink_mutex_
     StateCallback state_cb_;
     CaptionCallback caption_cb_;
+    ConfirmCallback confirm_cb_;
+    struct Tool {
+        hdp::ToolDescriptor desc;
+        ToolHandler handler;
+    };
+    std::vector<Tool> tools_;
+    // Pending confirmation (worker)
+    std::string confirm_id_;  // empty: none
+    int64_t confirm_shown_us_ = 0;
+    int64_t confirm_deadline_us_ = 0;
     std::atomic<UiState> ui_{UiState::Offline};
     std::string wake_word_ = "computer";
 

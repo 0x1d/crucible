@@ -316,7 +316,7 @@ Same setup with first segment 4–12 words and without the voice rule: first dow
 | Tool source | Implementation | Exposure to backend |
 | --- | --- | --- |
 | Avatar | In-process: `avatar.express(emote, intensity?, duration_ms?)`, `avatar.gesture(name)` | Claude: in-process SDK MCP server; OpenCode: local HTTP MCP endpoint |
-| Device bridge | Generated from `hello.tools`; calls forwarded as `tool.call` over HDP, awaiting `tool.result` (timeout 5 s) | as above |
+| Device bridge | Generated from `hello.tools` (`DeviceBridge`): agent tool name = device name without `device.` prefix, in-process MCP server `device` (JSON Schema → zod via `z.fromJSONSchema`); calls forwarded as `tool.call` over HDP, awaiting `tool.result` (timeout 5 s → error result) | as above |
 | Built-ins | Claude: `WebSearch`, `WebFetch`, etc.; OpenCode: its built-in tools | backend-native |
 | External MCP | Configured per profile (e.g. calendar, home automation, notes, memory) | backend-native MCP config |
 | Server meta-tools | `homunculus.remember`, `homunculus.set_timer`, `homunculus.switch_backend` | as avatar |
@@ -329,6 +329,8 @@ Same setup with first segment 4–12 words and without the voice rule: first dow
 | Device actuation | volume, brightness, show text | allow |
 | External side effects | send message, create calendar event, home automation | **ask on device** (`confirm.request`) |
 | Host access | shell, file write | deny (opt-in per profile, sandboxed `cwd`) |
+
+Device tools: allow list in `server/src/tools/policy.ts` (`device.set_volume`, `set_brightness`, `show_text`, `show_qr`, `show_image`, `get_status`, `get_motion`, `set_timer`); any other device tool is `ask`. `ask` tools are not in `allowedTools`; `canUseTool` sends `confirm.request` (timeout 30 s; denied on timeout, abort/barge-in, disconnect) and resolves on `confirm.result`. Avatar state `confirming` while a confirmation waits. Permission mode `default` when device tools exist, else `dontAsk`.
 
 ## 5.7 Persistence
 

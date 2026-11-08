@@ -14,6 +14,7 @@
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "brookesia/service_audio/service_audio.hpp"
+#include "card_renderer.hpp"
 #include "ring_renderer.hpp"
 #include "sdkconfig.h"
 
@@ -68,6 +69,31 @@ Visualizer &Visualizer::get_instance()
 void Visualizer::set_state(UiState s)
 {
     state_.store(s);
+}
+
+void Visualizer::set_card(bool active, Card card)
+{
+    {
+        std::lock_guard lock(card_mutex_);
+        card_active_ = active;
+        card_ = std::move(card);
+    }
+    card_version_++;
+}
+
+void Visualizer::show_confirm_card(const std::string &title, const std::string &detail)
+{
+    set_card(true, {true, title, detail});
+}
+
+void Visualizer::show_text_card(const std::string &text)
+{
+    set_card(true, {false, text, {}});
+}
+
+void Visualizer::hide_card()
+{
+    set_card(false, {});
 }
 
 std::string Visualizer::take_stats()
@@ -187,8 +213,41 @@ void Visualizer::render_loop()
     bool flat_drawn = false;  // the flat ring for `shown` is on screen
     int64_t next_us = esp_timer_get_time();
     int64_t last_update_us = next_us;
+    uint32_t card_seen = 0;
+    bool card_shown = false;
 
     while (true) {
+        const uint32_t card_version = card_version_.load();
+        if (card_version != card_seen) {
+            card_seen = card_version;
+            Card card;
+            bool active;
+            {
+                std::lock_guard lock(card_mutex_);
+                card = card_;
+                active = card_active_;
+            }
+            if (active) {
+                if (card.confirm) {
+                    card::draw_confirm(fb, W, H, card.title, card.detail);
+                } else {
+                    card::draw_text(fb, W, H, card.title);
+                }
+            } else {
+                std::memset(fb, 0, static_cast<size_t>(W) * H * 2);
+                flat_drawn = false;  // the ring is redrawn on the cleared framebuffer
+            }
+            flush(0, H);
+            card_shown = active;
+            next_us = esp_timer_get_time();
+            continue;
+        }
+        if (card_shown) {
+            vTaskDelay(pdMS_TO_TICKS(IDLE_POLL_MS));
+            next_us = esp_timer_get_time();
+            last_update_us = next_us;
+            continue;
+        }
         const uint32_t w = ring_w_.load(std::memory_order_acquire);
         if (esp_timer_get_time() < test_tone_until_us_) {
             // 180 / 720 / 2100 Hz mix, phase advancing with time (development console `v`).

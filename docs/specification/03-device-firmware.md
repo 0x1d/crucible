@@ -115,8 +115,8 @@ Turn handling:
 | `avatar{state: idle}` / `agent.status{done \| error}` / `error` while Thinking | Idle |
 | No `tts{start}` within `HOMUNCULUS_THINKING_TIMEOUT_MS` | Idle |
 | `tts{start}` while listening (uplink not ending) | Ignored |
-| `confirm.request` | `confirm.result{approved: false}` (no confirmation UI) |
-| `tool.call` | JSON-RPC error −32601 |
+| `confirm.request` | Confirmation card (spec 06 §6.6); tap right half of the lower screen approves, left half denies; denied on timeout (`timeout_ms` − 0.5 s), barge-in, turn end, disconnect, a second concurrent request, or no display |
+| `tool.call` | Handler of the registered device tool runs on the worker thread: MCP text result (`isError` on failure); unknown tool → JSON-RPC error −32601 |
 | Disconnect / Wi-Fi loss | Uplink stopped, deadlines cleared, playback flushed, Offline; Wi-Fi loss also closes the WebSocket |
 | Reconnect | `hello.resume.session_id` = last session id; backoff reset on server `hello` |
 | Non-`hello` first server message | Logged and ignored |
@@ -137,7 +137,7 @@ Kconfig (`Homunculus agent` menu):
 | `HOMUNCULUS_MAX_UTTERANCE_MS` | 15000 | Device-side utterance limit |
 | `HOMUNCULUS_THINKING_TIMEOUT_MS` | 90000 | Thinking → Idle without `tts{start}` |
 | `HOMUNCULUS_DEVICE_ENDPOINT`, `_MIN_MS` | n, 1200 | Reserved (device-side VAD endpointing, not implemented) |
-| `HOMUNCULUS_SPEAKER_VOLUME` | 100 | AudioPlayback `SetVolume` at boot (Brookesia default and persisted value: 75 %) |
+| `HOMUNCULUS_SPEAKER_VOLUME` | 85 | AudioPlayback `SetVolume` at boot (Brookesia default and persisted value: 75 %) |
 | `HOMUNCULUS_TURN_STATS` | y | Per-turn uplink / latency log |
 | `HOMUNCULUS_SYSTEM_STATS_INTERVAL_S` | 5 | Per-core CPU load, heap, thread stack log interval (0 = off) |
 | `HOMUNCULUS_DEV_CONSOLE` | y | USB-Serial-JTAG single-key console (`t` tap, `w` wake word, `s` stats, `r` HDP reconnect, `d` Wi-Fi disconnect) |

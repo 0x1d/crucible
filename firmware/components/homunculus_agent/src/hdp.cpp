@@ -431,8 +431,11 @@ bool parse_typed(ServerMessage &m, std::string &err)
     }
     if (t == "confirm.request") {
         m.type = ServerType::ConfirmRequest;
-        return k.str("request_id", &m.request_id) && k.str("title", nullptr) && k.str("detail", nullptr) &&
-               k.uint("timeout_ms", nullptr);
+        std::optional<uint32_t> timeout;
+        const bool ok = k.str("request_id", &m.request_id) && k.str("title", &m.title) && k.str("detail", &m.detail) &&
+               k.uint("timeout_ms", &timeout);
+        m.timeout_ms = timeout.value_or(0);
+        return ok;
     }
     if (t == "notify") {
         m.type = ServerType::Notify;

@@ -150,6 +150,9 @@ struct ServerMessage {
     boost::json::object arguments;
     // confirm.request
     std::string request_id;
+    std::string title;
+    std::string detail;
+    uint32_t timeout_ms = 0;
     // error
     std::string code;
     std::string message;

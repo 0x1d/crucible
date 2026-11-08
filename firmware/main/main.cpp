@@ -8,6 +8,7 @@
 #include <chrono>
 #include <cstdint>
 #include <mutex>
+#include <optional>
 #include <thread>
 #include <vector>
 #include <string>
@@ -15,6 +16,7 @@
 #include "driver/usb_serial_jtag_vfs.h"
 #include "esp_heap_caps.h"
 #include "esp_timer.h"
+#include "esp_system.h"
 #include "esp_wifi.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -143,6 +145,130 @@ void show_ui_state(homunculus::UiState s)
     }
 }
 
+// ---------------------------------------------------------------------------
+// Cards and device tools (spec 03 §3.4, spec 06 §6.6)
+
+enum class CardOwner { None, Text, Confirm };
+std::mutex g_card_mutex;
+CardOwner g_card_owner = CardOwner::None;
+esp_timer_handle_t g_text_timer = nullptr;
+
+// A confirmation replaces a text card; a text card never replaces a confirmation.
+void on_confirm(bool show, const std::string &title, const std::string &detail)
+{
+    if (!g_visualizer) return;
+    std::lock_guard lock(g_card_mutex);
+    auto &vis = homunculus::Visualizer::get_instance();
+    if (show) {
+        if (g_text_timer) esp_timer_stop(g_text_timer);
+        g_card_owner = CardOwner::Confirm;
+        vis.show_confirm_card(title, detail);
+    } else if (g_card_owner == CardOwner::Confirm) {
+        g_card_owner = CardOwner::None;
+        vis.hide_card();
+    }
+}
+
+void hide_text_card(void *)
+{
+    std::lock_guard lock(g_card_mutex);
+    if (g_card_owner != CardOwner::Text) return;
+    g_card_owner = CardOwner::None;
+    homunculus::Visualizer::get_instance().hide_card();
+}
+
+using homunculus::HomunculusAgent;
+using Reply = HomunculusAgent::ToolReply;
+
+// Integer argument in [lo, hi]; nullopt when missing or out of range.
+std::optional<int> int_arg(const boost::json::object &a, const char *key, int lo, int hi)
+{
+    const auto *v = a.if_contains(key);
+    if (!v || !v->is_number()) return std::nullopt;
+    const double d = v->to_number<double>();
+    if (d < lo || d > hi) return std::nullopt;
+    return static_cast<int>(d);
+}
+
+void register_device_tools(HomunculusAgent &agent)
+{
+    namespace json = boost::json;
+    esp_timer_create_args_t timer_args = {};
+    timer_args.callback = hide_text_card;
+    timer_args.name = "text_card";
+    esp_timer_create(&timer_args, &g_text_timer);
+
+    auto level_schema = [](int lo, int hi) {
+        return json::object{{"type", "object"},
+                            {"properties", {{"level", {{"type", "integer"}, {"minimum", lo}, {"maximum", hi}}}}},
+                            {"required", {"level"}}};
+    };
+
+    agent.add_tool("device.set_volume", "Set the speaker volume (0-100 percent)", level_schema(0, 100),
+    [](const json::object &a) -> Reply {
+        const auto level = int_arg(a, "level", 0, 100);
+        if (!level) return {false, "level must be an integer from 0 to 100"};
+        using Playback = service::helper::AudioPlayback;
+        auto r = Playback::call_function_sync(Playback::FunctionId::SetVolume, static_cast<double>(*level));
+        if (!r) return {false, "volume change failed: " + r.error()};
+        return {true, "volume set to " + std::to_string(*level) + " percent"};
+    });
+
+    agent.add_tool("device.set_brightness", "Set the screen brightness (1-100 percent)", level_schema(1, 100),
+    [](const json::object &a) -> Reply {
+        const auto level = int_arg(a, "level", 1, 100);
+        if (!level) return {false, "level must be an integer from 1 to 100"};
+        if (!g_backlight) return {false, "no backlight"};
+        g_backlight->set_brightness(*level);
+        return {true, "brightness set to " + std::to_string(*level) + " percent"};
+    });
+
+    agent.add_tool("device.show_text",
+                   "Show a short text card on the screen for a while, e.g. a phone number or an address",
+                   json::object{{"type", "object"},
+                                {"properties",
+                                 {{"text", {{"type", "string"}, {"maxLength", 160}}},
+                                  {"duration_s", {{"type", "integer"}, {"minimum", 1}, {"maximum", 120}, {"default", 15}}}}},
+                                {"required", {"text"}}},
+    [](const json::object &a) -> Reply {
+        const auto *t = a.if_contains("text");
+        if (!t || !t->is_string() || t->get_string().empty()) return {false, "text must be a non-empty string"};
+        const int seconds = a.contains("duration_s") ? int_arg(a, "duration_s", 1, 120).value_or(0) : 15;
+        if (seconds == 0) return {false, "duration_s must be an integer from 1 to 120"};
+        if (!g_visualizer) return {false, "no display"};
+        std::lock_guard lock(g_card_mutex);
+        if (g_card_owner == CardOwner::Confirm) return {false, "a confirmation is showing"};
+        g_card_owner = CardOwner::Text;
+        homunculus::Visualizer::get_instance().show_text_card(std::string(t->get_string()));
+        esp_timer_stop(g_text_timer);
+        esp_timer_start_once(g_text_timer, static_cast<uint64_t>(seconds) * 1000000);
+        return {true, "text shown for " + std::to_string(seconds) + " seconds"};
+    });
+
+    agent.add_tool("device.get_status", "Get device status: uptime, free memory, Wi-Fi signal strength",
+                   json::object{{"type", "object"}, {"properties", json::object{}}},
+    [](const json::object &) -> Reply {
+        wifi_ap_record_t ap = {};
+        const bool wifi = esp_wifi_sta_get_ap_info(&ap) == ESP_OK;
+        char buf[160];
+        std::snprintf(buf, sizeof(buf), "uptime %lld s, free memory %u KB, Wi-Fi signal %s%d dBm",
+                      static_cast<long long>(esp_timer_get_time() / 1000000),
+                      static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_SPIRAM) / 1024),
+                      wifi ? "" : "n/a ", wifi ? ap.rssi : 0);
+        return {true, buf};
+    });
+
+    // Development: a tool the server policy does not know asks for confirmation (default-deny).
+    agent.add_tool("device.reboot", "Restart the device", json::object{{"type", "object"}, {"properties", json::object{}}},
+    [](const json::object &) -> Reply {
+        std::thread([] {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+            esp_restart();
+        }).detach();
+        return {true, "restarting"};
+    });
+}
+
 std::atomic<bool> g_touch_run{true};
 
 void touch_task()
@@ -180,7 +306,8 @@ void touch_task()
             // 300 ms debounce: one tap can report release/press pairs.
             const int64_t now = esp_timer_get_time();
             if (now - last_tap_us > 300 * 1000) {
-                homunculus::HomunculusAgent::get_instance().touch();
+                const auto &p = points.front();
+                homunculus::HomunculusAgent::get_instance().touch_at(p.x, p.y, info.x_max + 1, info.y_max + 1);
             }
             last_tap_us = now;
         }
@@ -351,7 +478,7 @@ void start_thread(const char *name, size_t stack, void (*fn)())
 
 extern "C" void app_main(void)
 {
-    BROOKESIA_LOGI("=== Homunculus (Phase 2: audio visualizer) ===");
+    BROOKESIA_LOGI("=== Homunculus (Phase 3: device tools) ===");
     for (const char *tag : {"ESP_GMF_TASK", "ESP_GMF_PORT", "ESP_GMF_POOL", "GMF_AFE", "ESP_GMF_AENC", "AFE_MANAGER",
                             "AUD_RENDER", "AUDIO_PROCESSOR", "AUD_SDEC", "AFE_CONFIG", "NEW_DATA_BUS"}) {
         esp_log_level_set(tag, ESP_LOG_WARN);
@@ -383,6 +510,8 @@ extern "C" void app_main(void)
     // Wire display state feedback before activation so boot states are visible.
     auto &agent = homunculus::HomunculusAgent::get_instance();
     agent.set_state_callback([](homunculus::UiState s) { show_ui_state(s); });
+    agent.set_confirm_callback(on_confirm);
+    register_device_tools(agent);
 
     // Start Wi-Fi; the agent's worker thread opens the HDP connection once connected.
     BROOKESIA_CHECK_FALSE_EXIT(homunculus::wifi::start(), "Failed to start Wi-Fi");

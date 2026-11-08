@@ -64,7 +64,7 @@ gantt
 | 1 — Voice MVP | Wake word → answer by voice with web search; barge-in works; latency measured per stage | **Met on hardware 2026-11-08**; in-person checks pending (§8.7) |
 | 2 — Audio visualizer | Ring waveform follows speaker output ≥ 15 fps; palette per UI state; speech without stutter (spec 06 §6.5) | **Done 2026-11-08**; underruns / CPU during speech not measured |
 | 2F — Procedural face | All states and emotes rendered ≥ 20 fps; lip-sync; agent drives emotions ([06-avatar-face-deferred.md](06-avatar-face-deferred.md)) | **Deferred** (D-20) |
-| 3B — Device tools + confirmations | Agent calls device tools; confirmation flow on the device replaces D-18 | **Next** |
+| 3B — Device tools + confirmations | Agent calls device tools; confirmation flow on the device replaces D-18 | **Implemented 2026-11-08**; on-hardware check pending |
 | 3C — Provisioning, pairing, OTA | Wi-Fi provisioning + server pairing on the device; OTA firmware update | Open (after 3B) |
 | 3A — OpenCode backend | Backend switchable (Claude / OpenCode) per device profile (spec 05 §5.3.3) | **Deferred** (D-22) |
 | 4 — Multi-device | Second board with different display shape runs the same firmware and server unchanged | Open |
@@ -121,7 +121,7 @@ Product decisions taken on resolved open items. Decided 2026-11-07.
 | D-15 | **Brookesia agent never sleeps** | Wake word from AudioEncoder `AFEEventHappened`; `afe_wake_start/end_timeout_ms` = 0 (no WakeEnd → no automatic Sleep). |
 | D-16 | **Brookesia chat mode RealTime; uplink gated by HomunculusAgent** | |
 | D-17 | **Agent thread stacks in PSRAM, 8 KB each** | Internal RAM is the scarce resource (min 50 KB during turns). Measured use: worker 4.0 KB, player 2.1 KB. |
-| D-18 | **Device answers `confirm.request` with `approved:false`** | Until a confirmation UI exists (Phase 3). |
+| D-18 | **Device answers `confirm.request` with `approved:false`** | Superseded by the confirmation card (Phase 3B). |
 | D-19 | **Kokoro runs in a child process** | In-process inference stalled the event loop up to 219 ms (> 180 ms downlink prebuffer → device underruns, delayed aborts); child process: max 4 ms. Worker thread rejected: onnxruntime-node aborts with sessions on main thread (Silero) and a worker. |
 | D-20 | **Phase 2 = circular audio-output visualizer; procedural face deferred** | Ring waveform of the speaker signal (ES7210 DAC echo lane), colour per UI state, direct panel rendering without LVGL (spec 06). Face spec kept unchanged as 06-avatar-face-deferred.md. Decided 2026-11-08. |
 | D-21 | **Firmware built with `-O2`** | `CONFIG_COMPILER_OPTIMIZATION_PERF` (as the vendor example). Idle CPU 64 / 45 % → 57 / 36 %, internal free 67 → 72 KB (spec 03 §3.2.2). Brookesia service manager worker poll stays at 5 ms: 10 ms saved ~8 % of one core at `-Og` but adds up to 10 ms to every downlink audio write. Decided 2026-11-08. |

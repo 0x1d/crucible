@@ -293,6 +293,7 @@ int main(int argc, char **argv)
     auto confirm = hdp::parse_server_message(
                        R"({"type":"confirm.request","request_id":"c9","title":"t","detail":"d","timeout_ms":1000})");
     CHECK(confirm.type == hdp::ServerType::ConfirmRequest && confirm.request_id == "c9", "confirm.request id");
+    CHECK(confirm.title == "t" && confirm.detail == "d" && confirm.timeout_ms == 1000, "confirm.request fields");
     std::printf("%d checks, %d failures\n", g_checks, g_failures);
     return g_failures == 0 ? 0 : 1;
 }
