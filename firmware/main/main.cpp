@@ -265,7 +265,7 @@ void console_task()
     if (usb_serial_jtag_driver_install(&cfg) == ESP_OK) {
         usb_serial_jtag_vfs_use_driver();
     }
-    BROOKESIA_LOGI("[console] keys: t = touch, w = wake word, s = stats, r = HDP reconnect, d = Wi-Fi disconnect");
+    BROOKESIA_LOGI("[console] keys: t = touch, w = wake word, s = stats, r = HDP reconnect, d = Wi-Fi disconnect, v = visualizer test tone");
     auto &agent = homunculus::HomunculusAgent::get_instance();
     while (true) {
         uint8_t c = 0;
@@ -288,6 +288,12 @@ void console_task()
             BROOKESIA_LOGI("[console] HDP reconnect");
             agent.reconnect();
             break;
+#if CONFIG_HOMUNCULUS_VISUALIZER
+        case 'v':
+            BROOKESIA_LOGI("[console] visualizer test tone 5 s");
+            homunculus::Visualizer::get_instance().inject_test_tone(5000);
+            break;
+#endif
         case 'd':
             BROOKESIA_LOGI("[console] Wi-Fi disconnect (auto-reconnects)");
             esp_wifi_disconnect();

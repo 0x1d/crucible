@@ -26,8 +26,11 @@ public:
     bool start(esp_brookesia::hal::display::PanelIface *panel);
     void set_state(UiState s);
 
-    // Frames, average/max render+flush time since the previous call (stats log).
+    // Frames, average/max frame time, flush share and rectangles since the previous call (stats log).
     std::string take_stats();
+
+    // Development: replaces the reference lane with a synthetic speech-like tone for `ms`.
+    void inject_test_tone(uint32_t ms);
 
 private:
     Visualizer() = default;
@@ -51,6 +54,9 @@ private:
     std::atomic<uint32_t> frames_{0};
     std::atomic<uint32_t> frame_us_sum_{0};
     std::atomic<uint32_t> frame_us_max_{0};
+    std::atomic<uint32_t> flush_us_sum_{0};
+    std::atomic<uint32_t> rects_{0};
+    std::atomic<int64_t> test_tone_until_us_{0};
 };
 
 }  // namespace homunculus

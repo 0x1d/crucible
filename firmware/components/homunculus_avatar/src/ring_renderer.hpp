@@ -43,7 +43,8 @@ public:
 
     // Updates the waveform from the last WINDOW samples; returns the largest |deflection|
     // (0 = flat ring). Below `gate` RMS the ring relaxes to flat.
-    float update(const int16_t *window, float gate);
+    // `dt` is the time since the previous update in seconds (smoothing is time-based).
+    float update(const int16_t *window, float gate, float dt = 1.0f / 30);
 
     // Renders the current waveform; only bands whose drawn columns changed are flushed.
     void render(const Flush &flush);

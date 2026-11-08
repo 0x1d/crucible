@@ -74,10 +74,18 @@ std::string Visualizer::take_stats()
     const uint32_t n = frames_.exchange(0);
     const uint32_t sum = frame_us_sum_.exchange(0);
     const uint32_t max = frame_us_max_.exchange(0);
-    char buf[64];
-    std::snprintf(buf, sizeof(buf), "%u frames, avg %.1f ms, max %.1f ms", static_cast<unsigned>(n),
-                  n ? sum / n / 1000.0 : 0.0, max / 1000.0);
+    const uint32_t flush = flush_us_sum_.exchange(0);
+    const uint32_t rects = rects_.exchange(0);
+    char buf[112];
+    std::snprintf(buf, sizeof(buf), "%u frames, avg %.1f ms (flush %.1f ms, %u rects), max %.1f ms",
+                  static_cast<unsigned>(n), n ? sum / n / 1000.0 : 0.0, n ? flush / n / 1000.0 : 0.0,
+                  static_cast<unsigned>(n ? rects / n : 0), max / 1000.0);
     return buf;
+}
+
+void Visualizer::inject_test_tone(uint32_t ms)
+{
+    test_tone_until_us_ = esp_timer_get_time() + static_cast<int64_t>(ms) * 1000;
 }
 
 bool Visualizer::start(esp_brookesia::hal::display::PanelIface *panel)
@@ -144,9 +152,14 @@ void Visualizer::render_loop()
         return;
     }
     auto flush = [this](int x1, int y1, int x2, int y2, const uint16_t *px) {
+        const int64_t t = esp_timer_get_time();
         panel_->draw_bitmap_sync(x1, y1, x2, y2, reinterpret_cast<const uint8_t *>(px), 100);
+        flush_us_sum_ += static_cast<uint32_t>(esp_timer_get_time() - t);
+        rects_++;
     };
     for (int y = 0; y < H; y += ring::BAND) flush(0, y, W, std::min(y + ring::BAND, H), tx);  // clear
+    flush_us_sum_ = 0;
+    rects_ = 0;
 
     // Renderer state (~5 KB) and the sample window in PSRAM: internal RAM is the scarce resource.
     void *mem = heap_caps_malloc(sizeof(ring::Renderer), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
@@ -162,13 +175,28 @@ void Visualizer::render_loop()
     renderer->set_palette(palette_for(shown));
     bool flat_drawn = false;  // the flat ring for `shown` is on screen
     int64_t next_us = esp_timer_get_time();
+    int64_t last_update_us = next_us;
 
     while (true) {
         const uint32_t w = ring_w_.load(std::memory_order_acquire);
-        for (int i = 0; i < ring::WINDOW; i++) {
-            window[i] = w >= ring::WINDOW ? ring_[(w - ring::WINDOW + i) % RING] : 0;
+        if (esp_timer_get_time() < test_tone_until_us_) {
+            // 180 / 720 / 2100 Hz mix, phase advancing with time (development console `v`).
+            const float t0 = esp_timer_get_time() / 1e6f;
+            for (int i = 0; i < ring::WINDOW; i++) {
+                const float t = t0 + i / 16000.0f;
+                window[i] = static_cast<int16_t>(8000 * (0.6f * std::sin(2 * 3.14159f * 180 * t) +
+                                                         0.3f * std::sin(2 * 3.14159f * 720 * t) +
+                                                         0.1f * std::sin(2 * 3.14159f * 2100 * t)));
+            }
+        } else {
+            for (int i = 0; i < ring::WINDOW; i++) {
+                window[i] = w >= ring::WINDOW ? ring_[(w - ring::WINDOW + i) % RING] : 0;
+            }
         }
-        const float max_disp = renderer->update(window, gate);
+        const int64_t now_us = esp_timer_get_time();
+        const float dt = std::clamp((now_us - last_update_us) / 1e6f, 0.001f, 0.2f);
+        last_update_us = now_us;
+        const float max_disp = renderer->update(window, gate, dt);
 
         const UiState state = state_.load();
         const bool state_changed = state != shown;

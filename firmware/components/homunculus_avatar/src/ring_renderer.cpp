@@ -10,10 +10,10 @@ namespace {
 
 constexpr float BASE_RADIUS = 0.30f;  // of min(w, h)
 constexpr float DEFLECTION = 0.16f;   // of min(w, h), at full scale
-constexpr float ATTACK = 0.6f;
-constexpr float RELEASE = 0.25f;
+constexpr float ATTACK_TAU = 0.060f;   // s; time constants, so smoothing is independent of frame rate
+constexpr float RELEASE_TAU = 0.150f;
 constexpr float ENV_FLOOR = 1500.0f;  // auto-gain never amplifies below this peak (int16)
-constexpr float ENV_DECAY = 0.967f;   // per frame: ~1 s release at 30 fps
+constexpr float ENV_TAU = 0.95f;      // s: auto-gain release
 constexpr float COLOUR_GAIN = 8.0f;  // |deflection| -> colour index
 constexpr float PI = 3.14159265f;
 
@@ -77,8 +77,9 @@ void Renderer::set_palette(const Palette &p)
     }
 }
 
-float Renderer::update(const int16_t *window, float gate)
+float Renderer::update(const int16_t *window, float gate, float dt)
 {
+    const float a_attack = 1 - std::exp(-dt / ATTACK_TAU), a_release = 1 - std::exp(-dt / RELEASE_TAU);
     float mean = 0, sq = 0, peak = 0;
     for (int i = 0; i < WINDOW; i++) mean += window[i];
     mean /= WINDOW;
@@ -88,7 +89,7 @@ float Renderer::update(const int16_t *window, float gate)
         peak = std::max(peak, std::fabs(window_[i]));
     }
     const bool silent = std::sqrt(sq / WINDOW) < gate;
-    env_ = std::max({peak, env_ * ENV_DECAY, ENV_FLOOR});
+    env_ = std::max({peak, env_ * std::exp(-dt / ENV_TAU), ENV_FLOOR});
 
     float max_disp = 0;
     for (int k = 0; k < POINTS; k++) {
@@ -98,7 +99,7 @@ float Renderer::update(const int16_t *window, float gate)
             for (int j = 0; j < step; j++) target += window_[k * step + j];
             target = std::clamp(target / step / env_, -1.0f, 1.0f);
         }
-        const float rate = std::fabs(target) > std::fabs(disp_[k]) ? ATTACK : RELEASE;
+        const float rate = std::fabs(target) > std::fabs(disp_[k]) ? a_attack : a_release;
         disp_[k] += (target - disp_[k]) * rate;
         max_disp = std::max(max_disp, std::fabs(disp_[k]));
     }
