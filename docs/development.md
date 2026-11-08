@@ -126,8 +126,27 @@ pnpm --filter homunculus-server dev
 | `HOMUNCULUS_AGENT_IDLE_TIMEOUT_MS` | `90000` | Max time between agent events |
 | `HOMUNCULUS_SPEECH_IDLE_TIMEOUT_MS` | `20000` | Max time without TTS/downlink progress |
 | `HOMUNCULUS_INTERRUPT_WAIT_MS` | `8000` | Max wait for an interrupted agent stream before the session is reopened |
+| `HOMUNCULUS_MEMORY` | `1` | `0`: no long-term memory (no tools, brief, source log; spec 10) |
+| `HOMUNCULUS_MEMORY_DIR`, `HOMUNCULUS_MEMORY_SPACE` | `server/.data/memory`, `default` | Memory root and space |
+| `HOMUNCULUS_LIBRARIAN_MODEL` | `claude-sonnet-5-5` | Librarian agent model |
+| `HOMUNCULUS_LIBRARIAN_IDLE_MS` | `600000` | Session idle time before an ingest run |
+| `HOMUNCULUS_TIMEZONE` | host timezone | IANA zone for the brief, event times and the librarian |
 
 Per-device agent sandbox: `server/.data/sandbox/devices/<sanitised-device-id>-<hash>/`.
+
+Memory admin CLI (spec 10 §10.7, §10.8); `compact` and `erase` only while the server is stopped (one minigraf handle per file):
+
+```bash
+pnpm --filter homunculus-server memory brief default
+```
+
+| Command | Effect |
+| --- | --- |
+| `brief [space]` | Print the session brief and lint findings |
+| `ingest [space]`, `lint [space]` | Run the librarian now |
+| `rebuild [space]` | Reload pages; regenerate search index, `index.md`, `brief.md` |
+| `compact [space]` | Rewrite `memory.graph` without retracted datoms; squash git history |
+| `erase [space]` | Delete the memory space |
 
 Kokoro benchmark (synthesis time and whisper WER per dtype; writes `server/.data/bench-tts/*.wav`):
 
@@ -135,7 +154,7 @@ Kokoro benchmark (synthesis time and whisper WER per dtype; writes `server/.data
 pnpm --filter homunculus-server exec tsx scripts/bench-tts.ts fp32,q8 3 bf_emma
 ```
 
-Server tests (`server/test/*.test.ts`, node:test): orchestrator FSM, speech output, endpointer, Opus framing, whisper stream, gateway and pipeline run against fakes (`server/test/fakes.ts`); `speech-models.test.ts` uses the real models and is skipped when they are missing.
+Server tests (`server/test/*.test.ts`, node:test): orchestrator FSM, speech output, endpointer, Opus framing, whisper stream, gateway, pipeline and memory (librarian with a scripted agent) run against fakes (`server/test/fakes.ts`); `speech-models.test.ts` uses the real models and is skipped when they are missing.
 
 Claude SDK spike: `pnpm --filter homunculus-server spike:claude`.
 
