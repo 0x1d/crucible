@@ -569,8 +569,9 @@ export class Conversation {
   private async turnContext(text: string): Promise<string | undefined> {
     const fn = this.deps.turnContext;
     if (!fn) return undefined;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const timeout = new Promise<undefined>((r) => (timer = setTimeout(r, TURN_CONTEXT_MS)));
+    let expire!: () => void;
+    const timeout = new Promise<undefined>((r) => (expire = () => r(undefined)));
+    const timer = setTimeout(expire, TURN_CONTEXT_MS);
     try {
       return await Promise.race([fn(text).catch((e: Error) => {
         this.log.warn("turn_context_failed", { error: e.message });
