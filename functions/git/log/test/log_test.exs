@@ -54,7 +54,7 @@ defmodule AgentFn.Git.LogTest do
       git!(dir, ["add", "-A"])
       git!(dir, ["commit", "-q", "-m", msg])
 
-      assert {:ok, %{"commits" => [c]}} = Log.run(%{"cwd" => dir})
+      assert {:ok, %{"commits" => [c]}} = Log.run(%{"cwd" => dir, "numstat" => true})
       assert c["subject"] == "feat: tabs\there | pipes => arrows"
       assert c["body"] == "Body line 1\n\n1\t2\tfake.txt"
       assert Enum.map(c["files"], & &1["path"]) == ["a.txt"]
@@ -100,7 +100,7 @@ defmodule AgentFn.Git.LogTest do
       git!(dir, ["mv", "src/old.txt", "src/new.txt"])
       git!(dir, ["commit", "-q", "-m", "rename"])
 
-      assert {:ok, %{"commits" => [c | _]}} = Log.run(%{"cwd" => dir, "limit" => 1})
+      assert {:ok, %{"commits" => [c | _]}} = Log.run(%{"cwd" => dir, "limit" => 1, "numstat" => true})
       assert [%{"path" => "src/new.txt", "orig_path" => "src/old.txt"}] = c["files"]
     end
 

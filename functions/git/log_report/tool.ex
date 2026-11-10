@@ -36,7 +36,11 @@ defmodule AgentFn.Git.LogReport do
   def run(args) when is_map(args) do
     cwd = args["cwd"] || args["repo"] || File.cwd!()
     limit = args["limit"] || 10
-    log_args = args |> Map.take(@log_keys) |> Map.put("cwd", cwd) |> Map.put("limit", limit)
+
+    log_args =
+      args
+      |> Map.take(@log_keys)
+      |> Map.merge(%{"cwd" => cwd, "limit" => limit, "numstat" => true})
 
     with {:ok, log} <- Log.run(log_args) do
       commits = log["commits"]
