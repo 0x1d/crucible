@@ -138,6 +138,7 @@ Product decisions taken on resolved open items. Decided 2026-11-07.
 | D-28 | **People and places tagged with `:entity-type` (OI-17)** | `:constraint/<ident>` entities carry `:entity-type` `:type/person` / `:type/place` (attribute accepted by the temporal-reasoning schema); graph stays the only fact store; wiki pages only on request, linked to graph idents. Custom namespaces when the server schema supports them. Decided 2026-11-10. |
 | D-29 | **Pairing: QR approval page, 6-digit code, admin key** | Device discovers the server via mDNS `_homunculus._tcp` (fallback: stored / Kconfig URL), requests pairing, shows the approval URL as QR code with the code underneath; approval on the phone page needs the server admin key once per phone (cookie), or `make devices ARGS="approve <code>"`. Per-device token (32 bytes), SHA-256 at rest, bound to `X-Device-Id`, revocable. Development token `dev` accepted from loopback only. Spec 03 §3.5, spec 05 §5.9, spec 07 §7.3. Decided 2026-11-10. |
 | D-30 | **Speaker volume default 85 %, persisted** | Brookesia AudioPlayback default (`CONFIG_BROOKESIA_SERVICE_AUDIO_PLAYBACK_VOLUME_DEFAULT`); `device.set_volume` persists across reboots. Decided 2026-11-10. |
+| D-31 | **Downlink Opus 16 kHz on the 1.75C** | `hello.capabilities.audio.output.sample_rates` = `[16000]`; decoder 16 kHz. I²S playback runs at 16 kHz; a 24 kHz downlink is resampled on the device by `esp_ae_rate_cvt`, which keeps 13.6 KB of FIR tables in internal RAM after the first turn. Server resamples Kokoro (24 kHz) to 16 kHz. Decided 2026-11-10. |
 
 p1d hardware measurements (1.75C, LAN, speech pipeline):
 
@@ -152,6 +153,8 @@ p1d hardware measurements (1.75C, LAN, speech pipeline):
 - Before D-19: 2 downlink underruns per turn between segments; one late abort → 79 stale frames dropped.
 
 3C / 3D hardware measurements (1.75C, 2026-11-10): internal free 53 KB offline (pairing), 50 KB idle connected after pairing, 37 KB idle after five turns, minimum 26 KB during turns (p1d: 77 KB idle connected, minimum 50 KB).
+
+Internal RAM after turns (1.75C, 2026-11-10, firmware e43ee76 + heap diagnostics): no leak. With the 24 kHz downlink, idle internal free drops once by 13.6 KB on the first turn (52.1 → 38.5 KB) and stays at 38.5 KB ± 0.1 KB over 10 turns; the allocation is the `esp_ae_rate_cvt` FIR tables (24 → 16 kHz, 2 × 6 436 B + 392 B, internal RAM, kept while the feeder pipeline is open). With the 16 kHz downlink (D-31) idle internal free stays at 51.7 KB over 6 turns, minimum 51.3 KB. Internal task stacks: 87.6 KB (spec 03 §3.2.2).
 
 Speech for hardware tests without a person: Kokoro voice `am_michael`, loudness-normalised (ffmpeg `loudnorm=I=-10`, compressor), played through the laptop speaker at 150 % stream volume (laptop sink 48 %); console key `w` starts listening 0.8 s before playback. 6 of 8 utterances reached the server (2 `no_speech`); transcripts partly wrong ("Anna" → "came up").
 

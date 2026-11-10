@@ -16,6 +16,8 @@
 #include "driver/usb_serial_jtag.h"
 #include "driver/usb_serial_jtag_vfs.h"
 #include "esp_heap_caps.h"
+#include "esp_heap_trace.h"
+#include "esp_memory_utils.h"
 #include "esp_timer.h"
 #include "esp_system.h"
 #include "esp_wifi.h"
@@ -621,6 +623,64 @@ private:
 std::mutex g_stats_mutex;
 CpuLoad g_cpu_load;
 
+// Internal heap: free / allocated bytes, largest free block and block counts (fragmentation),
+// per-region detail and the task stacks allocated from the internal heap.
+void print_heap_detail()
+{
+    multi_heap_info_t info = {};
+    heap_caps_get_info(&info, MALLOC_CAP_INTERNAL);
+    BROOKESIA_LOGI(
+        "[heap] internal free %1% B, allocated %2% B in %3% blocks, largest free %4% B, %5% free blocks, min free %6% B",
+        info.total_free_bytes, info.total_allocated_bytes, info.allocated_blocks, info.largest_free_block,
+        info.free_blocks, info.minimum_free_bytes
+    );
+    heap_caps_print_heap_info(MALLOC_CAP_INTERNAL);
+    // Task stacks allocated from the internal heap (heap block size; static stacks are not counted).
+    const UBaseType_t n = uxTaskGetNumberOfTasks() + 4;
+    std::vector<TaskStatus_t> tasks(n);
+    const UBaseType_t got = uxTaskGetSystemState(tasks.data(), n, nullptr);
+    std::string stacks;
+    size_t total = 0;
+    for (UBaseType_t i = 0; i < got; i++) {
+        void *base = tasks[i].pxStackBase;
+        if (!base || !esp_ptr_internal(base) || !heap_caps_check_integrity_addr(reinterpret_cast<intptr_t>(base), false)) {
+            continue;
+        }
+        const size_t size = heap_caps_get_allocated_size(base);
+        total += size;
+        stacks += " " + std::string(tasks[i].pcTaskName) + ":" + std::to_string(size);
+    }
+    BROOKESIA_LOGI("[heap] internal task stacks %1% B:%2%", total, stacks);
+}
+
+#if CONFIG_HEAP_TRACING_STANDALONE
+// Leak trace (console `l`): first press starts recording, second press stops and dumps the
+// internal-RAM allocations still outstanding. Record buffer in PSRAM.
+constexpr size_t HEAP_TRACE_RECORDS = 1500;
+heap_trace_record_t *g_trace_records = nullptr;
+bool g_tracing = false;
+
+void toggle_heap_trace()
+{
+    if (!g_trace_records) {
+        g_trace_records = static_cast<heap_trace_record_t *>(
+            heap_caps_calloc(HEAP_TRACE_RECORDS, sizeof(heap_trace_record_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+        if (!g_trace_records || heap_trace_init_standalone(g_trace_records, HEAP_TRACE_RECORDS) != ESP_OK) {
+            BROOKESIA_LOGE("[heap] trace init failed");
+            return;
+        }
+    }
+    if (!g_tracing) {
+        g_tracing = heap_trace_start(HEAP_TRACE_LEAKS) == ESP_OK;
+        BROOKESIA_LOGI("[heap] leak trace %1%", g_tracing ? "started" : "failed");
+        return;
+    }
+    heap_trace_stop();
+    g_tracing = false;
+    heap_trace_dump_caps(MALLOC_CAP_INTERNAL);
+}
+#endif
+
 void print_system_stats()
 {
     std::lock_guard lock(g_stats_mutex);
@@ -628,11 +688,11 @@ void print_system_stats()
     std::string stacks, top;
     g_cpu_load.sample(load, stacks, top);
     BROOKESIA_LOGI(
-        "[stats] ui %1%, cpu core0 %2% %%, core1 %3% %%, internal free %4% KB (min %5% KB), PSRAM free %6% KB, "
-        "stack min free%7%",
+        "[stats] ui %1%, cpu core0 %2% %%, core1 %3% %%, internal free %4% KB (min %5% KB, largest block %6% KB), "
+        "PSRAM free %7% KB, stack min free%8%",
         homunculus::to_string(homunculus::HomunculusAgent::get_instance().ui_state()), load[0], load[1],
-        heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024,
-        heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL) / 1024, heap_caps_get_free_size(MALLOC_CAP_SPIRAM) / 1024,
+        heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024, heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL) / 1024,
+        heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL) / 1024, heap_caps_get_free_size(MALLOC_CAP_SPIRAM) / 1024,
         stacks
     );
     BROOKESIA_LOGI("[stats] top tasks (%% of one core):%1%", top);
@@ -649,7 +709,7 @@ void console_task()
     if (usb_serial_jtag_driver_install(&cfg) == ESP_OK) {
         usb_serial_jtag_vfs_use_driver();
     }
-    BROOKESIA_LOGI("[console] keys: t = touch, w = wake word, s = stats, r = HDP reconnect, d = Wi-Fi disconnect, v = visualizer test tone, p = Wi-Fi provisioning, u = firmware update");
+    BROOKESIA_LOGI("[console] keys: t = touch, w = wake word, s = stats, h = heap detail, l = heap leak trace, r = HDP reconnect, d = Wi-Fi disconnect, v = visualizer test tone, p = Wi-Fi provisioning, u = firmware update");
     auto &agent = homunculus::HomunculusAgent::get_instance();
     while (true) {
         uint8_t c = 0;
@@ -668,6 +728,14 @@ void console_task()
         case 's':
             print_system_stats();
             break;
+        case 'h':
+            print_heap_detail();
+            break;
+#if CONFIG_HEAP_TRACING_STANDALONE
+        case 'l':
+            toggle_heap_trace();
+            break;
+#endif
         case 'r':
             BROOKESIA_LOGI("[console] HDP reconnect");
             agent.reconnect();

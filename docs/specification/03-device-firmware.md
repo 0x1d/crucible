@@ -100,7 +100,7 @@ Brookesia `agent_manager` 0.8 integration:
 | Sleep | Not used. Encoder `afe_wake_start_timeout_ms` = `afe_wake_end_timeout_ms` = 0: no `WakeEnd`, so Brookesia never triggers `Sleep` (in `Slept` it drops encoder data and decoder writes). `on_sleep()` / `on_wakeup()` only acknowledge the state change. |
 | Barge-in | `support_general_functions = {InterruptSpeaking}`; `set_speaking(true)` at `tts{start}`, `false` at end of playback / abort; `set_listening()` around the uplink. AFE `WakeStart` while speaking → `on_interrupt_speaking()`. `reset_interrupted_speaking()` at `tts{start}` (Brookesia drops decoder writes while interrupted). |
 | Uplink encoder | Opus 16 kHz mono 60 ms, VBR 24 kbit/s (`EncoderExtraConfigOpus`; without it the encoder opens with bitrate 0 and fails), AFE on. |
-| Downlink decoder | Opus 24 kHz mono 60 ms. Negotiated `frame_ms` is used for play-time accounting; Opus streams decode at any output rate. |
+| Downlink decoder | Opus 16 kHz mono 60 ms; `hello` offers only 16000 (D-31). Negotiated `frame_ms` is used for play-time accounting; Opus streams decode at any output rate. |
 
 Turn handling:
 
@@ -139,7 +139,7 @@ Kconfig (`Homunculus agent` menu):
 | `HOMUNCULUS_DEVICE_ENDPOINT`, `_MIN_MS` | n, 1200 | Reserved (device-side VAD endpointing, not implemented) |
 | `HOMUNCULUS_TURN_STATS` | y | Per-turn uplink / latency log |
 | `HOMUNCULUS_SYSTEM_STATS_INTERVAL_S` | 5 | Per-core CPU load, heap, thread stack log interval (0 = off) |
-| `HOMUNCULUS_DEV_CONSOLE` | y | USB-Serial-JTAG single-key console (`t` tap, `w` wake word, `s` stats, `r` HDP reconnect, `d` Wi-Fi disconnect, `p` Wi-Fi provisioning, `u` firmware update, `x` forget device token) |
+| `HOMUNCULUS_DEV_CONSOLE` | y | USB-Serial-JTAG single-key console (`t` tap, `w` wake word, `s` stats, `h` internal heap detail, `l` heap leak trace start / stop + dump (only with `CONFIG_HEAP_TRACING_STANDALONE`), `r` HDP reconnect, `d` Wi-Fi disconnect, `p` Wi-Fi provisioning, `u` firmware update, `x` forget device token) |
 
 ### 3.2.2 Task and core layout
 
@@ -164,6 +164,22 @@ Measured idle CPU (1.75C, agent idle, `[stats] top tasks`, % of one core):
 
 Service manager workers sleep for the poll interval only when their queue is empty (`TaskScheduler` worker loop, `io_context::poll()`); a task posted to a sleeping worker waits up to one interval. The remaining load is queued work. Kconfig range of the poll interval: 1–10 ms. Downlink audio writes complete on these workers (spec 06 §6.3.3), so the interval stays at the default 5 ms.
 
+#### Internal RAM (1.75C, 2026-11-10)
+
+Diagnostics: `[stats]` line (internal free, minimum, largest free block); console `h` prints free / allocated bytes and block counts, `heap_caps_print_heap_info(MALLOC_CAP_INTERNAL)` per region and the task stacks allocated from the internal heap; console `l` with a build that sets `CONFIG_HEAP_TRACING_STANDALONE` (record buffer 1500 entries in PSRAM, `CONFIG_HEAP_TRACING_STACK_DEPTH` 10) records allocations between two presses and dumps the internal ones still outstanding (`heap_trace_dump_caps`). `CONFIG_HEAP_TASK_TRACKING` hangs the firmware at boot (interrupt watchdog in `heap_caps_update_per_task_info_free`, called from `free()` in a Brookesia `TaskScheduler` thread).
+
+| Point | Internal free |
+| --- | --- |
+| Boot (`app_main` start) | 236 KB |
+| Agent started | 71 KB (min 66 KB) |
+| HDP session, idle | 50–52 KB, largest free block 27 KB |
+| Idle after turns, 24 kHz downlink | 38.5 KB after turn 1, unchanged (± 0.1 KB) over 10 turns, minimum 38.2 KB |
+| Idle after turns, 16 kHz downlink (D-31) | 51.7 KB over 6 turns, minimum 51.3 KB |
+
+Turn-1 allocation with a 24 kHz downlink (leak trace over one turn, 13 916 B in 12 allocations outstanding): `esp_ae_rate_cvt` in the feeder pipeline (24 → 16 kHz) allocates its FIR low-pass coefficient tables on the first `process` call, 2 × 6 436 B + 392 B, through `media_lib_caps_malloc_align` with internal-RAM caps (`esp_audio_effects` binary library); the pipeline stays open, the tables stay allocated. Remainder: 92 B lwIP per-thread select semaphores and Boost condition-variable mutexes, allocated once per thread.
+
+Internal task stacks (heap-allocated, idle connected): 87.6 KB total — `main` 10 752, `hdp_ws` 8 192, `SvcMgrSec0` 8 192, `SvcMgrSec1` 8 192, `wifi` 6 656, `hom_ota` 6 152, `touch` 6 144, `prov_watch` 6 144, `console` 4 096, `esp_timer` 4 096, unnamed `TSK_…` 4 096, `tcpip` 3 584, `sys_evt` 3 584, `Tmr Svc` 2 048, `IDLE0` / `IDLE1` 1 536 each, `ipc0` / `ipc1` 1 280 each. `touch`, `prov_watch` and `console` use the `esp_pthread` default caps (internal).
+
 ### 3.2.3 Audio configuration (reference device)
 
 | Parameter | Value |
@@ -171,8 +187,8 @@ Service manager workers sleep for the poll interval only when their queue is emp
 | Capture | 16 kHz, 2–3 channels (MIC1, [MIC2], REF = MIC3), 32-bit from ES7210 |
 | AFE | AEC on, NS on, AGC on, VAD on (mode 3), WakeNet on; `AFE_MODE_HIGH_PERF`, PSRAM allocation |
 | Uplink codec | Opus, 16 kHz mono, 60 ms frames, VBR ~ 16–24 kbit/s, complexity 3–5 |
-| Downlink codec | Opus, 24 kHz mono (server-selected), 60 ms frames |
-| Playback | ES8311 at 24 kHz (or resample to 16 kHz to keep a single I²S clock — to be measured) |
+| Downlink codec | Opus, 16 kHz mono, 60 ms frames (D-31) |
+| Playback | ES8311, I²S TX 16 kHz (same clock as capture); `av_processor` feeder pipeline `aud_dec → aud_ch_cvt → aud_bit_cvt → aud_rate_cvt` to the board rate; at 16 kHz input `aud_rate_cvt` is bypassed |
 | Wake word | WakeNet9 stock model `wn9_computer_tts` ("Computer", see D-03); custom model optional later |
 
 Open item: Brookesia's board config uses one mic + reference (`RMNN`). Enabling MIC2 for two-mic beamforming / DOA (`MMR` layout) must be evaluated for CPU headroom; DOA would let the avatar look towards the speaker.

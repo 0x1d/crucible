@@ -134,7 +134,7 @@ HomunculusAgent::HomunculusAgent(): esp_brookesia::agent::Base(
             .general = {
                 .channels = 1,
                 .sample_bits = 16,
-                .sample_rate = 24000,
+                .sample_rate = 16000,
                 .frame_duration = 60,
             },
         },
@@ -560,7 +560,7 @@ void HomunculusAgent::handle_connected()
         .display_height = 466,
         .display_shape = "round",
         .color_depth = 16,
-        .output_sample_rates = {16000, 24000},
+        .output_sample_rates = {16000},
         .mics = 1,
         .aec = true,
         .wake_word = afe_connection_.connected(),
