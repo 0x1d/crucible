@@ -1,21 +1,28 @@
-// HDP WebSocket endpoint (spec §4.1): upgrade, sub-protocol, bearer auth; OTA images (spec §3.6).
+// HDP WebSocket endpoint (spec §4.1): upgrade, sub-protocol, bearer auth; OTA images (spec §3.6);
+// pairing and admin API (spec 03 §3.5).
 import { randomBytes, timingSafeEqual, createHash } from "node:crypto";
 import { createServer as createHttpServer, type IncomingMessage, type Server } from "node:http";
 import { createServer as createHttpsServer } from "node:https";
 import type { Duplex } from "node:stream";
 import { HDP_SUBPROTOCOL, type SessionConfig } from "@homunculus/protocol";
 import { WebSocketServer } from "ws";
+import type { AdminKey, DeviceRegistry, Pairings } from "../admin/devices.js";
 import type { Logger } from "../log.js";
 import { DeviceConnection, type DeviceIdentity } from "./connection.js";
 import { handleOtaRequest } from "./ota.js";
+import { createPairingHandler } from "./pairing.js";
 
 export interface GatewayOptions {
   host?: string;
   port: number;
   path?: string;
   tls?: { cert: string | Buffer; key: string | Buffer };
-  /** Accepted device bearer tokens (pairing replaces this in Phase 3). */
+  /** Shared bearer tokens accepted for any device id (HOMUNCULUS_DEVICE_TOKENS). */
   deviceTokens: string[];
+  /** Shared tokens accepted only from loopback addresses (development token `dev` for the simulator). */
+  loopbackTokens?: string[];
+  /** Paired devices (per-device tokens) and pairing; unset: shared tokens only, no pairing endpoints. */
+  devices?: { registry: DeviceRegistry; pairings: Pairings; adminKey: AdminKey };
   /** Directory with OTA images `<model>.bin` served at /ota/<model>/firmware.bin; unset: no OTA. */
   otaDir?: string;
   config: SessionConfig;
@@ -50,20 +57,40 @@ class SessionTable {
 export async function startGateway(opts: GatewayOptions): Promise<Gateway> {
   const path = opts.path ?? "/hdp";
   const tokens = opts.deviceTokens.map(digest);
+  const loopbackTokens = (opts.loopbackTokens ?? []).map(digest);
   const sessions = new SessionTable();
   const log = opts.log.child({ component: "gateway" });
+  const live = new Map<string, Set<DeviceConnection>>();
 
+  const isLoopback = (a: string | undefined) => a === "127.0.0.1" || a === "::1" || a === "::ffff:127.0.0.1";
   const authorized = (req: IncomingMessage) => {
     const auth = req.headers.authorization ?? "";
     const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+    if (token === "") return false;
     const d = digest(token);
-    return token !== "" && tokens.some((t) => timingSafeEqual(t, d));
+    if (tokens.some((t) => timingSafeEqual(t, d))) return true;
+    if (isLoopback(req.socket.remoteAddress) && loopbackTokens.some((t) => timingSafeEqual(t, d))) return true;
+    const deviceId = String(req.headers["x-device-id"] ?? "");
+    return opts.devices?.registry.verify(deviceId, token) ?? false;
   };
+
+  const pairing = opts.devices
+    ? createPairingHandler({
+        ...opts.devices,
+        tls: opts.tls !== undefined,
+        log: opts.log,
+        onRevoked: (id) => {
+          for (const c of live.get(id) ?? []) c.close(4001, "revoked");
+        },
+      })
+    : undefined;
 
   const server = opts.tls ? createHttpsServer(opts.tls) : createHttpServer();
   server.on("request", (req, res) => {
     const ota = opts.otaDir;
-    void (ota ? handleOtaRequest(req, res, ota, authorized, log) : Promise.resolve(false)).then(
+    const route = async () =>
+      (pairing ? await pairing(req, res) : false) || (ota ? await handleOtaRequest(req, res, ota, authorized, log) : false);
+    void route().then(
       (handled) => {
         if (!handled) res.writeHead(404).end();
       },
@@ -114,6 +141,12 @@ export async function startGateway(opts: GatewayOptions): Promise<Gateway> {
         },
         opts.log,
       );
+      const set = live.get(deviceId) ?? new Set();
+      live.set(deviceId, set.add(conn));
+      conn.on("close", () => {
+        set.delete(conn);
+        if (set.size === 0 && live.get(deviceId) === set) live.delete(deviceId);
+      });
       opts.onConnection(conn);
     });
   });

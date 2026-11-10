@@ -11,6 +11,7 @@
     "spike:claude": "tsx src/spikes/claude-streaming.ts",
     "dev": "tsx src/main.ts",
     "memory": "tsx src/memory/cli.ts",
+    "devices": "tsx src/admin/cli.ts",
     "test": "node --import tsx --test test/*.test.ts"
   },
   "dependencies": {
@@ -18,6 +19,7 @@
     "@homunculus/protocol": "workspace:*",
     "@huggingface/transformers": "3.8.1",
     "@modelcontextprotocol/sdk": "1.32.2",
+    "bonjour-service": "^1.4.4",
     "kokoro-js": "^1.2.1",
     "onnxruntime-node": "1.21.0",
     "opusscript": "^0.1.1",

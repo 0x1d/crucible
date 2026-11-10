@@ -1,6 +1,9 @@
 // Homunculus server entry point.
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { Bonjour } from "bonjour-service";
+import { AdminKey, DeviceRegistry, Pairings } from "./admin/devices.js";
 import { startGateway } from "./gateway/server.js";
 import { createLogger } from "./log.js";
 import { attachLoopback } from "./orchestrator/loopback.js";
@@ -17,12 +20,15 @@ const tls =
     ? { cert: readFileSync(env.HOMUNCULUS_TLS_CERT), key: readFileSync(env.HOMUNCULUS_TLS_KEY) }
     : undefined;
 
+// Shared tokens (any device id); unset: the development token `dev`, from loopback only (simulator).
 const deviceTokens = (env.HOMUNCULUS_DEVICE_TOKENS ?? "").split(",").filter(Boolean);
-if (deviceTokens.length === 0) {
-  if (tls) throw new Error("HOMUNCULUS_DEVICE_TOKENS must be set when TLS is enabled");
-  deviceTokens.push("dev");
-  log.warn("dev_token", { note: "HOMUNCULUS_DEVICE_TOKENS unset; accepting token 'dev' (plain ws)" });
-}
+const loopbackTokens = deviceTokens.length === 0 ? ["dev"] : [];
+
+// Paired devices and the admin key (spec 03 §3.5).
+const dataDir = env.HOMUNCULUS_DATA_DIR ?? fileURLToPath(new URL("../.data", import.meta.url));
+const registry = new DeviceRegistry(join(dataDir, "devices.json"));
+const adminKey = AdminKey.load(dataDir, env.HOMUNCULUS_ADMIN_KEY);
+const pairings = new Pairings(registry);
 
 // HOMUNCULUS_PIPELINE: "speech" (default, spec §5.2) or "loopback" (echo, p1a).
 const mode = env.HOMUNCULUS_PIPELINE ?? "speech";
@@ -34,16 +40,29 @@ const gateway = await startGateway({
   port: Number(env.HOMUNCULUS_PORT ?? 8443),
   tls,
   deviceTokens,
+  loopbackTokens,
+  devices: { registry, pairings, adminKey },
   // Firmware images <model>.bin for OTA (make fw-publish).
-  otaDir: env.HOMUNCULUS_OTA_DIR ?? fileURLToPath(new URL("../.data/ota", import.meta.url)),
+  otaDir: env.HOMUNCULUS_OTA_DIR ?? join(dataDir, "ota"),
   config: { follow_up_window_ms: 6000, captions: true, language: "en" },
   onConnection: pipeline ? (c) => pipeline.attach(c) : attachLoopback,
   log,
 });
 
+// mDNS `_homunculus._tcp` for device discovery (HOMUNCULUS_MDNS=0 disables).
+const bonjour = env.HOMUNCULUS_MDNS === "0" ? undefined : new Bonjour();
+bonjour?.publish({
+  name: env.HOMUNCULUS_MDNS_NAME ?? "Homunculus",
+  type: "homunculus",
+  port: gateway.port,
+  txt: { path: "/hdp", tls: tls ? "1" : "0", id: registry.serverId },
+});
+log.info("mdns", { enabled: bonjour !== undefined, service: "_homunculus._tcp", id: registry.serverId });
+
 for (const sig of ["SIGINT", "SIGTERM"] as const) {
   process.once(sig, () => {
     log.info("shutdown", { signal: sig });
-    void Promise.all([gateway.close(), pipeline?.close()]).then(() => process.exit(0));
+    const mdns = new Promise<void>((r) => (bonjour ? bonjour.unpublishAll(() => bonjour.destroy(() => r())) : r()));
+    void Promise.all([gateway.close(), pipeline?.close(), mdns]).then(() => process.exit(0));
   });
 }

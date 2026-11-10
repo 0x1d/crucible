@@ -22,7 +22,7 @@ IDF := cd firmware && $(FW_SHELL) idf.py
 .DEFAULT_GOAL := help
 .PHONY: help setup deps models models-piper memory-mcp \
         fw-config fw-build fw-flash fw-flash-full fw-publish fw-monitor fw-flash-monitor fw-menuconfig fw-clean fw-test \
-        server sim sim-play test typecheck backend check
+        server devices sim sim-play test typecheck backend check
 
 help: ## Show this help
 	@awk 'BEGIN{FS=":.*## "} /^[a-zA-Z_-]+:.*## /{printf "  %-18s %s\n",$$1,$$2}' $(MAKEFILE_LIST)
@@ -85,6 +85,9 @@ server: deps ## Run the backend (ws://0.0.0.0:8443/hdp; spawns whisper-server it
 	$(SRV_SHELL) pnpm --filter homunculus-server dev
 
 backend: server ## Alias for `server`
+
+devices: ## Device pairing admin on the running server (ARGS="key|pending|approve <code> [name]|list|revoke <id>")
+	$(SRV_SHELL) pnpm --silent --filter homunculus-server devices $(ARGS)
 
 sim: deps ## Device simulator, interactive (needs a running server)
 	$(SRV_SHELL) pnpm --filter @homunculus/simulator sim
