@@ -65,6 +65,8 @@ CONFIG_HOMUNCULUS_WIFI_PASSWORD="..."
 CONFIG_HOMUNCULUS_SERVER_URL="ws://<server-lan-ip>:8443/hdp"
 ```
 
+`CONFIG_HOMUNCULUS_SERVER_URL` is used for pairing only when no server answers mDNS (spec 03 §3.5).
+
 Defaults only fill keys missing from `sdkconfig`: after editing, delete the keys from `sdkconfig` or run `idf.py menuconfig`, then `idf.py reconfigure`.
 
 HDP codec host test (protocol vectors, needs `managed_components`):
@@ -79,7 +81,7 @@ Ring visualizer rasteriser host test (spec 06; optional argument writes a PPM co
 firmware/components/homunculus_avatar/test/host/run.sh /tmp/ring.ppm
 ```
 
-Development console (`CONFIG_HOMUNCULUS_DEV_CONSOLE`, USB-Serial-JTAG, e.g. in `idf.py monitor`): `t` tap, `w` wake word, `s` CPU / heap / stack / per-task CPU stats, `v` visualizer test tone (5 s), `r` HDP reconnect (session resume), `d` Wi-Fi disconnect, `p` Wi-Fi provisioning, `u` firmware update (OTA from the server). Serial capture without resetting the board: open `/dev/ttyACM0` with DTR and RTS deasserted (pyserial `dtr=False`, `rts=False` before `open()`).
+Development console (`CONFIG_HOMUNCULUS_DEV_CONSOLE`, USB-Serial-JTAG, e.g. in `idf.py monitor`): `t` tap, `w` wake word, `s` CPU / heap / stack / per-task CPU stats, `v` visualizer test tone (5 s), `r` HDP reconnect (session resume), `d` Wi-Fi disconnect, `p` Wi-Fi provisioning, `u` firmware update (OTA from the server), `x` forget the device token (pair again). Serial capture without resetting the board: open `/dev/ttyACM0` with DTR and RTS deasserted (pyserial `dtr=False`, `rts=False` before `open()`).
 
 Device log lines: `hom_agent: uplink: ...` (per utterance), `hom_agent: turn: after listen.stop: tts_start, first_rx, first_fed, play_end` (ms), `[stats] ui, cpu core0/core1 %, internal free (min), stack min free` every `CONFIG_HOMUNCULUS_SYSTEM_STATS_INTERVAL_S`.
 
@@ -101,9 +103,12 @@ pnpm --filter homunculus-server dev
 | --- | --- | --- |
 | `HOMUNCULUS_PORT` | `8443` | Listen port |
 | `HOMUNCULUS_HOST` | `0.0.0.0` | Listen address |
-| `HOMUNCULUS_DEVICE_TOKENS` | unset → `dev` (plain ws only) | Comma-separated device bearer tokens |
+| `HOMUNCULUS_DEVICE_TOKENS` | unset → `dev` from loopback only | Comma-separated shared bearer tokens (any device id); paired devices use their own tokens |
+| `HOMUNCULUS_DATA_DIR` | `server/.data` | `devices.json`, `admin-key`, default OTA directory |
+| `HOMUNCULUS_ADMIN_KEY` | `server/.data/admin-key` | Admin key for pairing approval and `/admin/*` |
+| `HOMUNCULUS_MDNS`, `HOMUNCULUS_MDNS_NAME` | `1`, `Homunculus` | mDNS advertisement `_homunculus._tcp`; `0` disables |
 | `HOMUNCULUS_TLS_CERT`, `HOMUNCULUS_TLS_KEY` | unset | PEM paths; enables `wss://` |
-| `HOMUNCULUS_OTA_DIR` | `server/.data/ota` | OTA images `<model>.bin`, served at `/ota/<model>/firmware.bin` with bearer auth (`make fw-publish`) |
+| `HOMUNCULUS_OTA_DIR` | `<data dir>/ota` | OTA images `<model>.bin`, served at `/ota/<model>/firmware.bin` with bearer auth (`make fw-publish`) |
 | `HOMUNCULUS_LOG_LEVEL` | `info` | `debug` logs every HDP message |
 | `HOMUNCULUS_LOG` | text | `json` for JSON lines |
 | `HOMUNCULUS_PIPELINE` | `speech` | `speech` or `loopback` (echo) |
@@ -135,6 +140,21 @@ pnpm --filter homunculus-server dev
 Per-device agent sandbox: `server/.data/sandbox/devices/<sanitised-device-id>-<hash>/`.
 
 `make server` starts the temporal-reasoning MCP server itself (stdio child, spec 10 §10.4); `make memory-mcp` (part of `make setup`) fetches it into the uv cache.
+
+Pairing (spec 03 §3.5, spec 05 §5.9): an unpaired device shows a QR code; scan it and approve on the phone page (server key: `make devices ARGS=key`, asked once per phone), or approve from the server host:
+
+```bash
+make devices ARGS="approve 123456 kitchen"
+```
+
+| Command | Effect |
+| --- | --- |
+| `key` | Print the admin key |
+| `pending` | Open pairing requests |
+| `approve <code> [name]`, `reject <code>` | Approve / reject a request |
+| `list` | Paired devices |
+| `rename <id> <name>` | Rename a device |
+| `revoke <id>` | Delete the token; a connected device is closed (4001) and pairs again |
 
 Memory admin CLI (spec 10 §10.7), server stopped:
 

@@ -138,7 +138,7 @@ Full-screen cards replace the ring until dismissed; the render thread draws them
 | Card | Content | Dismissed by |
 | --- | --- | --- |
 | Confirmation | Title (2 lines max), detail (4 lines max), deny button (red, left) and approve button (green, right) at 0.80 × min(w, h) | Answer, timeout, barge-in, turn end |
-| QR (`device.show_qr`, Wi-Fi setup) | Title, QR code on a white square (module scale from 0.50 × min(w, h), quiet zone 2, ECC low, version ≤ 10, `espressif/qrcode` `qrcodegen`), caption (3 lines max) | Timer; Wi-Fi connected |
+| QR (`device.show_qr`, Wi-Fi setup, pairing) | Title, QR code on a white square (module scale from 0.50 × min(w, h), quiet zone 2, ECC low, version ≤ 10, `espressif/qrcode` `qrcodegen`), caption (3 lines max) | Timer; Wi-Fi connected; pairing approved, rejected or expired |
 | Text (`device.show_text`) | Centred text, 8 lines max | Timer (`duration_s`); never replaces a confirmation |
 
 Host test: `firmware/components/homunculus_avatar/test/host/run-card.sh [out.ppm]`.

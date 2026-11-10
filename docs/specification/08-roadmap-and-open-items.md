@@ -67,8 +67,8 @@ gantt
 | 2 — Audio visualizer | Ring waveform follows speaker output ≥ 15 fps; palette per UI state; speech without stutter (spec 06 §6.5) | **Done 2026-11-08**; underruns / CPU during speech not measured |
 | 2F — Procedural face | All states and emotes rendered ≥ 20 fps; lip-sync; agent drives emotions ([06-avatar-face-deferred.md](06-avatar-face-deferred.md)) | **Deferred** (D-20) |
 | 3B — Device tools + confirmations | Agent calls device tools; confirmation flow on the device replaces D-18 | **Done 2026-11-08** (tool calls verified on hardware) |
-| 3C — Provisioning, pairing, OTA | Wi-Fi provisioning + server pairing on the device; OTA firmware update | In progress: Wi-Fi provisioning (SoftAP + web form) implemented 2026-11-08; OTA (esp_https_ota, dual slots, rollback; spec 03 §3.6) verified on hardware 2026-11-08 (4.7 MB in ≈ 90 s, confirmed after reboot into ota_1); pairing open |
-| 3D — Long-term memory | Facts from past sessions answer questions in a new session; preference change + history question; wiki page on request ([10-memory.md](10-memory.md)) | Implemented 2026-11-08 (D-23 revised): temporal-reasoning MCP server (stdio child) with per-turn prepare / finalize, proxied `memory` tools, `wiki` tools on request, Claude Code auto-memory off; live check with the simulator (recall across sessions, change + history, appointment, wiki page); not verified on hardware |
+| 3C — Provisioning, pairing, OTA | Wi-Fi provisioning + server pairing on the device; OTA firmware update | **Done 2026-11-10**: Wi-Fi provisioning (SoftAP + web form); OTA verified on hardware 2026-11-08 (4.7 MB in ≈ 90 s, confirmed after reboot into ota_1); pairing verified on hardware 2026-11-10 (mDNS discovery, approval, token delivery, reconnect after server restart, revoke → 401 → new code) |
+| 3D — Long-term memory | Facts from past sessions answer questions in a new session; preference change + history question; wiki page on request ([10-memory.md](10-memory.md)) | **Done 2026-11-10** (D-23 revised): temporal-reasoning MCP server (stdio child) with per-turn prepare / finalize, proxied `memory` tools, `wiki` tools on request, Claude Code auto-memory off. Verified on hardware 2026-11-10 (speech played through the laptop speaker, §8.5 test method): fact stored, recalled after a server restart in a new agent session, change (Berlin → Hamburg) with history answer, wiki page `entities/sister.md` |
 | 3A — OpenCode backend | Backend switchable (Claude / OpenCode) per device profile (spec 05 §5.3.3) | **Deferred** (D-22) |
 | 4 — Multi-device | Second board with different display shape runs the same firmware and server unchanged | Open |
 
@@ -91,7 +91,7 @@ gantt
 | ID | Question | Owner / next step |
 | --- | --- | --- |
 | OI-01 | Actual flash size on shipping 1.75C units (schematic: 16 MB part; vendor: 32 MB) | **Decided** → D-06 |
-| OI-02 | Two-mic AFE (beamforming/DOA) feasibility and CPU cost on S3 | Single-mic AFE measured (research notes, p0b); two-mic layout not yet measured |
+| OI-02 | Two-mic AFE (beamforming/DOA) feasibility and CPU cost on S3 | **Deferred** → D-24 |
 | OI-03 | Brookesia version: stay on v0.7 or go directly to v0.8 | **Decided** → D-07 |
 | OI-04 | Can `brookesia_agent_xiaozhi` target a custom server without XiaoZhi OTA/activation? (would enable a protocol-compatible early spike) | **Answered**: yes, via `CONFIG_XIAOZHI_OTA_URL` + a server-side OTA stub (research notes) |
 | OI-05 | STT/TTS default providers (local vs cloud) and target languages | **Decided** → D-01, D-02 |
@@ -99,8 +99,8 @@ gantt
 | OI-07 | Persona definition: name, voice, personality, default emotional range | **Decided** → D-04 (default emotional range deferred with the procedural face, D-20) |
 | OI-08 | Server hosting: LAN-only vs remote access (tunnel / reverse proxy) | **Decided** → D-05 |
 | OI-09 | Memory: rely on backend session memory, or add long-term memory MCP server | **Decided** → D-23 |
-| OI-10..13 | Launcher / multi-app on Brookesia `system_super` (round display, avatar integration, audio arbitration, heap) | See 09-apps-and-launcher.md §9.5 |
-| OI-14..17 | Memory: proactive reminders, speaker identification, minigraf addon in nix (resolved), personal-fact namespace | See 10-memory.md §10.9 |
+| OI-10..13 | Launcher / multi-app on Brookesia `system_super` (round display, avatar integration, audio arbitration, heap) | **Deferred** → D-25 (09-apps-and-launcher.md §9.5) |
+| OI-14..17 | Memory: proactive reminders, speaker identification, minigraf addon in nix (resolved), personal-fact namespace | OI-14 deferred (D-26), OI-15 deferred (D-27), OI-17 decided (D-28); 10-memory.md §10.9 |
 
 ## 8.5 Decisions
 
@@ -131,6 +131,13 @@ Product decisions taken on resolved open items. Decided 2026-11-07.
 | D-21 | **Firmware built with `-O2`** | `CONFIG_COMPILER_OPTIMIZATION_PERF` (as the vendor example). Idle CPU 64 / 45 % → 57 / 36 %, internal free 67 → 72 KB (spec 03 §3.2.2). Brookesia service manager worker poll stays at 5 ms: 10 ms saved ~8 % of one core at `-Og` but adds up to 10 ms to every downlink audio write. Decided 2026-11-08. |
 | D-22 | **Phase 3 order: 3B, then 3C; 3A (OpenCode backend) deferred** | Claude Agent SDK stays the only backend. The backend abstraction (spec 05 §5.3) is kept. Decided 2026-11-08. |
 | D-23 | **Long-term memory: temporal-reasoning MCP server (minigraf bi-temporal graph) as primary memory, plus a markdown wiki written on the user's request (Phase 3D, after 3C)** | One stdio child per memory space owned by the backend; its query / transact / retract / rule tools proxied to agent sessions; per-turn prepare (context before the utterance) and finalize (extraction via MCP sampling) as its Claude Code hooks. Wiki = entities / concepts on explicit request. Claude Code memory (CLAUDE.md, auto-memory) disabled. Spec 10. Decided 2026-11-08; revised 2026-11-08 (librarian, source log and in-process fact store removed). |
+| D-24 | **Two-mic AFE deferred (OI-02)** | Single-mic AFE stays. Decided 2026-11-10. |
+| D-25 | **Launcher / multi-app deferred (OI-10..13)** | Single-purpose assistant firmware; internal RAM is the limiting resource. Decided 2026-11-10. |
+| D-26 | **Proactive reminders deferred (OI-14)** | Decided 2026-11-10. |
+| D-27 | **Single user; multi-user / speaker identification deferred (OI-15)** | Facts are about the primary user; other people only when named. Decided 2026-11-10. |
+| D-28 | **People and places tagged with `:entity-type` (OI-17)** | `:constraint/<ident>` entities carry `:entity-type` `person` / `place` (attribute accepted by the temporal-reasoning schema); graph stays the only fact store; wiki pages only on request, linked to graph idents. Custom namespaces when the server schema supports them. Decided 2026-11-10. |
+| D-29 | **Pairing: QR approval page, 6-digit code, admin key** | Device discovers the server via mDNS `_homunculus._tcp` (fallback: stored / Kconfig URL), requests pairing, shows the approval URL as QR code with the code underneath; approval on the phone page needs the server admin key once per phone (cookie), or `make devices ARGS="approve <code>"`. Per-device token (32 bytes), SHA-256 at rest, bound to `X-Device-Id`, revocable. Development token `dev` accepted from loopback only. Spec 03 §3.5, spec 05 §5.9, spec 07 §7.3. Decided 2026-11-10. |
+| D-30 | **Speaker volume default 85 %, persisted** | Brookesia AudioPlayback default (`CONFIG_BROOKESIA_SERVICE_AUDIO_PLAYBACK_VOLUME_DEFAULT`); `device.set_volume` persists across reboots. Decided 2026-11-10. |
 
 p1d hardware measurements (1.75C, LAN, speech pipeline):
 
@@ -143,5 +150,9 @@ p1d hardware measurements (1.75C, LAN, speech pipeline):
 - Device feeds first frame 65–69 ms after server send.
 - CPU avg/max: idle core0 57/62 %, core1 51/60 %; listening 61/68 %, 56/68 %; speaking 62/69 %, 65/69 %. Internal heap min 50 KB (77 KB idle connected).
 - Before D-19: 2 downlink underruns per turn between segments; one late abort → 79 stale frames dropped.
+
+3C / 3D hardware measurements (1.75C, 2026-11-10): internal free 53 KB offline (pairing), 50 KB idle connected after pairing, 37 KB idle after five turns, minimum 26 KB during turns (p1d: 77 KB idle connected, minimum 50 KB).
+
+Speech for hardware tests without a person: Kokoro voice `am_michael`, loudness-normalised (ffmpeg `loudnorm=I=-10`, compressor), played through the laptop speaker at 150 % stream volume (laptop sink 48 %); console key `w` starts listening 0.8 s before playback. 6 of 8 utterances reached the server (2 `no_speech`); transcripts partly wrong ("Anna" → "came up").
 
 Pending (needs a person): physical tap barge-in while speaking; in-person "Computer" while speaking (AEC); stop latency after barge-in; wake-word false-trigger rate over a long quiet period.

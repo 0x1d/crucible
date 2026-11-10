@@ -130,8 +130,8 @@ Kconfig (`Homunculus agent` menu):
 | Option | Default | Meaning |
 | --- | --- | --- |
 | `HOMUNCULUS_WIFI_SSID`, `HOMUNCULUS_WIFI_PASSWORD` | empty | Station credentials (only in `firmware/sdkconfig.local`) |
-| `HOMUNCULUS_SERVER_URL` | `ws://192.168.1.10:8443/hdp` | HDP endpoint |
-| `HOMUNCULUS_DEVICE_TOKEN` | `dev` | Bearer token |
+| `HOMUNCULUS_SERVER_URL` | `ws://192.168.1.10:8443/hdp` | HDP endpoint for pairing when mDNS finds no server (§3.5) |
+| `HOMUNCULUS_MDNS_TIMEOUT_MS` | 3000 | mDNS query timeout |
 | `HOMUNCULUS_ALLOW_PLAIN_WS` | y | `ws://` URLs rejected when disabled |
 | `HOMUNCULUS_JITTER_PREFILL_FRAMES` | 3 | Frames queued before playback starts |
 | `HOMUNCULUS_MAX_UTTERANCE_MS` | 15000 | Device-side utterance limit |
@@ -139,7 +139,7 @@ Kconfig (`Homunculus agent` menu):
 | `HOMUNCULUS_DEVICE_ENDPOINT`, `_MIN_MS` | n, 1200 | Reserved (device-side VAD endpointing, not implemented) |
 | `HOMUNCULUS_TURN_STATS` | y | Per-turn uplink / latency log |
 | `HOMUNCULUS_SYSTEM_STATS_INTERVAL_S` | 5 | Per-core CPU load, heap, thread stack log interval (0 = off) |
-| `HOMUNCULUS_DEV_CONSOLE` | y | USB-Serial-JTAG single-key console (`t` tap, `w` wake word, `s` stats, `r` HDP reconnect, `d` Wi-Fi disconnect) |
+| `HOMUNCULUS_DEV_CONSOLE` | y | USB-Serial-JTAG single-key console (`t` tap, `w` wake word, `s` stats, `r` HDP reconnect, `d` Wi-Fi disconnect, `p` Wi-Fi provisioning, `u` firmware update, `x` forget device token) |
 
 ### 3.2.2 Task and core layout
 
@@ -243,14 +243,26 @@ Wi-Fi provisioning (Phase 3C-1, implemented) uses the Brookesia Wi-Fi service (`
 | Item | Value |
 | --- | --- |
 | Credentials | Owned by the service (scan, saved access points persisted through the Storage service, auto-connect after `Start`). Kconfig `HOMUNCULUS_WIFI_SSID` / `_PASSWORD` are offered once (`SetConnectAp` + `Connect`) when no access point is saved; NVS flag `seeded` prevents re-seeding after a reset |
-| Settings | NVS namespace `homunculus`: `url`, `token`, `seeded`, read once into RAM by `settings::init()` (flash access with the cache disabled asserts on tasks whose stack is in PSRAM, e.g. the agent worker, D-17) |
+| Settings | NVS namespace `homunculus`: `url`, `token`, `server_id`, `seeded`, read once into RAM by `settings::init()` (flash access with the cache disabled asserts on tasks whose stack is in PSRAM, e.g. the agent worker, D-17) |
 | Trigger | No saved access point at boot; saved access points without a connection for 90 s (setup AP runs beside retries, stops once connected); console key `p` (`ResetData` + provisioning) |
 | Access point | SoftAP `Homunculus-XXXX` (last two MAC bytes), WPA2, password = last four MAC bytes in hex |
 | Screen | QR card `WIFI:T:WPA;S:<ssid>;P:<password>;;` (phones join the AP by scanning) with SSID, password and `192.168.4.1` (spec 06 §6.6) |
 | Setup page | Served by the HAL adaptor at `http://192.168.4.1/`: network scan list, manual SSID, password (`/api/wifi/scan`, `/api/wifi/connect`, `/api/wifi/status`); on success the service connects and saves the access point, the card disappears |
-| Not covered | Server URL and token are not part of the page: Kconfig / NVS defaults until pairing (3C-2) |
+| Not covered | Server URL and token are not part of the page (pairing below) |
 
-Planned (3C-2): server discovery via mDNS; pairing: device shows a 6-digit code, the user confirms it in the server CLI, the server issues a per-device token stored in NVS (encrypted NVS when flash encryption is enabled).
+Pairing (Phase 3C-2, implemented; D-29; server side spec 05 §5.9):
+
+| Item | Value |
+| --- | --- |
+| Trigger | No device token in NVS (Wi-Fi connected); HDP upgrade answered with 401 (token forgotten, pairing again); console key `x` |
+| Discovery | mDNS PTR query `_homunculus._tcp` (`espressif/mdns`, initialised per query and freed after), TXT `path` (default `/hdp`), `tls` (`1`: `wss://`), `id` (server id); address in the station's subnet preferred; no answer: stored URL, else `CONFIG_HOMUNCULUS_SERVER_URL` |
+| Request | `POST <origin>/pair` `{device_id, model, firmware}` → `{code, secret, approve_url, expires_in_s, poll_ms}`; origin = server URL with `ws` → `http`, `wss` → `https` |
+| Screen | QR card "Scan to pair" with `approve_url` (`http://<server>/p/<code>`), caption `code 123 456` |
+| Poll | `GET <origin>/pair/status?code=<code>`, header `X-Pair-Secret`, every `poll_ms` (2 s): `pending`; `approved` + `token`, `name` → NVS `url`, `token`, `server_id`, text card "Paired as <name>" (5 s), HDP connects; `rejected` → text card, new request after 30 s; 404 (expired, 5 min) → new request |
+| Server unreachable | Text card "Pairing: server not reachable, retrying", new attempt after 10 s |
+| Relocation | Paired device: every 5 HDP connection failures without a session, mDNS query for the stored server id; a new address is stored and the HDP connection reopened |
+| Thread | `hom_pair`, 6 KB internal-RAM stack (NVS writes, D-17), priority 3; runs only while unpaired, after a 401 or while relocating |
+| Token storage | NVS (plain; encrypted NVS when flash encryption is enabled) |
 
 ## 3.6 OTA
 

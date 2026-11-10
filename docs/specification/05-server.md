@@ -335,7 +335,7 @@ Device tools: allow list in `server/src/tools/policy.ts` (`device.set_volume`, `
 
 ## 5.7 Persistence
 
-SQLite tables: `devices` (id, model, token hash, profile id, last seen), `profiles` (persona, voice, language, backend, model, tool policy), `sessions` (device id, backend, backend session id, created, last turn), `turns` (transcript, response text, heard-so-far, latency metrics, tool calls). Conversation content itself is owned by the backend session store (Claude SDK session files / OpenCode storage); Homunculus stores only what it needs for resume, captions and metrics. Long-term memory (temporal graph, wiki): spec 10; `profiles.memory_space` selects the memory space.
+Implemented: paired devices in `server/.data/devices.json` (§5.9). Planned SQLite tables: `devices` (id, model, token hash, profile id, last seen), `profiles` (persona, voice, language, backend, model, tool policy), `sessions` (device id, backend, backend session id, created, last turn), `turns` (transcript, response text, heard-so-far, latency metrics, tool calls). Conversation content itself is owned by the backend session store (Claude SDK session files / OpenCode storage); Homunculus stores only what it needs for resume, captions and metrics. Long-term memory (temporal graph, wiki): spec 10; `profiles.memory_space` selects the memory space.
 
 ## 5.8 Observability
 
@@ -347,4 +347,25 @@ SQLite tables: `devices` (id, model, token hash, profile id, last seen), `profil
 
 OTA images (implemented): the gateway's HTTP server answers `GET` / `HEAD /ota/{model}/firmware.bin` with `${HOMUNCULUS_OTA_DIR}/{model}.bin` (default `server/.data/ota`, model `[A-Za-z0-9_-]{1,64}`), device bearer token required (401), 404 when absent. The image version is read by the device from the image header (spec 03 §3.6); no manifest.
 
-CLI + minimal web UI: pair devices (confirm pairing code), edit profiles, select backend/model/voice, view turn history and latency, push OTA.
+Pairing (implemented, D-29; device side spec 03 §3.5), same HTTP server as HDP:
+
+| Endpoint | Caller | Behaviour |
+| --- | --- | --- |
+| `POST /pair` | Device | Body `{device_id, model, firmware}` (≤ 4 KB) → `{code, secret, approve_url, expires_in_s: 300, poll_ms: 2000}`; `approve_url` from the request `Host` header. A new request replaces an open one of the same device; at most 16 open requests (oldest dropped) |
+| `GET /pair/status?code=` | Device | Header `X-Pair-Secret`; `{state: pending\|rejected}`, or `{state: approved, token, name}` once (request removed); 404 `{state: expired}` for unknown / expired / wrong secret |
+| `GET /p/<code>` | Phone (QR) | Page: code, model, device id, firmware, optional name, server key field (absent with a valid `hom_admin` cookie) |
+| `POST /p/<code>` | Phone | Form `action=approve\|reject`, `name`, `key`; a typed valid key sets cookie `hom_admin` (HttpOnly, SameSite=Strict, 1 year, Secure with TLS); wrong key 403 |
+| `GET /admin/pairings` | CLI | Open requests |
+| `POST /admin/pairings/<code>/approve` · `/reject` | CLI | Body `{name}` (approve) |
+| `GET /admin/devices` · `DELETE /admin/devices/<id>` · `PATCH /admin/devices/<id>` | CLI | List; revoke (closes the live connection, 4001); rename `{name}` |
+
+| Item | Value |
+| --- | --- |
+| Admin key | `server/.data/admin-key` (mode 0600), created at first start, 12 characters Crockford base32 as `xxxx-xxxx-xxxx`; case, spaces and dashes ignored; `HOMUNCULUS_ADMIN_KEY` overrides. `/admin/*` needs `Authorization: Bearer <admin key>` |
+| Brute force | 10 failed admin-key checks per minute (all sources) → 429 / "too many wrong keys" |
+| Registry | `server/.data/devices.json` (mode 0600): `server_id` (12 hex), devices `{name, model, token_sha256, paired_at}` keyed by device id; written atomically (temp file + rename) |
+| Tokens | 32 random bytes, base64url; accepted for the upgrade and OTA only with the matching `X-Device-Id`. Shared tokens `HOMUNCULUS_DEVICE_TOKENS` accepted for any device id; unset: `dev` from loopback addresses only (simulator) |
+| mDNS | `_homunculus._tcp` (`bonjour-service`), instance `HOMUNCULUS_MDNS_NAME` (default `Homunculus`), TXT `path=/hdp`, `tls=0\|1`, `id=<server_id>`; `HOMUNCULUS_MDNS=0` disables |
+| CLI | `make devices ARGS="key\|pending\|approve <code> [name]\|reject <code>\|list\|rename <id> <name>\|revoke <id>"` (`server/src/admin/cli.ts`, admin API on `127.0.0.1:${HOMUNCULUS_PORT}`, `HOMUNCULUS_ADMIN_URL` overrides) |
+
+Not implemented: profile editing, backend/model/voice selection, turn history, OTA push UI.

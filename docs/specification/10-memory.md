@@ -197,7 +197,7 @@ Appended to the persona system prompt at each agent session open:
 
 | ID | Question | Next step |
 | --- | --- | --- |
-| OI-14 | Proactive reminders for appointments (server-initiated speech, HDP message) | Specify with timers (`device.set_timer`) |
-| OI-15 | Speaker identification for multi-person households | Defer; facts are about the primary user unless named |
+| OI-14 | Proactive reminders for appointments (server-initiated speech, HDP message) | **Deferred** (D-26) |
+| OI-15 | Speaker identification for multi-person households | **Deferred** (D-27); facts are about the primary user unless named |
 | OI-16 | minigraf native addon inside the nix dev shell | **Resolved** 2026-11-08 (addon no longer used in-process; minigraf runs inside the temporal-reasoning child) |
-| OI-17 | No person / place namespace in temporal-reasoning's schema; personal facts stored under `:constraint/` | Revisit when the server schema allows custom types |
+| OI-17 | No person / place namespace in temporal-reasoning's schema; personal facts stored under `:constraint/` | **Decided** (D-28): `:entity-type` `person` / `place` on `:constraint/` entities; extraction and fact rules not yet updated |

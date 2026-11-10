@@ -10,8 +10,8 @@
 | Asset | Threat | Mitigation |
 | --- | --- | --- |
 | Microphone audio | Eavesdropping on LAN / Internet | WSS (TLS 1.2+); server certificate pinned or validated against provisioned CA |
-| Device identity | Device impersonation | Per-device bearer token issued at pairing; stored in NVS (encrypted NVS in production) |
-| Server | Rogue device connections | Pairing requires physical confirmation (code shown on device); tokens revocable |
+| Device identity | Device impersonation | Per-device bearer token issued at pairing, bound to the device id, SHA-256 at rest on the server; stored in NVS (encrypted NVS in production) |
+| Server | Rogue device connections | Pairing approval needs the code shown on the device and the server admin key; tokens revocable; development token `dev` from loopback only |
 | Host machine | Agent executing harmful tools | Default-deny for shell/file write; per-device sandbox `cwd`; permission policy with on-device confirmation |
 | User accounts / external services | Prompt injection via web content triggers side effects | Side-effecting tools require on-device confirmation; tool output treated as untrusted in system prompt |
 | Firmware | Malicious OTA | Signed images, Secure Boot v2, flash encryption (production builds) |
@@ -26,5 +26,7 @@
 - Local-only operation is possible: local STT/TTS + OpenCode with a local model provider.
 
 ## 7.3 Authentication
+
+Devices: per-device token from pairing (spec 03 §3.5, spec 05 §5.9). A pairing request alone grants nothing: approval needs the admin key (phone page, once per phone via cookie; or the admin CLI on the server host). The approval URL and code travel over the LAN in plain HTTP unless TLS is configured.
 
 The Claude Agent SDK backend authenticates with `ANTHROPIC_API_KEY` if set, otherwise with the host's logged-in Claude subscription. Subscription login: personal use only; offering claude.ai login in a distributed third-party product built on the Agent SDK is not permitted; product naming must follow Anthropic's branding guidelines (e.g. "Homunculus, powered by Claude" — not "Claude Code").

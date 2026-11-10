@@ -47,6 +47,8 @@ Source: <https://docs.espressif.com/projects/esp-brookesia/en/latest/system/inde
 
 ## 9.5 Open items
 
+Deferred (D-25, 2026-11-10).
+
 | ID | Question | Next step |
 | --- | --- | --- |
 | OI-10 | Does `system_super` (Shell/launcher/overlay) render correctly on a 466×466 round panel, or does it need a custom shell on `system_core`? | Spike: add `system_super` + `app_settings` to a scratch build, run on the 1.75C |
