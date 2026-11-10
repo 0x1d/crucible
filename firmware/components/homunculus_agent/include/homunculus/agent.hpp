@@ -177,6 +177,7 @@ private:
     std::thread player_;
     std::atomic<bool> running_{false};
     bool url_rejected_ = false;
+    int failed_connects_ = 0;  // transport losses without a session (pairing::on_unreachable)
 
     // session (worker)
     std::atomic<bool> session_ready_{false};

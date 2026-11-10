@@ -243,20 +243,8 @@ std::string running_version()
 
 std::string image_url(const std::string &server_url, const char *model)
 {
-    std::string scheme;
-    if (server_url.rfind("wss://", 0) == 0) {
-        scheme = "https://";
-    } else if (server_url.rfind("ws://", 0) == 0) {
-        scheme = "http://";
-    } else {
-        return {};
-    }
-    const size_t host_start = server_url.find("://") + 3;
-    const size_t host_end = server_url.find('/', host_start);
-    const std::string host = server_url.substr(host_start, host_end == std::string::npos ? std::string::npos
-                                                                                          : host_end - host_start);
-    if (host.empty()) return {};
-    return scheme + host + "/ota/" + model + "/firmware.bin";
+    const std::string origin = settings::http_origin(server_url);
+    return origin.empty() ? origin : origin + "/ota/" + model + "/firmware.bin";
 }
 
 bool request_check()

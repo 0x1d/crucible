@@ -14,3 +14,5 @@ dependencies:
   espressif/brookesia_service_wifi:
     version: "0.8.*"
     require: public
+  espressif/mdns:
+    version: "^1.8"

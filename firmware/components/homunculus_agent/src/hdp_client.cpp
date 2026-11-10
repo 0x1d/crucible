@@ -153,9 +153,14 @@ void HdpClient::event_handler(void *arg, esp_event_base_t, int32_t id, void *dat
             self->callbacks_.disconnected();
         }
         break;
-    case WEBSOCKET_EVENT_ERROR:
-        ESP_LOGW(TAG, "error (http %d)", ev ? ev->error_handle.esp_ws_handshake_status_code : 0);
+    case WEBSOCKET_EVENT_ERROR: {
+        const int status = ev ? ev->error_handle.esp_ws_handshake_status_code : 0;
+        ESP_LOGW(TAG, "error (http %d)", status);
+        if (status >= 400 && self->callbacks_.rejected) {
+            self->callbacks_.rejected(status);
+        }
         break;
+    }
     case WEBSOCKET_EVENT_DATA:
         self->on_data(ev);
         break;

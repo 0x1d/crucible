@@ -34,6 +34,7 @@
 #include "brookesia/service_helper/network/sntp.hpp"
 #include "homunculus/agent.hpp"
 #include "homunculus/ota.hpp"
+#include "homunculus/pairing.hpp"
 #include "homunculus/settings.hpp"
 #include "homunculus/visualizer.hpp"
 #include "homunculus/wifi.hpp"
@@ -434,6 +435,30 @@ void on_ota_event(const homunculus::ota::Event &e)
 }
 
 // ---------------------------------------------------------------------------
+// Pairing (spec 03 §3.5): QR code with the approval URL, code underneath
+
+void on_pairing_event(const homunculus::pairing::Event &e)
+{
+    using Kind = homunculus::pairing::Event::Kind;
+    switch (e.kind) {
+    case Kind::Code: {
+        if (!g_visualizer) return;
+        const std::string caption = "code " + e.code.substr(0, 3) + " " + e.code.substr(3);
+        std::lock_guard lock(g_card_mutex);
+        if (g_card_owner == CardOwner::Confirm) return;
+        esp_timer_stop(g_text_timer);
+        if (homunculus::Visualizer::get_instance().show_qr_card("Scan to pair", e.url, caption)) {
+            g_card_owner = CardOwner::Text;
+        }
+        break;
+    }
+    case Kind::Paired: show_ota_card(e.text.empty() ? "Paired" : "Paired as " + e.text, 5); break;
+    case Kind::Failed: show_ota_card("Pairing: " + e.text + ", retrying", 0); break;
+    case Kind::ServerMoved: homunculus::HomunculusAgent::get_instance().reconnect(); break;
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Wi-Fi provisioning (spec 03 §3.5): Brookesia Wi-Fi service SoftAP + web page; QR code joins the AP
 
 constexpr int PROVISION_FALLBACK_S = 90;  // saved access points that never connect open the setup AP
@@ -657,6 +682,10 @@ void console_task()
             BROOKESIA_LOGW("[console] forgetting Wi-Fi, starting provisioning");
             if (homunculus::wifi::reset_and_provision()) show_provisioning_card();
             break;
+        case 'x':
+            BROOKESIA_LOGW("[console] forgetting the device token: pairing again");
+            homunculus::pairing::on_unauthorized();
+            break;
         case 'u':
             BROOKESIA_LOGI("[console] firmware update: %1%", homunculus::ota::request_install() ? "started" : "busy");
             break;
@@ -736,6 +765,7 @@ extern "C" void app_main(void)
         if (homunculus::wifi::start_provisioning()) show_provisioning_card();
     }
     start_thread("prov_watch", 6 * 1024, provision_watch_task);
+    homunculus::pairing::start(on_pairing_event);
 
     // Activate the Homunculus agent through the agent_manager state machine.
     auto &agent_manager = esp_brookesia::agent::Manager::get_instance();

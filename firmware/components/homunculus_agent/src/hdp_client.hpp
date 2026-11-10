@@ -28,6 +28,7 @@ public:
         std::function<void()> disconnected;         // transport lost (reconnect scheduled)
         std::function<void(std::string &&)> text;   // complete text message
         std::function<void(const uint8_t *, size_t)> binary;  // complete binary message
+        std::function<void(int)> rejected;          // upgrade answered with an HTTP status (e.g. 401)
     };
 
     bool start(const Config &config, Callbacks callbacks);

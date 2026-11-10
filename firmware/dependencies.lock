@@ -296,7 +296,7 @@ dependencies:
       type: service
     version: 2.4.4
   espressif/esp32-camera:
-    component_hash: d1770097ec47996a9aba49b8d99672863c9855ea2d47e91fe31e11e58e8c7813
+    component_hash: f14a6a9a5c223e49ea7ce6387a2124fc4f8a2239d5f6a1de1850217244f774fe
     dependencies:
     - name: espressif/esp_jpeg
       registry_url: https://components.espressif.com
@@ -308,7 +308,7 @@ dependencies:
     source:
       registry_url: https://components.espressif.com
       type: service
-    version: 2.1.8
+    version: 2.1.9
   espressif/esp_audio_codec:
     component_hash: 16e2880dbdd5a72264051f750f33a6e5a38fd25621c83e3a32a85a152d2d2643
     dependencies:
@@ -772,6 +772,16 @@ dependencies:
       registry_url: https://components.espressif.com
       type: service
     version: 0.8.8
+  espressif/mdns:
+    component_hash: 2fa43caa78cc170842255bc7bf71f306bc815cae12e9496bfb12372423019ac7
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=5.0'
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 1.15.1
   espressif/media_lib_sal:
     component_hash: ab439aa852ecde6f2510a755045eac0cad8a540f1c76096d4d08fdcf4e7753c2
     dependencies:
@@ -926,9 +936,10 @@ direct_dependencies:
 - espressif/brookesia_service_wifi
 - espressif/esp_lcd_co5300
 - espressif/esp_websocket_client
+- espressif/mdns
 - espressif/qrcode
 - idf
 - waveshare/esp_lcd_touch_cst9217
-manifest_hash: 802d21261b82c954c945f49f34ad5d0aea4070bfb67c09ae44232c485be969da
+manifest_hash: 2699d302e7b1cb36f48579e9481bb42c95a98484077688397ed9fb629c5f2c7b
 target: esp32s3
 version: 3.0.0

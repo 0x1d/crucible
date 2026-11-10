@@ -33,6 +33,7 @@
 #include "hdp_client.hpp"
 #include "homunculus/hdp.hpp"
 #include "homunculus/ota.hpp"
+#include "homunculus/pairing.hpp"
 #include "homunculus/wifi.hpp"
 
 namespace homunculus {
@@ -415,8 +416,13 @@ void HomunculusAgent::tick()
     const int64_t now = now_us();
     if (!confirm_id_.empty() && now > confirm_deadline_us_) finish_confirm(true, false, "timeout");
 
-    if (!client_ && wifi::is_connected()) {
+    // Not paired (or token revoked): the pairing thread runs; no HDP connection without a token.
+    if (!client_ && wifi::is_connected() && pairing::paired()) {
         connect();
+    }
+    if (client_ && !pairing::paired()) {
+        ESP_LOGW(TAG, "no device token");
+        drop_connection();
     }
     // Wi-Fi lost: the WebSocket notices only on the next failed send or ping timeout.
     // Drop the connection so the next session starts with a fresh hello.
@@ -508,11 +514,21 @@ void HomunculusAgent::connect()
     },
     {
         .connected = [this] { post([this] { handle_connected(); }); },
-        .disconnected = [this] { post([this] { handle_disconnected(); }); },
+        .disconnected = [this] {
+            post([this] {
+                // The paired server may have a new address (DHCP): every 5 failed attempts look it
+                // up via mDNS.
+                if (!session_ready_ && ++failed_connects_ % 5 == 0) pairing::on_unreachable();
+                handle_disconnected();
+            });
+        },
         .text = [this](std::string &&s) { post([this, s = std::move(s)] { handle_text(s); }); },
         .binary = [this](const uint8_t *d, size_t n) {
             std::vector<uint8_t> v(d, d + n);
             post([this, v = std::move(v)] { handle_binary(v.data(), v.size()); });
+        },
+        .rejected = [](int status) {
+            if (status == 401) pairing::on_unauthorized();
         },
     });
     if (!ok) {
@@ -651,6 +667,7 @@ void HomunculusAgent::handle_hello(const hdp::ServerMessage &m)
     // Opus decodes at any output rate; the downlink rate only matters for the encoder side.
     dl_frame_us_ = static_cast<int64_t>(m.frame_ms) * 1000;
     session_ready_ = true;
+    failed_connects_ = 0;
     {
         std::lock_guard lock(uplink_mutex_);
         if (client_) client_->reset_backoff();

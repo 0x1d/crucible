@@ -13,16 +13,16 @@ menu "Homunculus agent"
             Station password (empty for open networks). Set in firmware/sdkconfig.local.
 
     config HOMUNCULUS_SERVER_URL
-        string "HDP server URL"
+        string "HDP server URL (fallback)"
         default "ws://192.168.1.10:8443/hdp"
         help
-            HDP WebSocket endpoint (spec 4.1), e.g. wss://homunculus.lan:8443/hdp.
+            HDP WebSocket endpoint (spec 4.1), e.g. wss://homunculus.lan:8443/hdp. Used for pairing
+            when no server answers the mDNS query for _homunculus._tcp (spec 3.5).
 
-    config HOMUNCULUS_DEVICE_TOKEN
-        string "Device token"
-        default "dev"
-        help
-            Bearer token sent in the Authorization header.
+    config HOMUNCULUS_MDNS_TIMEOUT_MS
+        int "mDNS discovery timeout (ms)"
+        range 500 10000
+        default 3000
 
     config HOMUNCULUS_ALLOW_PLAIN_WS
         bool "Allow ws:// (development builds)"
