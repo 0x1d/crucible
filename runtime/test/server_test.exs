@@ -63,8 +63,8 @@ defmodule Runtime.ServerTest do
     assert Runtime.Server.port() == port
   end
 
-  test "application supervises a task supervisor and a permanent acceptor" do
-    [owner_watch, memory, tasks, server, warmup, acceptor] = Runtime.Application.children()
+  test "application supervises a task supervisor, a permanent acceptor, and the service gateway" do
+    [owner_watch, memory, tasks, server, warmup, acceptor, gateway] = Runtime.Application.children()
 
     assert owner_watch == Runtime.OwnerWatch
     assert memory == Runtime.Memory
@@ -74,6 +74,7 @@ defmodule Runtime.ServerTest do
     assert acceptor.id == Runtime.Acceptor
     assert acceptor.restart == :permanent
     assert elem(acceptor.start, 0) == Task
+    assert gateway == Runtime.ServiceGateway
 
     ids =
       Runtime.Supervisor
@@ -88,7 +89,8 @@ defmodule Runtime.ServerTest do
                Runtime.TaskSupervisor,
                Runtime.Server,
                Runtime.CodexWarmup,
-               Runtime.Acceptor
+               Runtime.Acceptor,
+               Runtime.ServiceGateway
              ])
 
     server = Process.whereis(Runtime.Server)

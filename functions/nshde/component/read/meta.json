@@ -1,0 +1,13 @@
+{
+  "description": "Read a component's source from nshde storage.\n\nArgs:\n- `slug` — kebab-case name (`todo-list`), or `path` under `components/`",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Nshde.Component.Read",
+  "moduledoc": "Read a component's source from nshde storage.\n\nArgs:\n- `slug` — kebab-case name (`todo-list`), or `path` under `components/`",
+  "name": "nshde.component.read",
+  "source_sha256": "d1e3d1c217ce45c810facfcd956a58dc1d234cb691f98ed5e04cd94a33c425e4",
+  "specs": [
+    "@type args :: %{\n  optional(:path) => String.t(),\n  optional(:slug) => String.t()\n}",
+    "@spec run(args()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-11-10T06:30:00.000000Z"
+}

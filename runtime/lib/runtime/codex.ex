@@ -6,6 +6,10 @@ defmodule Runtime.Codex do
   files are missing or invalid.
   """
 
+  # meta.json keys that `define` keeps: `service` holds a service's JSON Schemas
+  # (see Runtime.ServiceGateway).
+  @kept_meta_keys ["service"]
+
   def functions_root do
     System.get_env("AGENT_FUNCTIONS_DIR") ||
       Path.expand("../functions", Path.dirname(__ENV__.file))
@@ -116,17 +120,23 @@ defmodule Runtime.Codex do
     module = module_name(slug)
     full_source = ensure_module(module, source)
 
+    # `define` replaces the entry; keys owned by others (a service's schemas) carry over.
+    kept = load_meta(slug) |> Map.take(@kept_meta_keys)
+
     File.write!(source_path(slug), full_source)
 
     meta =
-      write_meta_file(slug, %{
-        "name" => slug,
-        "module" => Atom.to_string(module),
-        "description" => description,
-        "source_sha256" => sha256_hex(full_source),
-        "updated_at" => DateTime.utc_now() |> DateTime.to_iso8601(),
-        "loaded" => false
-      })
+      write_meta_file(
+        slug,
+        Map.merge(kept, %{
+          "name" => slug,
+          "module" => Atom.to_string(module),
+          "description" => description,
+          "source_sha256" => sha256_hex(full_source),
+          "updated_at" => DateTime.utc_now() |> DateTime.to_iso8601(),
+          "loaded" => false
+        })
+      )
 
     {:ok, meta}
   end

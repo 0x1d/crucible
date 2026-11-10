@@ -68,6 +68,7 @@ seconds). Children start in this order:
 | `Runtime.Server` | permanent GenServer | Serializes `define` and `load`. Does not own a socket |
 | `Runtime.CodexWarmup` | permanent GenServer | Compiles every codex entry before the acceptor listens |
 | `Runtime.Acceptor` | permanent `Task` | Owns the loopback listen socket and accepts |
+| `Runtime.ServiceGateway` | permanent supervisor | Second loopback listener that only runs `call` on published `services.*` entries (see the [nshde host](../../hosts/nshde/README.md)) |
 
 The acceptor hands each client to `Task.Supervisor.start_child/2`, then
 `:gen_tcp.controlling_process/2` so the task owns the socket. The task reads one
@@ -82,7 +83,7 @@ supervisor that gives up exits the VM. The next codex call boots a new one.
 A connection crash closes that socket and leaves the acceptor and serializer
 running.
 
-Shutdown stops children in reverse: the listen socket closes, then the
+Shutdown stops children in reverse: the service gateway closes, then the listen socket, then the
 serializer, then in-flight connection tasks, and memory stops last.
 
 Implications:

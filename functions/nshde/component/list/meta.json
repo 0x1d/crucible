@@ -1,0 +1,13 @@
+{
+  "description": "List the files under `components/` in nshde storage.\n\nReturns `paths` (sorted) and the storage `backend`.",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Nshde.Component.List",
+  "moduledoc": "List the files under `components/` in nshde storage.\n\nReturns `paths` (sorted) and the storage `backend`.",
+  "name": "nshde.component.list",
+  "source_sha256": "c1e3b1835aa309b0c8274b212f4f35567c70d20efcd732d63fa2e94edb13c0a4",
+  "specs": [
+    "@type args :: %{}",
+    "@spec run(args()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-11-10T06:30:00.000000Z"
+}

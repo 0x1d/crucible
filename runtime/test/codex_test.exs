@@ -79,4 +79,50 @@ defmodule Runtime.CodexTest do
       File.rm_rf!(root)
     end
   end
+
+  test "define and load keep a service's schemas in meta.json" do
+    root =
+      Path.join(System.tmp_dir!(), "alchemist-codex-#{System.unique_integer([:positive])}")
+
+    previous = System.get_env("AGENT_FUNCTIONS_DIR")
+    System.put_env("AGENT_FUNCTIONS_DIR", root)
+
+    try do
+      source = """
+      defmodule AgentFn.Services.KeepSchema do
+        @moduledoc "keep schema"
+        @behaviour AgentFn.Tool
+
+        @impl true
+        def run(args), do: {:ok, args}
+      end
+      """
+
+      {:ok, _} = Runtime.Codex.write_definition("services.keep_schema", source, "keep schema")
+      service = %{"input_schema" => %{"type" => "object"}, "output_schema" => true}
+      meta = Runtime.Codex.load_meta("services.keep_schema")
+
+      File.write!(
+        Runtime.Codex.meta_path("services.keep_schema"),
+        Jason.encode!(Map.put(meta, "service", service))
+      )
+
+      module = Runtime.Compiler.compile_slug!("services.keep_schema", reload: true)
+      assert Runtime.Codex.refresh_metadata!("services.keep_schema", module)["service"] == service
+
+      {:ok, redefined} =
+        Runtime.Codex.write_definition("services.keep_schema", source <> "# edit\n", "again")
+
+      assert redefined["service"] == service
+      assert redefined["description"] == "again"
+    after
+      if previous do
+        System.put_env("AGENT_FUNCTIONS_DIR", previous)
+      else
+        System.delete_env("AGENT_FUNCTIONS_DIR")
+      end
+
+      File.rm_rf!(root)
+    end
+  end
 end

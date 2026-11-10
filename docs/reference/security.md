@@ -35,6 +35,13 @@ Codex entries may call other entries through static composition or
 `AgentFn.Codex.call/2`. Each call runs in the same trust domain. There is no
 credential vault inside the codex.
 
+## Service gateway
+
+`Runtime.ServiceGateway` listens on `127.0.0.1` beside the codex socket and accepts only `call`.
+It runs only `services.*` entries listed in the service manifest with the SHA-256 of their current `tool.ex`.
+Input and output are validated against the entry's JSON Schemas, and each call runs in a task with a timeout and a `max_heap_size`.
+The entry still runs with the BEAM's full privileges; the gateway limits which code a caller can reach, not what that code can do.
+
 ## Future hardening
 
 Connection tasks isolate a crashed `run/1` from the listen socket. They do not

@@ -3,7 +3,8 @@ defmodule Runtime.Application do
   OTP application entry for the Alchemist runtime (`:runtime`).
 
   Starts the owner watch, memory, the task supervisor, the compile serializer
-  (`Runtime.Server`), and the permanent acceptor that owns the loopback socket.
+  (`Runtime.Server`), the permanent acceptor that owns the loopback socket, and
+  the service gateway, a second loopback listener that only runs published services.
   When `ALCHEMIST_OWNER_PID` names a process that is already gone, the VM stops
   instead of opening the memory file.
   """
@@ -52,7 +53,8 @@ defmodule Runtime.Application do
 
   @doc """
   Supervision order: owner watch, memory, connection tasks, the compile
-  serializer, codex warm load, then the permanent acceptor.
+  serializer, codex warm load, the permanent acceptor, then the call-only
+  service gateway (`Runtime.ServiceGateway`).
   Shutdown stops children in reverse, so the listen socket closes before
   in-flight connection tasks, and the graph outlives them.
   """
@@ -67,7 +69,8 @@ defmodule Runtime.Application do
         {Task, &Runtime.Server.accept/0},
         id: Runtime.Acceptor,
         restart: :permanent
-      )
+      ),
+      Runtime.ServiceGateway
     ]
   end
 
