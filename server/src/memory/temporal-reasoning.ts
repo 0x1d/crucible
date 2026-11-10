@@ -7,6 +7,7 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { CreateMessageRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import type { HostTool, ToolOutcome } from "../inference/types.js";
 import type { Logger } from "../log.js";
+import { splitEntityTypes } from "./sampler.js";
 
 /** PyPI package pinned for reproducible behaviour (`uvx temporal-reasoning==…`). */
 export const TEMPORAL_REASONING_PACKAGE = "temporal-reasoning==0.9.0";
@@ -48,6 +49,8 @@ export class TemporalReasoning {
   /** Finalize calls run one at a time, in turn order. */
   private finalizing: Promise<void> = Promise.resolve();
   private closed = false;
+  /** Person / place tags from the current finalize's sampling (D-28). */
+  private pendingTags: string[] = [];
   private readonly log: Logger;
 
   constructor(
@@ -97,7 +100,10 @@ export class TemporalReasoning {
         .map((c) => (c.type === "text" ? c.text : ""))
         .join("\n\n");
       const t0 = performance.now();
-      const text = await this.opts.sample(prompt, req.params.maxTokens);
+      // The server's extraction path replaces :entity-type with :type/constraint; person / place tags
+      // (D-28) are transacted after finalize instead.
+      const { block: text, tags } = splitEntityTypes(await this.opts.sample(prompt, req.params.maxTokens));
+      this.pendingTags.push(...tags);
       this.log.info("sampled", { ms: Math.round(performance.now() - t0), chars: text.length });
       this.log.debug("sampled_text", { prompt: prompt.slice(-1500), text: text.slice(0, 1500) });
       return { role: "assistant", model: "homunculus-sampler", content: { type: "text", text } };
@@ -161,8 +167,14 @@ export class TemporalReasoning {
   finalize(conversationDelta: string): Promise<void> {
     const run = async () => {
       try {
+        this.pendingTags = [];
         const r = await this.call("memory_finalize_turn", { conversation_delta: conversationDelta }, undefined, FINALIZE_TIMEOUT_MS);
         this.log.info("finalize", { ok: r.ok, result: r.text.slice(0, 300) });
+        const tags = this.pendingTags.splice(0);
+        if (r.ok && tags.length) {
+          const t = await this.call("minigraf_transact", { facts: `[${tags.join("\n ")}]`, reason: "Person / place type of extracted entities (D-28)" });
+          this.log.info("entity_types", { ok: t.ok, tags: tags.length, ...(t.ok ? {} : { error: t.text.slice(0, 200) }) });
+        }
       } catch (e) {
         this.log.warn("finalize_failed", { error: (e as Error).message });
       }

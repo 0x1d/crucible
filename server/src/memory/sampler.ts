@@ -11,13 +11,15 @@ confirms onto the allowed types:
 - :preference/ for likes, dislikes and how the user wants things done (e.g. their name and how to be addressed);
 - :decision/ for choices and plans the user made;
 - :constraint/ for other lasting personal facts: people and how they relate to the user, places,
-  routines, appointments, health or dietary restrictions;
+  routines, appointments, health or dietary restrictions. An entity that is a person gets
+  [:constraint/<ident> :entity-type :type/person], a place [:constraint/<ident> :entity-type :type/place]
+  (one entity per person or place, e.g. :constraint/max, :constraint/linz);
 - :dependency/ only for devices, services or things the user relies on.
 Store only what the user said or confirmed, never what the assistant suggested. Small talk, questions
 about general knowledge and anything not about the user's life: return [].
 Write descriptions as one plain sentence about the user ("The user ..."), naming people by name. Put dates and
 times into the description as absolute dates ("on Tuesday 10 November 2026 at 10:00"), resolved against the
-current date below; do not use :date.
+current date below; do not use :date. :entity-type is the only attribute besides those the prompt lists.
 Never infer anyone's gender or pronouns.
 Every fact is exactly one triple [entity attribute value]; give each attribute its own triple.`;
 
@@ -62,6 +64,16 @@ export function normalizeBlock(text: string): string {
     for (let i = 1; i < v.length; i += 2) triples.push([v[0]!, v[i]!, v[i + 1]!]);
   }
   return withHint(`[${triples.map(write).join("\n ")}]`);
+}
+
+/** Person / place tags (D-28) of a normalised block, and the block without them. */
+export function splitEntityTypes(block: string): { block: string; tags: string[] } {
+  const tags: string[] = [];
+  const rest = block.replace(/\[(:constraint\/[^\s\]]+) :entity-type (:type\/(?:person|place))\]\s*/g, (_m, e: string, t: string) => {
+    tags.push(`[${e} :entity-type ${t}]`);
+    return "";
+  });
+  return { block: tags.length ? rest.replace(/\[\s*\]$/, "[]").replace(/\s+\]$/, "]") : block, tags };
 }
 
 export function claudeSampler(model: string, timeZone?: string): Sampler {

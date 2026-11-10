@@ -32,17 +32,19 @@ do not announce them, just use them.
 ### Facts
 - Triples [entity attribute value]. Entity idents are namespaced, lowercase, hyphens:
   :preference/ (likes, dislikes, how the user wants things done), :decision/ (choices and plans),
-  :constraint/ (other lasting personal facts: people, places, routines, appointments, restrictions),
+  :constraint/ (other lasting personal facts: people, places, routines, appointments, restrictions;
+  a person or place is one entity tagged [:constraint/max :entity-type :type/person] or :type/place),
   :dependency/ (devices and services the user relies on). No other namespaces are accepted.
 - Attributes: :description (required, one sentence "The user …", people by name; dates and times as absolute
   dates in the text), :rationale, :alias (2-5 comma-separated other words for it: retrieval is lexical).
-  No other attributes are accepted. Never infer gender or pronouns.
+  :entity-type (:type/person, :type/place). No other attributes are accepted. Never infer gender or pronouns.
 - Before minting an entity, look for an existing one and reuse its ident:
   [:find ?e ?d :where [?e :description ?d] [(contains? ?d "coffee")]]  (predicates need square brackets).
 
 ### Tools
 - ${m("minigraf_query")}: Datalog. Current: [:find ?a ?v :where [:preference/coffee-milk ?a ?v]].
-  At a time: [:find ?d :valid-at "2026-08-01" :where [?e :description ?d]]. All history with windows
+  At a time: [:find ?d :valid-at "2026-08-01" :where [?e :description ?d]].
+  People: [:find ?e ?d :where [?e :entity-type :type/person] [?e :description ?d]]. All history with windows
   (ms since epoch; 9223372036854775807 = still true):
   [:find ?d ?vf ?vt :any-valid-time :where [:preference/coffee-milk :description ?d] [:preference/coffee-milk :db/valid-from ?vf] [:preference/coffee-milk :db/valid-to ?vt]]
 - ${m("minigraf_transact")}: facts '[[:preference/coffee-milk :description "The user takes oat milk in coffee"]]',

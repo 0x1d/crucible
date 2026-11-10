@@ -10,7 +10,7 @@ import { hostToolServer } from "../src/inference/claude/backend.js";
 import type { HostTool } from "../src/inference/types.js";
 import { Memory } from "../src/memory/memory.js";
 import { memoryPrompt } from "../src/memory/prompt.js";
-import { normalizeBlock } from "../src/memory/sampler.js";
+import { normalizeBlock, splitEntityTypes } from "../src/memory/sampler.js";
 import { AGENT_TOOLS } from "../src/memory/temporal-reasoning.js";
 import { wikiTools } from "../src/memory/tools.js";
 import { parsePage, serializePage } from "../src/memory/wiki.js";
@@ -161,4 +161,21 @@ test("sampled memory blocks are normalised to triples", () => {
   );
   assert.equal(normalizeBlock('Here: [[:a/b :description "x"]] done.'), '[[:a/b :description "x"]]');
   assert.equal(normalizeBlock("Nothing to store."), "Nothing to store.");
+});
+
+test("person / place tags are transacted after finalize (D-28)", async () => {
+  assert.deepEqual(splitEntityTypes('[[:constraint/max :entity-type :type/person]\n [:constraint/max :description "Brother."]]'), {
+    block: '[[:constraint/max :description "Brother."]]',
+    tags: ["[:constraint/max :entity-type :type/person]"],
+  });
+  assert.deepEqual(splitEntityTypes('[[:constraint/linz :entity-type :type/place]]'), { block: "[]", tags: ["[:constraint/linz :entity-type :type/place]"] });
+  const block = '[[:preference/tea :description "Tea."]]';
+  assert.deepEqual(splitEntityTypes(block), { block, tags: [] });
+
+  const mem = await open([], '[[:constraint/max :entity-type :type/person]\n [:constraint/max :description "Max is the user\'s brother."]]');
+  await mem.temporal.finalize("User: My brother is Max.\nAssistant: Noted.");
+  const facts = (await mem.temporal.call("minigraf_query", { datalog: "[:find ?f :where [?e ?a ?f]]" })).text;
+  assert.match(facts, /:constraint\/max :description/);
+  assert.match(facts, /\[\[:constraint\/max :entity-type :type\/person\]\]/);
+  await mem.close();
 });

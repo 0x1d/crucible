@@ -104,6 +104,7 @@ In-memory BM25 over pages (field weights: title, slug and aliases 3; summary and
 | Fact | Triple `[entity attribute value]` with valid time (`valid_at` on transact / retract) and transaction time |
 | Entity namespaces accepted | `:preference/` (likes, dislikes, name, how to be addressed), `:decision/` (choices, plans), `:constraint/` (other lasting personal facts: people, places, routines, appointments, restrictions), `:dependency/` (devices, services) |
 | Attributes accepted | `:description` (required), `:rationale`, `:alias`; `:date` on `:decision/` only; `:entity-type` |
+| People and places (D-28) | One `:constraint/<ident>` entity per person or place with `:entity-type :type/person` / `:type/place` (e.g. `[:constraint/max :entity-type :type/person]`); set by the agent, and by extraction: the server's extraction path stores `:entity-type :type/constraint` on every extracted entity, so the client removes person / place triples from the sampled block and transacts them after finalize (the entity carries both types) |
 | Rejected | Other namespaces (e.g. `:person/`) and attributes: the whole transact fails with a schema violation |
 | Dates and times | Absolute date in the description ("on Tuesday 10 November 2026 at 10:00") |
 | Change | Retract (mode `close`: valid window ends, history kept) then transact the new value |
@@ -200,4 +201,4 @@ Appended to the persona system prompt at each agent session open:
 | OI-14 | Proactive reminders for appointments (server-initiated speech, HDP message) | **Deferred** (D-26) |
 | OI-15 | Speaker identification for multi-person households | **Deferred** (D-27); facts are about the primary user unless named |
 | OI-16 | minigraf native addon inside the nix dev shell | **Resolved** 2026-11-08 (addon no longer used in-process; minigraf runs inside the temporal-reasoning child) |
-| OI-17 | No person / place namespace in temporal-reasoning's schema; personal facts stored under `:constraint/` | **Decided** (D-28): `:entity-type` `person` / `place` on `:constraint/` entities; extraction and fact rules not yet updated |
+| OI-17 | No person / place namespace in temporal-reasoning's schema; personal facts stored under `:constraint/` | **Decided** (D-28): `:entity-type` `:type/person` / `:type/place` on `:constraint/` entities (§10.4.1); extraction guide and session prompt updated |
