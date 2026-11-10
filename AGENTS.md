@@ -5,6 +5,21 @@ The [product overview](README.md) and [documentation index](docs/index.md)
 describe the product and its public reading paths. The served agent's prompt is
 `hosts/cursor/bot/instructions.md`.
 
+## Toolchain
+
+Run every command below inside the Nix dev shell, except on Cursor Cloud (see the last section).
+`flake.nix` and `shell.nix` provide Node, Elixir, Erlang/OTP, and `gh`.
+Do not rely on a system Elixir.
+Without the shell, the BEAM tests and `eval:acp` fail with `spawn elixir ENOENT`.
+
+```bash
+nix --extra-experimental-features 'nix-command flakes' develop   # flake shell
+nix-shell                                                         # fallback without flakes
+nix-shell --run 'npm run eval:acp'                                # one-off command
+```
+
+`.envrc` loads the same shell through direnv when it is installed.
+
 ## Loop
 
 ```bash
@@ -15,7 +30,7 @@ agent-sdk eval --dir hosts/cursor
 npm run check
 ```
 
-Session-trace memory (fixture graph, plain Node; Elixir must already be on `PATH`):
+Session-trace memory (fixture graph, plain Node; run inside the Nix dev shell):
 
 ```bash
 npm run seed:session-trace
