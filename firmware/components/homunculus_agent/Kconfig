@@ -67,14 +67,6 @@ menu "Homunculus agent"
         range 0 10000
         default 1200
 
-    config HOMUNCULUS_SPEAKER_VOLUME
-        int "Speaker volume at boot (percent)"
-        range 0 100
-        default 85
-        help
-            Set via the Brookesia AudioPlayback service after start. Brookesia's
-            default (75 %) is too quiet on the 1.75C speaker.
-
     config HOMUNCULUS_OTA_CHECK_ON_CONNECT
         bool "Check for a firmware update when the HDP session starts"
         default y

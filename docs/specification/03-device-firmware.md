@@ -137,7 +137,6 @@ Kconfig (`Homunculus agent` menu):
 | `HOMUNCULUS_MAX_UTTERANCE_MS` | 15000 | Device-side utterance limit |
 | `HOMUNCULUS_THINKING_TIMEOUT_MS` | 90000 | Thinking → Idle without `tts{start}` |
 | `HOMUNCULUS_DEVICE_ENDPOINT`, `_MIN_MS` | n, 1200 | Reserved (device-side VAD endpointing, not implemented) |
-| `HOMUNCULUS_SPEAKER_VOLUME` | 85 | AudioPlayback `SetVolume` at boot (Brookesia default and persisted value: 75 %) |
 | `HOMUNCULUS_TURN_STATS` | y | Per-turn uplink / latency log |
 | `HOMUNCULUS_SYSTEM_STATS_INTERVAL_S` | 5 | Per-core CPU load, heap, thread stack log interval (0 = off) |
 | `HOMUNCULUS_DEV_CONSOLE` | y | USB-Serial-JTAG single-key console (`t` tap, `w` wake word, `s` stats, `r` HDP reconnect, `d` Wi-Fi disconnect) |
@@ -225,7 +224,7 @@ Device tools are declared in the `hello` message and bridged by the server into 
 
 | Tool | Parameters | Description |
 | --- | --- | --- |
-| `device.set_volume` | `level: 0–100` | Speaker volume |
+| `device.set_volume` | `level: 0–100` | Speaker volume (persisted by AudioPlayback; default 85 %, `CONFIG_BROOKESIA_SERVICE_AUDIO_PLAYBACK_VOLUME_DEFAULT`) |
 | `device.set_brightness` | `level: 0–100` | AMOLED brightness (DCS 0x51) |
 | `device.show_text` | `text, duration_s` | Show a card on screen (e.g. a phone number) |
 | `device.show_qr` | `data, caption` | QR code (Brookesia emote `SetQrcode`) |

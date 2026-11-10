@@ -16,8 +16,9 @@ CONFIG_BROOKESIA_UTILS_THREAD_PROFILER_ENABLE_FREERTOS_CONFIG=y
 # RealTime chat mode: the agent gates uplink/downlink itself (spec 03 §3.2.1).
 CONFIG_BROOKESIA_AGENT_MANAGER_DEFAULT_CHAT_MODE_REAL_TIME=y
 
-# Playback default 100 % (Brookesia default 75 % is too quiet on the 1.75C speaker).
-CONFIG_BROOKESIA_SERVICE_AUDIO_PLAYBACK_VOLUME_DEFAULT=100
+# Playback default 85 % (Brookesia default 75 % is too quiet on the 1.75C speaker). AudioPlayback
+# persists the volume, so device.set_volume survives reboots.
+CONFIG_BROOKESIA_SERVICE_AUDIO_PLAYBACK_VOLUME_DEFAULT=85
 
 # -O2: Brookesia (Boost-heavy C++) at -Og dominated idle CPU; the vendor example uses PERF too.
 CONFIG_COMPILER_OPTIMIZATION_PERF=y
