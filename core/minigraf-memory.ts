@@ -435,6 +435,13 @@ function closeFacts(
     last = commit(graph, transactForm([body], windowFromMs(plan.from, plan.to)));
   }
   if (!last) throw new MemoryError("facts must be a non-empty list");
+  // A fact closed in the millisecond it was asserted keeps a window of
+  // [from, from + 1), which a query in that millisecond still matches. With a
+  // default end the wait is at most 1 ms, and the fact is gone on return.
+  if (end === null) {
+    const closedAt = Math.max(...plans.map((plan) => plan.to));
+    while (Date.now() < closedAt);
+  }
   return {
     tx: last.tx,
     at: last.at,
