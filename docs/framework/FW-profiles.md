@@ -49,6 +49,8 @@ Four document types are outside the required sets: `DEV` (one per project), `INF
 
 If a component fits two profiles, it is probably two components. Split it, for example `app` (app) and `api` (service). A small CLI wrapped around a library can stay a single `library` and describe the CLI in its `DES`.
 
+A nested component (a module of another component, see [Modules](README.md#modules)) takes whichever profile fits it: usually `library`, or `service` for a part that runs on its own.
+
 ## Applying the framework
 
 The mapping of a concrete system onto profiles (which projects it has, which components each contains, where their documents live) belongs to that system's own documents, in the repository layout or migration section of its `ARCH`, not here.

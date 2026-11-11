@@ -3,6 +3,7 @@ id: <system>/<project>/<component>
 title: <Component name>
 type: manifest
 owner: <system>/<project>
+parent: <full id of the component this is a module of; delete the line for a top-level component>
 profile: <system | service | app | library | protocol | device | integration>
 status: draft
 summary: <one sentence: what this component is>
@@ -14,6 +15,7 @@ date: YYYY-MM-DD
 ---
 
 <!-- Component manifest. Copy to projects/<project>/docs/<component>/README.md (shared packages: packages/<name>/docs/README.md) and add a row to the project index projects/<project>/docs/README.md.
+     A nested component (module): copy to <parent component folder>/<module>/README.md; its id is <parent id>/<module> and its owner is the parent.
      In a project with a single component the manifest may be projects/<project>/docs/README.md itself; it is then also the project index.
      `status` is draft, active or deprecated. `date` is the date of the last change to the manifest.
      `documents` lists the full id of every document the component has: the required set of the profile (framework/FW-profiles.md), any optional ones, and every named one (IFC-http-api, IFC-event-api, ...).

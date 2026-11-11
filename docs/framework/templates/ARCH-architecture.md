@@ -26,16 +26,17 @@ flowchart LR
 
 ## 2 Building blocks
 
-<!-- C4 level 2: processes, containers and major modules. One row per block. Internals of each block go in DES. -->
+<!-- C4 level 2: processes, containers and major modules. One row per block. Internals of a block go in DES. A block that needs an architecture of its own is a module:
+     name its document (<component-id>/ARCH-<block>) or its nested component (<component-id>/<block>) under Specified in (framework README, Modules). -->
 
 ```mermaid
 flowchart TB
     A["<block>"] --> B["<block>"]
 ```
 
-| Block | Responsibility | Technology | Code |
-| --- | --- | --- | --- |
-| <name> | <single responsibility> | <language / framework> | <path> |
+| Block | Responsibility | Technology | Code | Specified in |
+| --- | --- | --- | --- | --- |
+| <name> | <single responsibility> | <language / framework> | <path> | <component-id>/DES |
 
 ## 3 Dependency rules
 

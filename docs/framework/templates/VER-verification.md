@@ -27,7 +27,8 @@ planned: []
 
 ## 2 Traceability
 
-<!-- Method: test (automated), inspection (review of code or config), demo (manual, scripted below), analysis (measurement or calculation).
+<!-- Method: test (automated), inspection (review of code or config), demo (manual, scripted below), analysis (measurement or calculation),
+     trace (met by the requirements of modules named in Check, by their full ids).
      Status: pass, fail, not built (requirement is Planned), missing (no check yet). -->
 
 | Requirement | Method | Check | Status |

@@ -26,6 +26,7 @@ A framework for specifying a technical system and everything in it: apps, servic
 | **Workspace** | The repository (or set of repositories) that holds the system. Its root holds this framework and the system documents |
 | **Project** | An independently developed codebase inside the system, with its own directory, tooling and owners. A project contains one or more components |
 | **Component** | One thing that is specified, built and versioned as a unit: an app, service, library, protocol, device firmware or integration. A project may contain several, e.g. a device project with `firmware` and `gateway` |
+| **Module** | A part of a component that needs an architecture of its own. It is described in named documents of the component or, once it has requirements or an interface of its own, as a nested component ([Modules](#modules)) |
 | **Profile** | The kind of component. It fixes which document types the component must have (its *required set*) |
 | **Document type** | A fixed kind of document with a code (`REQ`, `ARCH`, ...) and a template |
 | **Manifest** | The component's `README.md`: front matter stating id, profile, status, dependencies and documents |
@@ -79,7 +80,8 @@ Every workspace that follows the framework has the same root. Code is grouped by
 │       │   ├── README.md          project index: its components, one line each
 │       │   ├── <component>/       one folder per component
 │       │   │   ├── README.md      manifest
-│       │   │   └── REQ-requirements.md IFC-http-api.md ...   its documents
+│       │   │   ├── REQ-requirements.md IFC-http-api.md ...   its documents
+│       │   │   └── <module>/      optional nested component, same structure
 │       │   ├── DEV-development.md  how to work on the project
 │       │   └── guides/            optional user documentation: how-tos, concepts, reference
 │       ├── <component>/           code of one component
@@ -114,6 +116,30 @@ Every workspace that follows the framework has the same root. Code is grouped by
 | Reference, don't copy | A component using another's interface names its owner under `depends` in the manifest and links to that `IFC` across projects |
 | User documentation | `guides/` explains the project to its users: how-tos, concepts, reference. It links to the spec and never specifies behaviour itself; where both speak, the spec wins |
 | Same framework everywhere | Project docs follow this framework as it stands at the workspace root; they do not copy the templates or rules |
+
+## Modules
+
+A component's `ARCH` names its building blocks. A block that needs an architecture of its own is a module. It is specified in one of two ways:
+
+| | Named documents | Nested component |
+| --- | --- | --- |
+| When | The module has internal structure only: the component's requirements cover its behaviour and it has no contract of its own | The module has requirements of its own, an interface to the other modules, or is verified on its own |
+| What | Further documents of the component, named after the module: `ARCH-<module>`, `DES-<module>` | A component inside the component, with its own manifest, profile and required set |
+| Id | `home/web/app/ARCH-editor` | `home/web/app/editor`; its documents `home/web/app/editor/ARCH`, ... |
+| Folder | The component's folder | `<component folder>/<module>/` |
+| Items | Owned by the component: `home/web/app/FR-012` | Owned by the module: `home/web/app/editor/FR-003` |
+| Relation | `depends: [home/web/app/ARCH]` in the module's documents | `parent: home/web/app` in the module's manifest |
+
+| Rule | Detail |
+| --- | --- |
+| Start small | Begin with named documents. Promote the module to a nested component when its first own requirement or interface appears: the named documents move into its folder, take the plain type name, and the references are updated in the same change |
+| Any depth | A nested component may have modules of its own, in either form |
+| Blocks point down | The Building blocks table of the parent's `ARCH` has a Specified in column naming the module's document or the nested component |
+| Parent stays thin | The parent's `ARCH` says how the modules fit together: the blocks, the dependency rules and the flows between them. It does not describe the inside of a module |
+| Requirements | A parent requirement is either verified at the parent or met by module requirements. In the second case its `VER` row has the method `trace` and names those requirements |
+| Interfaces | Modules talk to each other through the `IFC` of the module that provides the interface. A module's manifest names the sibling modules it uses under `depends` |
+| Code | A module's code is a subfolder of the component's code; its manifest's `code` field names it |
+| One tree | `parent` is stored in the module only. Which modules a component has is derived |
 
 ## System documents
 
@@ -151,6 +177,7 @@ Every artifact has exactly one fully qualified id. It is a path from the system 
 | Project | `<system>/<project>` | `home/sensor` |
 | Package | `<system>/packages/<package>` | `home/packages/storage` |
 | Component | `<project id>/<component>`; a package is its own component | `home/sensor/gateway` |
+| Nested component (module) | `<component id>/<module>`, to any depth | `home/web/app/editor` |
 | Document | `<owner id>/<CODE>` for the only document of its type, `<owner id>/<CODE>-<title slug>` for a named one; the owner is a component, a project or the system | `home/sensor/gateway/REQ`, `home/sensor/gateway/IFC-http-api`, `home/sensor/DEV` |
 | Framework file | `<system>/FW`, `<system>/FW-<title slug>` | `home/FW-profiles` |
 | Item | `<owner id>/<item>`; the owner is the component, project or system whose document defines it | `home/web/app/FR-012`, `home/AD-14` |
@@ -219,6 +246,7 @@ Every document starts with YAML front matter. It is the machine-readable part: i
 | `documents` | Manifest | Full ids of the component's documents |
 | `depends` | Manifest | Full ids of the components whose interface this one uses. Together the manifests give the component graph |
 | `implements` | Manifest | Full ids of `IFC` documents owned by another component that this one implements (a protocol, a plugin API) |
+| `parent` | Manifest of a nested component | Full id of the component it is a module of. The list of a component's modules is derived from it |
 
 | Rule | Detail |
 | --- | --- |
@@ -249,7 +277,7 @@ planned:
 
 - **Descriptive.** Write what exists, what it does and what its contract is, in the present tense. Do not write task lists, journals or dated plan files. The one history kept in a document is the change table of an `IFC`.
 - **One fact, one place.** Link to a fact; never restate it. Requirements belong in `REQ`, contracts in `IFC`, rationale in `AD`.
-- **Testable.** Every requirement has an acceptance criterion and at least one row in `VER`. System requirements are traced to component requirements instead (see [System documents](#system-documents)).
+- **Testable.** Every requirement has an acceptance criterion and at least one row in `VER`. A requirement that modules meet together has a `trace` row naming their requirements ([Modules](#modules)). System requirements are traced to component requirements in the same way (see [System documents](#system-documents)).
 - **EARS for requirements.** `The <component> shall <response>.` / `When <trigger>, the <component> shall <response>.` / `While <state>, ...` / `If <unwanted condition>, then ...`
 - **Diagrams** are Mermaid, kept next to the text that explains them.
 - **Plain ASCII text.** Use `-` for dashes and ranges (never em or en dashes), `->` for arrows, `...` for ellipses, `>=` / `<=` for comparisons, and words instead of symbols: "section 5.5", not the section sign. Footnote markers are `(1)`, not superscripts. Box-drawing characters in directory trees inside code blocks are the only exception.
@@ -303,6 +331,7 @@ Planned changes form a dependency graph, not a roadmap: there are no dates and n
 - Refer to every artifact by its full id.
 - Go down the levels: project index -> component manifest -> documents. Load only what the task needs.
 - Find what else to read from front matter: `depends` and `related` of the document, `depends` and `implements` of the manifest.
+- A manifest with `parent` describes a module: read the parent's `ARCH` before the module's documents.
 - The manifest lists the profile, the documents and the dependencies. Read `REQ` and the `IFC` of every dependency before reading or writing code.
 - Never implement a **Planned** section partially without saying which slices are done.
 - If the spec is silent or ambiguous, add an `OI` entry and ask; do not invent behaviour.
