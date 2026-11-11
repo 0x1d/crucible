@@ -31,12 +31,12 @@ function runChecker(files) {
 }
 
 const validIndex = "# Documentation\n";
-const readmeLink = "# Project\n\n[Documentation](docs/index.md)\n";
+const readmeLink = "# Project\n\n[Documentation](docs/README.md)\n";
 
 test("checks local destinations containing balanced parentheses", () => {
   const result = runChecker({
     "README.md": `${readmeLink}\n[Reference](docs/reference_(v2).md)\n`,
-    "docs/index.md": validIndex,
+    "docs/README.md": validIndex,
   });
 
   assert.equal(result.status, 1);
@@ -55,7 +55,7 @@ test("ignores link-like text in fenced code and HTML comments", () => {
 
 <!-- [commented](missing-comment.md) -->
 `,
-    "docs/index.md": validIndex,
+    "docs/README.md": validIndex,
   });
 
   assert.equal(result.status, 0, result.stderr);
@@ -64,22 +64,22 @@ test("ignores link-like text in fenced code and HTML comments", () => {
 
 test("does not count an image as the required README entry link", () => {
   const result = runChecker({
-    "README.md": "# Project\n\n![Documentation](docs/index.md)\n",
-    "docs/index.md": validIndex,
+    "README.md": "# Project\n\n![Documentation](docs/README.md)\n",
+    "docs/README.md": validIndex,
   });
 
   assert.equal(result.status, 1);
-  assert.match(result.stderr, /README\.md:1: missing required link to docs\/index\.md/);
+  assert.match(result.stderr, /README\.md:1: missing required link to docs\/README\.md/);
 });
 
 test("does not count an unused reference definition as the README entry link", () => {
   const result = runChecker({
-    "README.md": "# Project\n\n[documentation]: docs/index.md\n",
-    "docs/index.md": validIndex,
+    "README.md": "# Project\n\n[documentation]: docs/README.md\n",
+    "docs/README.md": validIndex,
   });
 
   assert.equal(result.status, 1);
-  assert.match(result.stderr, /README\.md:1: missing required link to docs\/index\.md/);
+  assert.match(result.stderr, /README\.md:1: missing required link to docs\/README\.md/);
 });
 
 test("does not count an image-only reference use as the README entry link", () => {
@@ -89,14 +89,14 @@ test("does not count an image-only reference use as the README entry link", () =
       "",
       "![Documentation][documentation]",
       "",
-      "[documentation]: docs/index.md",
+      "[documentation]: docs/README.md",
       "",
     ].join("\n"),
-    "docs/index.md": validIndex,
+    "docs/README.md": validIndex,
   });
 
   assert.equal(result.status, 1);
-  assert.match(result.stderr, /README\.md:1: missing required link to docs\/index\.md/);
+  assert.match(result.stderr, /README\.md:1: missing required link to docs\/README\.md/);
 });
 
 test("counts a real reference link as the README entry link", () => {
@@ -106,10 +106,10 @@ test("counts a real reference link as the README entry link", () => {
       "",
       "[Documentation][documentation]",
       "",
-      "[documentation]: docs/index.md",
+      "[documentation]: docs/README.md",
       "",
     ].join("\n"),
-    "docs/index.md": validIndex,
+    "docs/README.md": validIndex,
   });
 
   assert.equal(result.status, 0, result.stderr);
@@ -118,7 +118,7 @@ test("counts a real reference link as the README entry link", () => {
 test("ignores link-like text in single-backtick code spans", () => {
   const result = runChecker({
     "README.md": `${readmeLink}\nUse \`[pseudo](missing-single.md)\` here.\n`,
-    "docs/index.md": validIndex,
+    "docs/README.md": validIndex,
   });
 
   assert.equal(result.status, 0, result.stderr);
@@ -128,7 +128,7 @@ test("ignores link-like text in single-backtick code spans", () => {
 test("ignores link-like text in multi-backtick code spans", () => {
   const result = runChecker({
     "README.md": `${readmeLink}\nUse \`\`[pseudo](missing-multi.md) with \` code\`\` here.\n`,
-    "docs/index.md": validIndex,
+    "docs/README.md": validIndex,
   });
 
   assert.equal(result.status, 0, result.stderr);
@@ -138,7 +138,7 @@ test("ignores link-like text in multi-backtick code spans", () => {
 test("requires lowercase markdown filenames under docs/", () => {
   const result = runChecker({
     "README.md": readmeLink,
-    "docs/index.md": validIndex,
+    "docs/README.md": validIndex,
     "docs/BAD.md": "# Bad\n",
   });
 

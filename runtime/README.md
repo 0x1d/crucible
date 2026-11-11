@@ -138,12 +138,12 @@ Do not start a second `:runtime` with `mix run` while the bridge VM is up unless
 - The acceptor restarts on the same port when it can. A dead node is replaced by the bridge.
 - `"loaded"` in `meta.json` is disk bookkeeping; live code lives in the BEAM until restart.
 - No sandbox: compilation and `run/1` use the host OS identity. See
-  [Security boundary](../docs/reference/security.md).
-- Operation contract: [Codex protocol](../docs/reference/protocol.md).
+  [Security boundary](../docs/security.md).
+- Operation contract: [Codex protocol](../docs/codex-protocol/interfaces/codex-protocol.md).
 
 ## Related reading
 
-- [Architecture](../docs/concepts/architecture.md)
-- [Host adapters](../docs/reference/hosts.md)
-- [Memory](../docs/concepts/memory.md)
-- [Domain language](../docs/concepts/domain-language.md)
+- [Architecture](../docs/architecture.md)
+- [Host adapters](../docs/architecture/host-adapters.md)
+- [Memory](../docs/runtime/design/memory.md)
+- [Domain language](../docs/architecture/domain-language.md)

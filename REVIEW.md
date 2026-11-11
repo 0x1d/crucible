@@ -4,7 +4,7 @@ Use this document when performing a **full or deep review** of Elixir code in th
 
 Matching an anti-pattern does **not** mean the code must be rewritten. Prefer incremental improvements with clear benefit; cite the linked guide when recommending a change.
 
-Ignore `docs/internal/` unless you are updating historical records.
+Documents and sections under `docs/` marked **Planned** describe work that is not built yet.
 
 ## Alchemist runtime checklist
 

@@ -312,7 +312,7 @@ for (const file of markdownFiles) {
 
   if (file.startsWith("docs/")) {
     const basename = path.basename(file);
-    if (basename !== basename.toLowerCase()) {
+    if (basename !== "README.md" && basename !== basename.toLowerCase()) {
       report(file, 1, "documentation filenames under docs/ must be lowercase");
     }
   }
@@ -339,9 +339,9 @@ for (const file of markdownFiles) {
   }
 }
 
-const indexPath = path.join(root, "docs/index.md");
+const indexPath = path.join(root, "docs/README.md");
 if (!existsSync(indexPath)) {
-  report("docs/index.md", 1, "required documentation index is missing");
+  report("docs/README.md", 1, "required documentation index is missing");
 }
 
 const readmePath = path.join(root, "README.md");
@@ -352,10 +352,10 @@ if (existsSync(readmePath)) {
     return !isImage && local !== null && resolvedTarget("README.md", local) === indexPath;
   });
   if (!linksToIndex) {
-    report("README.md", 1, "missing required link to docs/index.md");
+    report("README.md", 1, "missing required link to docs/README.md");
   }
 } else {
-  report("README.md", 1, "missing required link to docs/index.md");
+  report("README.md", 1, "missing required link to docs/README.md");
 }
 
 if (violations.length > 0) {

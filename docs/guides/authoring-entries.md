@@ -108,12 +108,12 @@ test modules directly with `mix test` in `runtime/` when logic is pure Elixir.
 ## Security
 
 `define` and `call` execute arbitrary Elixir with host privileges. Review source
-before loading in sensitive environments. See [Security boundary](../reference/security.md).
+before loading in sensitive environments. See [Security boundary](../security.md).
 
 ## Related reading
 
-- [Memory](../concepts/memory.md)
-- [Domain language](../concepts/domain-language.md)
-- [Architecture](../concepts/architecture.md)
-- [Codex protocol](../reference/protocol.md)
+- [Memory](../runtime/design/memory.md)
+- [Domain language](../architecture/domain-language.md)
+- [Architecture](../architecture.md)
+- [Codex protocol](../codex-protocol/interfaces/codex-protocol.md)
 - [Alchemist served-agent instructions](../../hosts/cursor/bot/instructions.md)

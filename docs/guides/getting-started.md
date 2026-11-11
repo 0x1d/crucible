@@ -89,11 +89,11 @@ the repository root (`direnv allow`) and follow any `hint:` lines from the shell
 hook for remaining `mix` or `npm` steps.
 
 Design notes for this workflow live in the
-[internal records index](../internal/index.md) (Nix/direnv plan and spec).
+[internal records index](../README.md) (Nix/direnv plan and spec).
 
 ## Next steps
 
-- [Authoring codex entries](./authoring-entries.md)
-- [Codex protocol](../reference/protocol.md)
-- [Host adapters](../reference/hosts.md)
-- [Security boundary](../reference/security.md)
+- [Authoring codex entries](authoring-entries.md)
+- [Codex protocol](../codex-protocol/interfaces/codex-protocol.md)
+- [Host adapters](../architecture/host-adapters.md)
+- [Security boundary](../security.md)
