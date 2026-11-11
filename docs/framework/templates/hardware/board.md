@@ -1,5 +1,5 @@
 ---
-id: <system>/<project>/<component>/HW-<board-slug>
+id: <system>/<project>/<component>/hardware/<board-slug>
 title: <Board name>
 type: HW
 owner: <system>/<project>/<component>
@@ -14,7 +14,7 @@ planned: []
 
 <Summary: one paragraph saying what this document establishes and its main points.>
 
-<!-- One document per supported board, always named after the board: id .../HW-<board-slug>, file HW-<board-slug>.md. -->
+<!-- One sub-document per supported board: file hardware/<board-slug>.md, id <component-id>/hardware/<board-slug>. hardware.md lists the boards. -->
 
 ## 1 Board
 

@@ -1,0 +1,4 @@
+# Separate repositories until the monorepo import (crucible/P-01).
+/alchemist/
+/homunculus/
+/nshde/

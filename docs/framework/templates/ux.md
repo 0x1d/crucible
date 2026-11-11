@@ -1,11 +1,11 @@
 ---
-id: <system>/<project>/<component>/UX
+id: <system>/<project>/<component>/ux
 title: UI Design
 type: UX
 owner: <system>/<project>/<component>
 status: Draft
 date: YYYY-MM-DD
-depends: [<system>/<project>/<component>/REQ]
+depends: [<system>/<project>/<component>/requirements]
 related: []
 planned: []
 ---

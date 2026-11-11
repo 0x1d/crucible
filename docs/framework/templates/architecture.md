@@ -1,11 +1,11 @@
 ---
-id: <system>/<project>/<component>/ARCH
+id: <system>/<project>/<component>/architecture
 title: Architecture
 type: ARCH
 owner: <system>/<project>/<component>
 status: Draft
 date: YYYY-MM-DD
-depends: [<system>/<project>/<component>/REQ]
+depends: [<system>/<project>/<component>/requirements]
 related: []
 planned: []
 ---
@@ -27,7 +27,7 @@ flowchart LR
 ## 2 Building blocks
 
 <!-- C4 level 2: processes, containers and major modules. One row per block. Internals of a block go in DES. A block that needs an architecture of its own is a module:
-     name its document (<component-id>/ARCH-<block>) or its nested component (<component-id>/<block>) under Specified in (framework README, Modules). -->
+     name its document (<component-id>/architecture/<block>) or its nested component (<component-id>/<block>) under Specified in (framework README, Modules). -->
 
 ```mermaid
 flowchart TB
@@ -36,7 +36,7 @@ flowchart TB
 
 | Block | Responsibility | Technology | Code | Specified in |
 | --- | --- | --- | --- | --- |
-| <name> | <single responsibility> | <language / framework> | <path> | <component-id>/DES |
+| <name> | <single responsibility> | <language / framework> | <path> | <component-id>/design |
 
 ## 3 Dependency rules
 
@@ -72,7 +72,7 @@ sequenceDiagram
 
 ## 7 Decisions
 
-<!-- The AD entries that shaped this architecture, linked to the log that holds them: the system's log (<system>/AD), or this component's AD-decisions.md. Rationale lives in the AD entry, not here. -->
+<!-- The AD entries that shaped this architecture, linked to the log that holds them: the system's log (<system>/decisions), or this component's decisions.md. Rationale lives in the AD entry, not here. -->
 
 | Decision | Summary |
 | --- | --- |

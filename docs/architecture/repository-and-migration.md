@@ -1,11 +1,11 @@
 ---
-id: crucible/ARCH-repository-and-migration
+id: crucible/architecture/repository-and-migration
 title: Repository and Migration
 type: ARCH
 owner: crucible
 status: Draft
 date: 2026-11-11
-depends: [crucible/ARCH, crucible/ARCH-shared-packages]
+depends: [crucible/architecture/system-architecture, crucible/architecture/shared-packages]
 related: []
 planned:
   - id: crucible/P-01
@@ -38,13 +38,16 @@ planned:
 
 ## 1 Monorepo layout
 
-Follows the [framework workspace layout](../framework/README.md#workspace-layout).
+Follows the [framework workspace layout](../framework.md#workspace-layout).
 
 ```text
 crucible/
 ├── docs/                          # cross-project only
-│   ├── framework/                 # specification framework + templates
-│   └── architecture/              # this set
+│   ├── README.md                  # system manifest and index
+│   ├── requirements.md  architecture.md  decisions.md  open-items.md
+│   ├── architecture/              # sub-documents of architecture.md, this one among them
+│   ├── framework.md               # specification framework
+│   └── framework/                 # profiles, templates
 ├── projects/
 │   ├── alchemist/
 │   │   ├── docs/                  # alchemist components, codex protocol, guides
@@ -110,13 +113,13 @@ crucible/
 
 ## 5 Documentation migration
 
-Each project keeps its documents under `projects/<project>/docs/`, restructured per the [specification framework](../framework/README.md). `docs/` keeps only the framework and this architecture set.
+Each project keeps its documents under `projects/<project>/docs/`, restructured per the [specification framework](../framework.md). `docs/` keeps only the system documents and the framework.
 
-Components and their [profiles](../framework/FW-profiles.md):
+Components and their [profiles](../framework/profiles.md):
 
 | Component | Profile | Docs |
 | --- | --- | --- |
-| `crucible` | system | `docs/architecture/` |
+| `crucible` | system | `docs/` |
 | `crucible/homunculus/firmware` | device | `projects/homunculus/docs/firmware/` |
 | `crucible/homunculus/server` | service | `projects/homunculus/docs/server/` |
 | `crucible/homunculus/hdp` | protocol | `projects/homunculus/docs/hdp/` |
@@ -133,21 +136,21 @@ Moves:
 | Source | Target |
 | --- | --- |
 | `homunculus/docs/specification/*` | `projects/homunculus/docs/{firmware,server,hdp}/`; decisions `D-NN` and open items keep their ids, prefixed `HOM-` |
-| `homunculus/docs/devices/` | `projects/homunculus/docs/firmware/HW-<board>.md` |
+| `homunculus/docs/devices/` | `projects/homunculus/docs/firmware/hardware/<board>.md` |
 | `alchemist/docs/{concepts,reference}` | `projects/alchemist/docs/{runtime,codex-protocol}/` |
 | `alchemist/docs/guides` | `projects/alchemist/docs/guides/` |
 | `alchemist/docs/internal/{plans,specs}` - implemented | Content folded into the component documents; files removed |
 | `alchemist/docs/internal/{plans,specs}` - proposed / planned | A **Planned** section in the component document, with an id and its dependencies; files removed |
 | `nshde/docs/internal/plans/001-006` (done) | `projects/nshde/docs/ide/`; files removed |
-| `nshde/docs/internal/plans/007-009`, alchemist `2026-11-10-nshde-deployment` | `projects/nshde/docs/api/` deployment and access-control sections marked **Planned**; cross-project decisions to `crucible/AD` |
-| `docs/architecture/ARCH-shared-packages.md` interface details | `packages/<package>/docs/IFC-interface-contract.md`; `crucible/ARCH-shared-packages` keeps responsibilities and links |
+| `nshde/docs/internal/plans/007-009`, alchemist `2026-11-10-nshde-deployment` | `projects/nshde/docs/api/` deployment and access-control sections marked **Planned**; cross-project decisions to `crucible/decisions` |
+| `docs/architecture/shared-packages.md` interface details | `packages/<package>/docs/interfaces.md`; `crucible/architecture/shared-packages` keeps responsibilities and links |
 | `AGENTS.md` per project | One root `AGENTS.md` plus short per-project files |
 
 Removed files remain in git history.
 
 ## 6 Planned work
 
-The migration is a set of planned changes that form a dependency graph ([framework](../framework/README.md#planned-work)). The dependencies are declared under `planned` in this document's front matter; the graph and the table are a view of them. There are no dates and no fixed order: a change may start when everything it depends on is done.
+The migration is a set of planned changes that form a dependency graph ([framework](../framework.md#planned-work)). The dependencies are declared under `planned` in this document's front matter; the graph and the table are a view of them. There are no dates and no fixed order: a change may start when everything it depends on is done.
 
 ```mermaid
 flowchart LR

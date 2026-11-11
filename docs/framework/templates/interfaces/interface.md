@@ -1,12 +1,12 @@
 ---
-id: <system>/<project>/<component>/IFC-<interface-slug>
+id: <system>/<project>/<component>/interfaces/<interface-slug>
 title: <Interface name, e.g. HTTP API>
 type: IFC
 owner: <system>/<project>/<component>
 status: Draft
 version: 0.1.0
 date: YYYY-MM-DD
-depends: [<system>/<project>/<component>/REQ]
+depends: [<system>/<project>/<component>/requirements]
 related: []
 planned: []
 ---
@@ -16,8 +16,8 @@ planned: []
 <Summary: one paragraph saying what this document establishes and its main points.>
 
 <!-- The contract other components depend on. Anything not written here is not part of the contract.
-     One document per interface, always named after it: title HTTP API, id .../IFC-http-api, file IFC-http-api.md.
-     Item ids (MSG, EP, FN, CMD, CF) are numbered per component, across all its IFC documents.
+     One sub-document per interface: title HTTP API, file interfaces/http-api.md, id <component-id>/interfaces/http-api. interfaces.md lists the interfaces.
+     Item ids (MSG, EP, FN, CMD, CF) are numbered per component, across all its interface contracts.
      For an integration: describe the mapping between the external interface and ours (section 7). -->
 
 ## 1 Overview

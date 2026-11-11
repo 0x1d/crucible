@@ -1,12 +1,12 @@
 ---
-id: crucible/OI
+id: crucible/open-items
 title: Open Items
 type: OI
 owner: crucible
 status: Draft
 date: 2026-11-10
 depends: []
-related: [crucible/AD]
+related: [crucible/decisions]
 ---
 
 # Crucible - Open Items

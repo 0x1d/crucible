@@ -1,11 +1,11 @@
 ---
-id: crucible/FW-profiles
+id: crucible/framework/profiles
 title: Profiles
 type: FW
 owner: crucible
 status: Draft
 date: 2026-11-11
-depends: [crucible/FW]
+depends: [crucible/framework]
 related: []
 ---
 
@@ -31,9 +31,9 @@ R = required (at least one document of the type), O = optional (add it when it h
 - (2) Short: purpose, scope and the requirements on the public API.
 - (3) Conformance checks that any implementation of the protocol must pass.
 - (4) Mapping between the external system's interface and ours: concepts, messages, errors, unsupported features.
-- (5) Only for checks that span projects. System requirements are otherwise traced to the component requirements that implement them. The system's documents are in `docs/architecture/` ([README.md](README.md#system-documents)).
+- (5) Only for checks that span projects. System requirements are otherwise traced to the component requirements that implement them. The system's documents are in `docs/` ([README.md](../framework.md#system-documents)).
 
-Four document types are outside the required sets: `DEV` (one per project), `INF` (system level), and the `AD` and `OI` logs (system level; a component keeps its own, in `AD-decisions.md` and `OI-open-items.md`, only for entries that affect nothing outside it). See [Document types](README.md#document-types).
+Four document types are outside the required sets: `DEV` (one per project), `INF` (system level), and the `AD` and `OI` logs (system level; a component keeps its own, in `decisions.md` and `open-items.md`, only for entries that affect nothing outside it). See [Document types](../framework.md#document-types).
 
 ## Choosing a profile
 
@@ -49,7 +49,7 @@ Four document types are outside the required sets: `DEV` (one per project), `INF
 
 If a component fits two profiles, it is probably two components. Split it, for example `app` (app) and `api` (service). A small CLI wrapped around a library can stay a single `library` and describe the CLI in its `DES`.
 
-A nested component (a module of another component, see [Modules](README.md#modules)) takes whichever profile fits it: usually `library`, or `service` for a part that runs on its own.
+A nested component (a module of another component, see [Modules](../framework.md#modules)) takes whichever profile fits it: usually `library`, or `service` for a part that runs on its own.
 
 ## Applying the framework
 

@@ -1,5 +1,5 @@
 ---
-id: crucible/REQ
+id: crucible/requirements
 title: Requirements
 type: REQ
 owner: crucible

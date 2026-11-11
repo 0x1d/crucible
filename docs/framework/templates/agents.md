@@ -5,9 +5,9 @@
 
 ## Read first
 
-- [Specification framework](<relative path to docs/framework/README.md>), section "For agents"
+- [Specification framework](<relative path to docs/framework.md>), section "For agents"
 - [<Project> index](<relative path to the project index>) -> component manifest -> documents
-- [Development](<relative path to DEV-development.md>) for setup and commands
+- [Development](<relative path to development.md>) for setup and commands
 
 ## Rules
 

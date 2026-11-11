@@ -1,11 +1,11 @@
 ---
-id: <system>/<project>/<component>/SEC
+id: <system>/<project>/<component>/security
 title: Security and Privacy
 type: SEC
 owner: <system>/<project>/<component>
 status: Draft
 date: YYYY-MM-DD
-depends: [<system>/<project>/<component>/REQ, <system>/<project>/<component>/ARCH]
+depends: [<system>/<project>/<component>/requirements, <system>/<project>/<component>/architecture]
 related: []
 planned: []
 ---

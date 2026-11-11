@@ -1,5 +1,5 @@
 ---
-id: <system>/<project>/<component>/OI
+id: <system>/<project>/<component>/open-items
 title: Open Items
 type: OI
 owner: <system>/<project>/<component>
@@ -11,7 +11,7 @@ related: []
 # <Component> - Open Items
 
 <!-- Open-item log. One row per unresolved question or unverified assumption; a row is never deleted or renumbered.
-     Use this file only for items that affect nothing outside the component. All others go in the system's log (<system>/OI, docs/architecture/OI-open-items.md), which has the same shape.
+     Use this file only for items that affect nothing outside the component. All others go in the system's log (<system>/open-items, docs/open-items.md), which has the same shape.
      Status: Open, or Closed by <full AD id> (a decision closes an item). Every open item has a next step. -->
 
 | Id | Question | Next step | Affects | Status |

@@ -1,5 +1,5 @@
 ---
-id: <system>/<project>/<component>/REQ
+id: <system>/<project>/<component>/requirements
 title: Requirements
 type: REQ
 owner: <system>/<project>/<component>

@@ -1,11 +1,11 @@
 ---
-id: <system>/<project>/<component>/DES
+id: <system>/<project>/<component>/design
 title: Design
 type: DES
 owner: <system>/<project>/<component>
 status: Draft
 date: YYYY-MM-DD
-depends: [<system>/<project>/<component>/REQ, <system>/<project>/<component>/ARCH]
+depends: [<system>/<project>/<component>/requirements, <system>/<project>/<component>/architecture]
 related: []
 planned: []
 ---
@@ -15,7 +15,7 @@ planned: []
 <Summary: one paragraph saying what this document establishes and its main points.>
 
 <!-- How the component works inside: precise enough that two people would implement it the same way.
-     Organise by building block from ARCH. When it grows past ~400 lines, move a building block into a further document named after it (id .../DES-<block>, file DES-<block>.md).
+     Organise by building block from ARCH. When it grows past ~400 lines, move a building block into a sub-document, design/<block>.md (id <component-id>/design/<block>); design.md keeps the summary and links it.
      A planned change goes in the section it will change, marked `**Planned** P-NN` and declared under `planned` in the front matter, with Slices and Done when (framework README, Workflow and Planned work). -->
 
 ## 1 Module structure

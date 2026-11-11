@@ -1,5 +1,5 @@
 ---
-id: <system>/INF
+id: <system>/infrastructure
 title: Infrastructure
 type: INF
 owner: <system>
@@ -15,7 +15,7 @@ planned: []
 <Summary: one paragraph saying what this document establishes and its main points.>
 
 <!-- The hosts, networks and shared services that carry the system, and how they are connected.
-     System level: id <system>/INF, file docs/architecture/INF-infrastructure.md. A project uses this template (id and owner <system>/<project>...) only for infrastructure nothing else uses.
+     System level: id <system>/infrastructure, file docs/infrastructure.md. A project uses this template (id <system>/<project>/infrastructure) only for infrastructure nothing else uses.
      Never put secret values here, only names and where they come from. -->
 
 ## 1 Overview

@@ -1,11 +1,11 @@
 ---
-id: <system>/<project>/<component>/OPS
+id: <system>/<project>/<component>/operations
 title: Operations
 type: OPS
 owner: <system>/<project>/<component>
 status: Draft
 date: YYYY-MM-DD
-depends: [<system>/<project>/<component>/ARCH]
+depends: [<system>/<project>/<component>/architecture]
 related: []
 planned: []
 ---

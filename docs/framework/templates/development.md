@@ -1,5 +1,5 @@
 ---
-id: <system>/<project>/DEV
+id: <system>/<project>/development
 title: Development
 type: DEV
 owner: <system>/<project>

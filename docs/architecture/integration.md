@@ -1,11 +1,11 @@
 ---
-id: crucible/ARCH-integration
+id: crucible/architecture/integration
 title: Integration
 type: ARCH
 owner: crucible
 status: Draft
 date: 2026-11-10
-depends: [crucible/ARCH, crucible/ARCH-shared-packages]
+depends: [crucible/architecture/system-architecture, crucible/architecture/shared-packages]
 related: []
 ---
 

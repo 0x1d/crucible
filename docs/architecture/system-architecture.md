@@ -1,15 +1,15 @@
 ---
-id: crucible/ARCH
-title: Architecture
+id: crucible/architecture/system-architecture
+title: System Architecture
 type: ARCH
 owner: crucible
 status: Draft
 date: 2026-11-10
-depends: [crucible/REQ]
+depends: [crucible/requirements]
 related: []
 ---
 
-# Crucible - Architecture
+# Crucible - System Architecture
 
 ## 1 System context
 
@@ -74,7 +74,7 @@ flowchart TB
 | Rule | Statement |
 | --- | --- |
 | R-01 | Applications depend on packages; packages never depend on applications |
-| R-02 | Applications do not import each other's code; they talk over the channels in [crucible/ARCH-integration](ARCH-integration.md) |
+| R-02 | Applications do not import each other's code; they talk over the channels in [crucible/architecture/integration](integration.md) |
 | R-03 | `agent` knows the memory **interface**, not a provider |
 | R-04 | TypeScript reaches the BEAM only through `codex-client`; the BEAM reaches applications only through their HTTP APIs |
 | R-05 | Codex entries reach files only through `AgentLib.Storage`, never `File.*` directly |

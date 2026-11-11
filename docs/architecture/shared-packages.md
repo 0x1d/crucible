@@ -1,17 +1,17 @@
 ---
-id: crucible/ARCH-shared-packages
+id: crucible/architecture/shared-packages
 title: Shared Packages
 type: ARCH
 owner: crucible
 status: Draft
 date: 2026-11-10
-depends: [crucible/ARCH]
+depends: [crucible/architecture/system-architecture]
 related: []
 ---
 
 # Crucible - Shared Packages
 
-Interfaces below are architectural sketches. The binding contract of each package is its `IFC` (`packages/<name>/docs/IFC-interface-contract.md`).
+Interfaces below are architectural sketches. The binding contract of each package is its `IFC` (`packages/<name>/docs/interfaces.md`).
 
 ## 1 `packages/memory`
 

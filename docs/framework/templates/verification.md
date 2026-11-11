@@ -1,11 +1,11 @@
 ---
-id: <system>/<project>/<component>/VER
+id: <system>/<project>/<component>/verification
 title: Verification
 type: VER
 owner: <system>/<project>/<component>
 status: Draft
 date: YYYY-MM-DD
-depends: [<system>/<project>/<component>/REQ]
+depends: [<system>/<project>/<component>/requirements]
 related: []
 planned: []
 ---
