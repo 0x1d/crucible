@@ -1,27 +1,27 @@
 ---
-id: crucible/nshde/api/design/agent-sandbox
+id: crucible/athanor/api/design/agent-sandbox
 title: Agent Sandbox
 type: DES
-owner: crucible/nshde/api
+owner: crucible/athanor/api
 status: Draft
 date: 2026-11-11
-depends: [crucible/nshde/api/design]
+depends: [crucible/athanor/api/design]
 related: []
 planned:
-  - id: crucible/nshde/api/P-08
+  - id: crucible/athanor/api/P-08
     title: Agent in a Vercel Sandbox
-    depends: [crucible/nshde/api/P-07, crucible/nshde/api/P-09, crucible/alchemist/P-01]
+    depends: [crucible/athanor/api/P-07, crucible/athanor/api/P-09, crucible/alchemist/P-01]
 ---
 
 # Agent Sandbox
 
 **Planned** P-08.
 
-nshde runs on Koyeb; the agent (alchemist sidecar + BEAM) has no deployment yet.
-This plan runs the agent on demand in a [Vercel Sandbox](https://vercel.com/docs/vercel-sandbox) on the Hobby plan, started by the nshde API, and keeps it inside the free allowance.
+athanor runs on Koyeb; the agent (alchemist sidecar + BEAM) has no deployment yet.
+This plan runs the agent on demand in a [Vercel Sandbox](https://vercel.com/docs/vercel-sandbox) on the Hobby plan, started by the athanor API, and keeps it inside the free allowance.
 The agent's work lives in a separate **codex repo** on GitHub (components and the functions they use) and in Supabase (memory, sessions).
 
-Depends on `crucible/nshde/api/P-07` (tokens) and `crucible/nshde/api/P-09` (Supabase storage). The alchemist side is the alchemist planned change `crucible/alchemist/P-01`.
+Depends on `crucible/athanor/api/P-07` (tokens) and `crucible/athanor/api/P-09` (Supabase storage). The alchemist side is the alchemist planned change `crucible/alchemist/P-01`.
 
 ## Why a sandbox, not Koyeb
 
@@ -52,7 +52,7 @@ From Vercel's sandbox pricing page (verify at implementation time):
 
 ```mermaid
 flowchart LR
-  UI[IDE] -->|/api/agents| API[nshde API - Koyeb]
+  UI[IDE] -->|/api/agents| API[athanor API - Koyeb]
   API -->|SDK: create from snapshot, extend, stop, read/write files| Vercel[(Vercel Sandbox API)]
   API -->|HTTPS + sidecar token| Sidecar
   subgraph Sandbox[Vercel Sandbox - on demand]
@@ -67,7 +67,7 @@ flowchart LR
 
 ## Codex repo
 
-One repo per nshde workspace, separate from alchemist (e.g. `0x1d/nshde-codex`):
+One repo per athanor workspace, separate from alchemist (e.g. `0x1d/athanor-codex`):
 
 ```
 components/        <slug>.nsh.tsx, .wasm - the UI modules
@@ -81,7 +81,7 @@ README.md
 - `functions/` is an **overlay** on alchemist's own entries (alchemist plan). Alchemist's shipped entries and `functions/lib` stay in alchemist.
 - `components/services.d.ts` is generated from the schemas and gitignored.
 - Publishing a service is a commit to `services.json`, so every published version has a reviewable diff.
-- Supabase `files` (`crucible/nshde/api/P-09`) is the IDE's **working copy** of `components/` and `services.json`: always available, even with no sandbox. Git is the history and the source of truth between syncs.
+- Supabase `files` (`crucible/athanor/api/P-09`) is the IDE's **working copy** of `components/` and `services.json`: always available, even with no sandbox. Git is the history and the source of truth between syncs.
 
 ### Sync
 
@@ -93,23 +93,23 @@ Alchemist does the git work, inside the sandbox, through a `codex.sync` entry th
 | --- | --- |
 | Agent start | Controller, before the first turn |
 | New or changed functions or components after a turn | Sidecar, at turn end, when anything changed |
-| Publish / unpublish a service | nshde API, then sync |
+| Publish / unpublish a service | athanor API, then sync |
 | User asks | **Sync** button in the explorer -> `POST /api/codex/sync` -> starts a sandbox if none is up (charged to the budget) -> `POST /sync` |
 
 **What one sync does:**
 
 1. `git pull --rebase` the checkout.
-2. **Components and manifest, nshde <-> repo.** For each file under `components/` and `services.json`, compare three versions by git blob sha: the repo's, nshde's working copy, and `base_sha` (the sha both had at the last sync, stored per file in `files`).
-   - Only the repo changed: write it to nshde.
-   - Only nshde changed: write it to the checkout.
-   - Both changed to different contents: keep nshde's in place, write the repo's next to it as `<name>.remote.nsh.tsx`, report a conflict. Never overwrite silently.
+2. **Components and manifest, athanor <-> repo.** For each file under `components/` and `services.json`, compare three versions by git blob sha: the repo's, athanor's working copy, and `base_sha` (the sha both had at the last sync, stored per file in `files`).
+   - Only the repo changed: write it to athanor.
+   - Only athanor changed: write it to the checkout.
+   - Both changed to different contents: keep athanor's in place, write the repo's next to it as `<name>.remote.nsh.tsx`, report a conflict. Never overwrite silently.
    - Deleted on one side and unchanged on the other: delete on both.
 3. `functions/` changes come only from the agent (the IDE lists services but does not edit Elixir), so they are committed as they are.
 4. Commit: one commit per sync, message `codex: <summary>` listing the components and entries changed and the session id. `codex.commit_uncommitted` can still be used for per-function commits when the user asks.
 5. `git push`. If rejected, pull and retry once, then report.
-6. Update `base_sha` in nshde for every synced file.
+6. Update `base_sha` in athanor for every synced file.
 
-nshde exposes the working-copy side to the sidecar through the agent token (`crucible/nshde/api/P-07` slice 4, extended): `GET /api/codex/files` (paths with content sha and `base_sha`), `GET/POST /api/storage` under `components/` and `services.json`, `POST /api/codex/base` (set `base_sha`s).
+athanor exposes the working-copy side to the sidecar through the agent token (`crucible/athanor/api/P-07` slice 4, extended): `GET /api/codex/files` (paths with content sha and `base_sha`), `GET/POST /api/storage` under `components/` and `services.json`, `POST /api/codex/base` (set `base_sha`s).
 
 **Credentials:** a fine-grained GitHub token with *Contents: read and write* on the codex repo only (`CODEX_GITHUB_TOKEN`), passed to the sidecar's environment and used through a git credential helper, not written into the remote URL. Agent-written code can reach it; the damage is limited to that one repo, whose history shows every change.
 
@@ -142,7 +142,7 @@ A snapshot from which the sidecar is ready in seconds, with no install or compil
 - `bun run agent:snapshot` (`scripts/agent-snapshot.ts`) builds it through the SDK and prints the id (`NSHDE_AGENT_SNAPSHOT`). Run by hand per alchemist upgrade; charged to the budget.
 - Record here: versions, snapshot size, cold start (create -> sidecar listening), snapshot retention.
 
-Exit criteria: from the snapshot, the sidecar answers within 15 s and a turn writes a component back to a local nshde. Otherwise take the fallback.
+Exit criteria: from the snapshot, the sidecar answers within 15 s and a turn writes a component back to a local athanor. Otherwise take the fallback.
 
 ### 2. Sandbox controller
 
@@ -155,7 +155,7 @@ Exit criteria: from the snapshot, the sidecar answers within 15 s and a turn wri
 - **Lifetime cap** `NSHDE_AGENT_MAX_LIFETIME_MIN` (40, under 45): no turn starts that would cross it; stop and start fresh instead.
 - **Turn cap** `NSHDE_AGENT_TURN_MAX_MIN` (10): abort and send `error`.
 - New SSE event `status` (`starting agent...`, `syncing...`) for the panel.
-- Egress, if the sandbox network policy allows: `api.anthropic.com`, `github.com`, the nshde API host.
+- Egress, if the sandbox network policy allows: `api.anthropic.com`, `github.com`, the athanor API host.
 
 ### 3. CPU budget
 
@@ -170,7 +170,7 @@ Exit criteria: from the snapshot, the sidecar answers within 15 s and a turn wri
 
 ### 4. Codex repo and sync
 
-- Implement the sync above: alchemist `codex.sync` entry and sidecar `POST /sync` (alchemist plan); nshde `/api/codex/*` routes, `base_sha` column on `files`, the **Sync** button, and conflict reporting in the explorer (a `.remote` file shows as a conflict with *keep mine* / *take theirs*).
+- Implement the sync above: alchemist `codex.sync` entry and sidecar `POST /sync` (alchemist plan); athanor `/api/codex/*` routes, `base_sha` column on `files`, the **Sync** button, and conflict reporting in the explorer (a `.remote` file shows as a conflict with *keep mine* / *take theirs*).
 - `CODEX_REPO` (`owner/name`) configures the repo. Bootstrapping: an empty repo is initialized with the layout and a README on the first sync.
 - Components written by the agent through `nshde.component.write` land in the working copy as today and reach git at turn-end sync.
 
@@ -193,12 +193,12 @@ The memory graph is one MiniGraf database file (`AGENT_MEMORY_PATH`) plus a `.tx
 - The Supabase key stays on Koyeb; the sandbox never sees it.
 - A crash during a turn loses that turn's memory writes, nothing earlier.
 - Not in git: memory is per-user agent state with frequent binary rewrites. Facts already reach git as the memory notes in `codex.commit_uncommitted` messages.
-- **Sessions**: the Agent SDK's transcript for each nshde session (`~/.claude/projects/<cwd>/<id>.jsonl` in the sandbox) is saved and restored the same way, so `sessionId` resumes across sandboxes. If the transcript layout makes this impractical, v1 resumes only within one sandbox and the panel starts a new session after a restart; record which.
+- **Sessions**: the Agent SDK's transcript for each athanor session (`~/.claude/projects/<cwd>/<id>.jsonl` in the sandbox) is saved and restored the same way, so `sessionId` resumes across sandboxes. If the transcript layout makes this impractical, v1 resumes only within one sandbox and the panel starts a new session after a restart; record which.
 
 ### 6. Services through the sidecar
 
-- **Listing**: nshde's service registry reads `functions/services/**` from the codex repo through the GitHub contents API (cached, refreshed after each sync), instead of a local `ALCHEMIST_DIR`. Schemas, `source_sha256` and stale detection are unchanged.
-- **Publish**: nshde writes `services.json` in the working copy, then syncs. The gateway reads the manifest from the checkout.
+- **Listing**: athanor's service registry reads `functions/services/**` from the codex repo through the GitHub contents API (cached, refreshed after each sync), instead of a local `ALCHEMIST_DIR`. Schemas, `source_sha256` and stale detection are unchanged.
+- **Publish**: athanor writes `services.json` in the working copy, then syncs. The gateway reads the manifest from the checkout.
 - **Calls**: the sidecar adds `POST /services/:name` (sidecar token), forwarding to the local `Runtime.ServiceGateway`. `handleServiceCall` uses it when `NSHDE_AGENT_MODE=vercel`.
 - **No sandbox up**: `503 gateway_down`, "start the agent to run services". Starting one for a service call is a follow-up, behind the budget.
 
@@ -213,7 +213,7 @@ The memory graph is one MiniGraf database file (`AGENT_MEMORY_PATH`) plus a `.tx
 | `ANTHROPIC_API_KEY` | Secret | |
 | `CODEX_REPO` | Plain | |
 | `CODEX_GITHUB_TOKEN` | Secret | |
-| `NSHDE_SIDECAR_TOKEN`, `NSHDE_AGENT_API_TOKEN` | Secret | (`crucible/nshde/api/P-07`) |
+| `NSHDE_SIDECAR_TOKEN`, `NSHDE_AGENT_API_TOKEN` | Secret | (`crucible/athanor/api/P-07`) |
 | `NSHDE_AGENT_IDLE_MIN` | Plain | `5` |
 | `NSHDE_AGENT_MAX_LIFETIME_MIN` | Plain | `40` |
 | `NSHDE_AGENT_TURN_MAX_MIN` | Plain | `10` |
@@ -225,7 +225,7 @@ The memory graph is one MiniGraf database file (`AGENT_MEMORY_PATH`) plus a `.tx
 
 - Controller with a fake SDK: one sandbox for concurrent turns; reattach after restart; idle stop runs sample, sync, save, stop in that order; lifetime and turn caps.
 - Budget: deltas add up; lost sandbox charged conservatively; 80 % warns; 100 % refuses before starting a sandbox; rollover.
-- Sync (three-way): each case of repo-only, nshde-only, both-changed, delete; push rejected then retried; `base_sha` updated.
+- Sync (three-way): each case of repo-only, athanor-only, both-changed, delete; push rejected then retried; `base_sha` updated.
 - Memory: save creates a generation and moves `current.json`; restore writes it back; an interrupted save keeps the old pointer; pruning keeps 10.
 - Services: listing from the repo; calls through the sidecar route; no sandbox -> 503.
 
@@ -241,4 +241,4 @@ The memory graph is one MiniGraf database file (`AGENT_MEMORY_PATH`) plus a `.tx
 - Is Koyeb on the free tier? It decides whether the fallback fits.
 - Vercel snapshot retention: if snapshots expire, the controller must say so rather than rebuild silently.
 - Does the sandbox's public port keep a long SSE stream open for a whole turn? Check in the spike.
-- Alternative kept in reserve: nshde (on Koyeb) does the git work through the GitHub API instead of alchemist. User-requested syncs would then not need a sandbox, and the GitHub token would stay out of it. Chosen against for now: alchemist owns its codex and already has the git tooling.
+- Alternative kept in reserve: athanor (on Koyeb) does the git work through the GitHub API instead of alchemist. User-requested syncs would then not need a sandbox, and the GitHub token would stay out of it. Chosen against for now: alchemist owns its codex and already has the git tooling.

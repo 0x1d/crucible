@@ -51,7 +51,7 @@ through the bridge can use the same capability tree without `@grok/agent-sdk`.
 | Host-agnostic CLI | Implemented (`scripts/cli.mjs`) | `runCodexOp()` from `core/elixir-bridge.ts` | None (local Elixir + Node) | Stable for scripting and custom hosts |
 | OpenCode | Pattern only | Four tools calling `cli.mjs` or equivalent | OpenCode subscription | Community integration |
 | Claude Agent SDK | Implemented (`hosts/claude/`, `@anthropic-ai/claude-agent-sdk`) | `hosts/claude/codex.ts` -> `runCodexOp()` through an in-process MCP server | Claude Code login or `ANTHROPIC_API_KEY` | Example host with chat loop and evals |
-| nshde sidecar | Implemented (`hosts/nshde/`) | `hosts/nshde/sidecar.ts`: Claude host options behind `POST /sessions` (SSE) | Same as the Claude Agent SDK host | Agent for the nshde web IDE |
+| athanor sidecar | Implemented (`hosts/nshde/`) | `hosts/nshde/sidecar.ts`: Claude host options behind `POST /sessions` (SSE) | Same as the Claude Agent SDK host | Agent for the athanor web IDE |
 | Anthropic Messages API | Pattern only | Tool definitions invoking CLI or TCP shim | Anthropic API key | Community integration |
 | Go multi-agent CLIs | Pattern only | Outer CLI; inner tools call codex JSON | Varies by wrapped CLI | Experimental community wrappers |
 
@@ -89,11 +89,11 @@ No single vendor SDK bills across Cursor, OpenCode, and Anthropic. Unify at the
 - **Chat and evals:** `npm run chat:claude` and `npm run eval:claude`. See the [host README](../../hosts/claude/README.md).
 - **Terminal UI:** `npm run tui` runs this host in the terminal UI under `tui/`. See [Terminal UI](../guides/tui.md).
 
-## nshde sidecar (this repository)
+## athanor sidecar (this repository)
 
-- **Process:** `npm run serve:nshde` starts `hosts/nshde/sidecar.ts`, a Node HTTP server for the [nshde](https://github.com/0x1d/nshde) web IDE.
+- **Process:** `npm run serve:nshde` starts `hosts/nshde/sidecar.ts`, a Node HTTP server for the [athanor](https://github.com/0x1d/athanor) web IDE.
 - **Session:** `POST /sessions` runs one turn with `alchemistOptions()` from `hosts/claude/codex.ts` and streams it as server-sent events.
-- **Prompt:** `hosts/claude/instructions.md`, then `hosts/nshde/instructions.md`, then the role nshde chose.
+- **Prompt:** `hosts/claude/instructions.md`, then `hosts/nshde/instructions.md`, then the role athanor chose.
 - **Services:** components call `services.*` entries through `Runtime.ServiceGateway`. See the [host README](../../hosts/nshde/README.md).
 
 ## Agent Client Protocol (this repository)

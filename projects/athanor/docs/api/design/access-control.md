@@ -1,16 +1,16 @@
 ---
-id: crucible/nshde/api/design/access-control
+id: crucible/athanor/api/design/access-control
 title: Access Control
 type: DES
-owner: crucible/nshde/api
+owner: crucible/athanor/api
 status: Draft
 date: 2026-11-11
-depends: [crucible/nshde/api/design]
+depends: [crucible/athanor/api/design]
 related: []
 planned:
-  - id: crucible/nshde/api/P-07
+  - id: crucible/athanor/api/P-07
     title: Access control
-    depends: [crucible/nshde/api/P-09]
+    depends: [crucible/athanor/api/P-09]
 ---
 
 # Access Control
@@ -21,7 +21,7 @@ The deployed instance is open: every `/api` route works without credentials and 
 Anyone with the URL can read, write and delete storage, switch the storage backend, and start agent turns on the owner's Claude credentials.
 
 This plan puts Supabase Auth in front of the API and keeps the preview sandbox as the boundary for agent-written code.
-The deployment it assumes (UI on Vercel, API on Koyeb, data on Supabase) is `crucible/nshde/api/P-09`.
+The deployment it assumes (UI on Vercel, API on Koyeb, data on Supabase) is `crucible/athanor/api/P-09`.
 
 ## Shape
 
@@ -71,7 +71,7 @@ Slice 2 lands before or with slice 1: once the gate is on, the preview can no lo
 
 **Client (IDE):**
 - `@supabase/supabase-js` with the project URL and the publishable (anon) key, both public, set at build time (`NSHDE_SUPABASE_URL`, `NSHDE_SUPABASE_ANON_KEY`).
-- Sign in with GitHub OAuth (primary) or an email magic link. No passwords stored by nshde.
+- Sign in with GitHub OAuth (primary) or an email magic link. No passwords stored by athanor.
 - Without a session the IDE shows only a sign-in screen. With one, `src/nshde/api.ts` adds `Authorization: Bearer <access_token>` to every API request and refreshes through supabase-js. On a 401 it signs out to the sign-in screen.
 - The token lives where supabase-js keeps it (browser storage on the Vercel origin). It is not a cookie, so cross-site requests never carry it (no CSRF).
 
@@ -89,7 +89,7 @@ Slice 2 lands before or with slice 1: once the gate is on, the preview can no lo
   - `GET /healthz` (new: `200 ok`, no data)
   - `POST/OPTIONS /api/services/:slug`: already needs a scoped service token
   - `OPTIONS` preflights on every route (answered by slice 3 without running a handler)
-- `/preview*` and the IDE bundle move to Vercel (`crucible/nshde/api/P-09`). While Koyeb still serves them, they are exempt too: static, no user data.
+- `/preview*` and the IDE bundle move to Vercel (`crucible/athanor/api/P-09`). While Koyeb still serves them, they are exempt too: static, no user data.
 
 ### 2. Preview source handoff
 
@@ -114,14 +114,14 @@ The preview stops fetching `/api/storage`. The IDE gives it the module instead.
 
 ### 4. Agent credentials
 
-The sidecar calls back into nshde (`nshde.component.*`), and nshde calls the sidecar. Neither may be open.
+The sidecar calls back into athanor (`nshde.component.*`), and athanor calls the sidecar. Neither may be open.
 
-- **Agent -> nshde**: `NSHDE_AGENT_API_TOKEN` (32+ random bytes), on both sides. nshde accepts `Authorization: Bearer <it>` in place of a Supabase token, only on:
+- **Agent -> athanor**: `NSHDE_AGENT_API_TOKEN` (32+ random bytes), on both sides. athanor accepts `Authorization: Bearer <it>` in place of a Supabase token, only on:
   - `GET /api/storage?path=components/...` and `?tree=1`
   - `POST /api/storage` with a `path` under `components/` (no `backend`)
   - `POST /api/modules/check`
   Anything else with the agent token: 403.
-- **nshde -> sidecar**: `NSHDE_SIDECAR_TOKEN`. `openSidecarStream` sends it; the sidecar refuses requests without it.
+- **athanor -> sidecar**: `NSHDE_SIDECAR_TOKEN`. `openSidecarStream` sends it; the sidecar refuses requests without it.
 - alchemist side: the alchemist planned change `crucible/alchemist/P-01`.
 - All comparisons with `timingSafeEqual`.
 

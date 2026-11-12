@@ -1,11 +1,11 @@
 ---
-id: crucible/nshde/ide/design/runtime-preview
+id: crucible/athanor/ide/design/runtime-preview
 title: Runtime Preview
 type: DES
-owner: crucible/nshde/ide
+owner: crucible/athanor/ide
 status: Draft
 date: 2026-11-11
-depends: [crucible/nshde/ide/design]
+depends: [crucible/athanor/ide/design]
 related: []
 planned: []
 ---

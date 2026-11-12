@@ -4,7 +4,7 @@ title: Repository and Migration
 type: ARCH
 owner: crucible
 status: Draft
-date: 2026-11-11
+date: 2026-11-12
 depends: [crucible/architecture/system-architecture, crucible/architecture/shared-packages]
 related: []
 planned:
@@ -102,12 +102,12 @@ crucible/
 
 ## 4 History import
 
-| Step | Detail |
-| --- | --- |
-| 1 | Merge or drop unmerged remote branches (`alchemist`: `feat/acp-host`, `ccr-42861548-wocrlg`; `athanor`: `ccr-42861548-wocrlg`, `claude/*`) (crucible/OI-13) |
-| 2 | `git init` in `crucible/`; import each repository under `projects/<name>/` with history (`git subtree add` or `git filter-repo`) |
-| 3 | Fetch homunculus LFS objects before the import; rewrite `.gitattributes` to path-scoped patterns |
-| 4 | Archive the three source repositories (read-only) |
+| Step | Detail | State |
+| --- | --- | --- |
+| 1 | Merge or drop unmerged remote branches (`alchemist`: `feat/acp-host`, `ccr-42861548-wocrlg`; `athanor`: `ccr-42861548-wocrlg`, `claude/*`) (crucible/OI-13) | Done |
+| 2 | Import each repository under `projects/<name>/` with history (`git subtree add`) | Done |
+| 3 | Fetch homunculus LFS objects before the import; rewrite `.gitattributes` to path-scoped patterns | Done |
+| 4 | Archive the three source repositories (read-only) | Open |
 
 ## 5 Documentation migration
 
@@ -140,7 +140,7 @@ Moves:
 | `alchemist/docs/internal/{plans,specs}` - implemented | Content folded into the component documents; files removed |
 | `alchemist/docs/internal/{plans,specs}` - proposed / planned | A **Planned** section in the component document, with an id and its dependencies; files removed |
 | `athanor/docs/internal/plans/001-006` (done) | `projects/athanor/docs/ide/`; files removed |
-| `athanor/docs/internal/plans/007-009`, alchemist `2026-11-10-nshde-deployment` | `projects/athanor/docs/api/` deployment and access-control sections marked **Planned**; cross-project decisions to `crucible/decisions` |
+| `athanor/docs/internal/plans/007-009`, crucible/alchemist/architecture/athanor-deployment | `projects/athanor/docs/api/` deployment and access-control sections marked **Planned**; cross-project decisions to `crucible/decisions` |
 | `docs/architecture/shared-packages.md` interface details | `packages/<package>/docs/interfaces.md`; `crucible/architecture/shared-packages` keeps responsibilities and links |
 | `AGENTS.md` per project | One root `AGENTS.md` plus short per-project files |
 

@@ -1,11 +1,11 @@
 ---
-id: crucible/nshde/ide/design/mobile-shell
+id: crucible/athanor/ide/design/mobile-shell
 title: Mobile Shell
 type: DES
-owner: crucible/nshde/ide
+owner: crucible/athanor/ide
 status: Draft
 date: 2026-11-11
-depends: [crucible/nshde/ide/design]
+depends: [crucible/athanor/ide/design]
 related: []
 planned: []
 ---

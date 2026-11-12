@@ -1,16 +1,16 @@
-# nshde
+# athanor
 
-**nshde** is a recursive IDE inspired by [Native Shell (NSH)](https://nsh.dev/): an environment that can extend itself at runtime. You describe a module to an agent; the agent writes an NSH-style shell component, persists it to configurable storage, and the IDE hot-mounts it in the runtime preview—similar to NSH’s post-release TSX modules and signed packages, adapted for web development.
+**athanor** is a recursive IDE inspired by [Native Shell (NSH)](https://nsh.dev/): an environment that can extend itself at runtime. You describe a module to an agent; the agent writes an NSH-style shell component, persists it to configurable storage, and the IDE hot-mounts it in the runtime preview—similar to NSH’s post-release TSX modules and signed packages, adapted for web development.
 
 ## Repository
 
-- **GitHub:** [github.com/0x1d/nshde](https://github.com/0x1d/nshde)
+- **GitHub:** [github.com/0x1d/athanor](https://github.com/0x1d/athanor)
 - **Origin (Cursor):** [origin.cursor.com/0x1d/nshde](https://origin.cursor.com/0x1d/nshde)
 
 ## Features
 
 - **NSH app shell** — Zed-style `DockArea`: agents on the left (sessions and conversation tabs), editor in the center, object tree on the right, runtime along the bottom. Collapsed panes leave an activity rail.
-- **Object tree** — components and files under `components/`, developed through nshde
+- **Object tree** — components and files under `components/`, developed through athanor
 - **Code editor** — `nsh/base` `Editor` with syntax highlighting for TSX/JSON
 - **Agent panel** — the [alchemist](https://github.com/0x1d/alchemist) Claude host as a sidecar, streamed into the conversation; Architect, Implementer, or Reviewer chosen from a menu on the composer
 - **Services** — backend logic as alchemist Elixir codex entries; components call published services through `@nshde/services` and a call-only BEAM gateway
@@ -47,13 +47,13 @@ Open the URL printed by `nsh run` (typically `http://127.0.0.1:8790/`). The API 
 
 ### Agent and services
 
-The agent is the alchemist nshde host (see its `hosts/nshde/README.md`). Run it beside nshde:
+The agent is the alchemist athanor host (see its `hosts/nshde/README.md`). Run it beside athanor:
 
 ```bash
 # in the alchemist checkout (Node 24+, Elixir; Claude credentials for the Agent SDK)
 NSHDE_API_URL=http://127.0.0.1:43123 npm run serve:nshde      # sidecar on :43124
 
-# in nshde
+# in athanor
 NSHDE_AGENT_URL=http://127.0.0.1:43124 ALCHEMIST_DIR=../alchemist bun run dev:api
 ```
 
@@ -87,7 +87,7 @@ CLI example:
 
 ```bash
 koyeb app init nshde \
-  --git github.com/0x1d/nshde \
+  --git github.com/0x1d/athanor \
   --git-branch main \
   --git-builder docker
 ```
@@ -148,7 +148,7 @@ User modules in the preview still use a deliberate React sandbox today. The chro
 
 ## Relation to NSH
 
-[NSH](https://nsh.dev/) targets native platforms with Rust/TSX, signed `.nshpkg` packages, and QuickJS sandboxes. **nshde** models the same loop for IDE self-development on the web: agents → stored modules → runtime integration. A production path would add signing, capability tokens, and compiling user modules with the real `nsh` toolchain for multi-target packaging.
+[NSH](https://nsh.dev/) targets native platforms with Rust/TSX, signed `.nshpkg` packages, and QuickJS sandboxes. **athanor** models the same loop for IDE self-development on the web: agents → stored modules → runtime integration. A production path would add signing, capability tokens, and compiling user modules with the real `nsh` toolchain for multi-target packaging.
 
 ## License
 

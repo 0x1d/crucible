@@ -1,15 +1,15 @@
 ---
-id: crucible/nshde/api
+id: crucible/athanor/api
 title: API
 type: manifest
-owner: crucible/nshde
+owner: crucible/athanor
 profile: service
 status: active
 summary: The Bun server: /api routes for storage, the preview sandbox and the agent
 code: src/server.ts
 depends: []
 implements: []
-documents: [crucible/nshde/api/design]
+documents: [crucible/athanor/api/design]
 date: 2026-11-11
 ---
 
@@ -19,6 +19,6 @@ The Bun server (`src/server.ts`, `src/lib`). It exposes `/api/*`, serves the Rea
 
 | Document | Title |
 | --- | --- |
-| [crucible/nshde/api/design](design.md) | Design: the alchemist integration and the planned access control, agent sandbox and deployment |
+| [crucible/athanor/api/design](design.md) | Design: the alchemist integration and the planned access control, agent sandbox and deployment |
 
-Not written yet (crucible/nshde/OI-01): requirements, architecture, interfaces, security, operations, verification.
+Not written yet (crucible/athanor/OI-01): requirements, architecture, interfaces, security, operations, verification.

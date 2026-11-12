@@ -24,7 +24,7 @@ The documents conform to the [Formulary standard](https://github.com/0x1d/formul
 
 | Project document | Content |
 | --- | --- |
-| [crucible/alchemist/architecture](architecture.md) | Component boundaries, request lifecycle, supervision, composition models; domain language, host adapters and the planned nshde deployment as sub-documents |
+| [crucible/alchemist/architecture](architecture.md) | Component boundaries, request lifecycle, supervision, composition models; domain language, host adapters and the planned athanor deployment as sub-documents |
 | [crucible/alchemist/security](security.md) | Trust model and arbitrary-code risks |
 | [crucible/alchemist/development](development.md) | Nix shell and direnv development environment |
 | [crucible/alchemist/open-items](open-items.md) | Open items `crucible/alchemist/OI-NN` |

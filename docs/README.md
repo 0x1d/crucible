@@ -31,9 +31,9 @@ This folder holds only what spans projects. Each project documents its own compo
 
 | Project | Documentation |
 | --- | --- |
-| alchemist | [0x1d/alchemist docs](https://github.com/0x1d/alchemist/tree/main/docs) -> `projects/alchemist/docs/` *(to be moved and restructured)* |
-| homunculus | [0x1d/homunculus docs](https://github.com/0x1d/homunculus/tree/main/docs) -> `projects/homunculus/docs/` *(to be moved and restructured)* |
-| athanor | [0x1d/athanor docs](https://github.com/0x1d/athanor/tree/main/docs) -> `projects/athanor/docs/` *(to be moved)* |
+| alchemist | [crucible/alchemist](../projects/alchemist/docs/README.md) |
+| homunculus | [crucible/homunculus](../projects/homunculus/docs/README.md) |
+| athanor | [crucible/athanor](../projects/athanor/docs/README.md) |
 | shared packages | `packages/<name>/docs/` *(to be written)* |
 
 ## Documentation conventions

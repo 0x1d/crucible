@@ -16,7 +16,7 @@ planned: []
 | --- | --- |
 | [crucible/alchemist/architecture/domain-language](architecture/domain-language.md) | Canonical product and implementation terms |
 | [crucible/alchemist/architecture/host-adapters](architecture/host-adapters.md) | How a host environment maps to the codex protocol |
-| [crucible/alchemist/architecture/nshde-deployment](architecture/nshde-deployment.md) | Planned: codex overlay, repository sync and sidecar hardening for nshde |
+| [crucible/alchemist/architecture/athanor-deployment](architecture/athanor-deployment.md) | Planned: codex overlay, repository sync and sidecar hardening for athanor |
 
 Alchemist separates **hosts** (environments that run agents) from the **codex**
 (capability source, metadata, and the four-operation JSON contract). Capability
@@ -86,7 +86,7 @@ seconds). Children start in this order:
 | `Runtime.Server` | permanent GenServer | Serializes `define` and `load`. Does not own a socket |
 | `Runtime.CodexWarmup` | permanent GenServer | Compiles every codex entry before the acceptor listens |
 | `Runtime.Acceptor` | permanent `Task` | Owns the loopback listen socket and accepts |
-| `Runtime.ServiceGateway` | permanent supervisor | Second loopback listener that only runs `call` on published `services.*` entries (see the [nshde host](../hosts/nshde/README.md)) |
+| `Runtime.ServiceGateway` | permanent supervisor | Second loopback listener that only runs `call` on published `services.*` entries (see the [athanor host](../hosts/nshde/README.md)) |
 
 The acceptor hands each client to `Task.Supervisor.start_child/2`, then
 `:gen_tcp.controlling_process/2` so the task owns the socket. The task reads one

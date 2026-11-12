@@ -69,7 +69,7 @@ npm run tui
 - [Architecture](docs/architecture.md) — components, lifecycle, composition
 - [Memory](docs/runtime/design/memory.md) — MiniGraf memory and bi-temporal queries
 - [Codex protocol](docs/codex-protocol/interfaces/codex-protocol.md) — operation contracts
-- [nshde host](hosts/nshde/README.md) — agent sidecar, component entries, and the service gateway
+- [athanor host](hosts/nshde/README.md) — agent sidecar, component entries, and the service gateway
 
 ## Security
 
