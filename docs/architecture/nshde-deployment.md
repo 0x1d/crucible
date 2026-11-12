@@ -86,8 +86,8 @@ An entry in alchemist (`functions/codex/sync/`), so the agent, the sidecar and a
 ### 4. Docs
 
 - `hosts/nshde/README.md`: variables (`NSHDE_SIDECAR_TOKEN`, `NSHDE_AGENT_API_TOKEN`, `AGENT_CODEX_DIR`, `CODEX_*`), the new routes and the `sync` event, the overlay rule.
-- `docs/reference/security.md`: the sidecar is exposed beyond loopback only with the token; `CODEX_GITHUB_TOKEN` is reachable by agent-defined code, so scope it to the codex repo.
-- `docs/concepts/architecture.md`: base and overlay roots.
+- `docs/security.md`: the sidecar is exposed beyond loopback only with the token; `CODEX_GITHUB_TOKEN` is reachable by agent-defined code, so scope it to the codex repo.
+- `docs/architecture.md`: base and overlay roots.
 
 ## Tests
 

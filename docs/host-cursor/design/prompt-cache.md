@@ -114,7 +114,7 @@ This repository does not set cache breakpoints.
 
 ## Public docs
 
-`docs/reference/hosts.md` states that the Cursor host default model is `grok-4.7` with those two params, and that a follow-up keeps the model stored at create.
+`docs/architecture/host-adapters.md` states that the Cursor host default model is `grok-4.7` with those two params, and that a follow-up keeps the model stored at create.
 `docs/guides/tui.md` states that a Cursor session with no model selected runs that default, and that `auto` is a picker choice.
 
 ## Out of scope
@@ -146,7 +146,7 @@ Each task's check must pass before the next task starts.
 | `tui/adapters/cursor.ts` | `modelConfig("grok-4.7", "high")` returns the pin |
 | `tui/adapters/cursor.test.ts` | That equality |
 | `hosts/cursor/evals/prompt-cache.eval.ts` | Two-turn cache gate |
-| `docs/reference/hosts.md` | Default model sentence |
+| `docs/architecture/host-adapters.md` | Default model sentence |
 | `docs/guides/tui.md` | Default model and the `auto` picker choice |
 
 `followUpBody` stays `{ continuationToken, message }`.
@@ -201,7 +201,7 @@ This command is the gate that the follow-up reuses the prefix.
 
 ### Task 4: Public guide
 
-Add the two sentences from the spec to `docs/reference/hosts.md` and `docs/guides/tui.md`.
+Add the two sentences from the spec to `docs/architecture/host-adapters.md` and `docs/guides/tui.md`.
 
 ```bash
 npm run check:docs

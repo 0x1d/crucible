@@ -258,9 +258,9 @@ The terminal shows only the TUI.
 - `docs/guides/tui.md` describes the start flow, commands, keys, footer, theme, and state files.
 - `README.md` adds `npm run tui` to the quick start.
 - `docs/index.md` lists the TUI guide.
-- `docs/reference/hosts.md` names the TUI as a client of both hosts.
+- `docs/architecture/host-adapters.md` names the TUI as a client of both hosts.
 - `AGENTS.md` adds `tui/` to the layout, `npm run tui` to the loop, and the pi-tui exception to the dependency rule.
-- `docs/internal/index.md` lists this spec.
+- `docs/README.md` lists this spec.
 
 ## Out of scope
 

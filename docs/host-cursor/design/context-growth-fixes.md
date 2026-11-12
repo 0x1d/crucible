@@ -185,7 +185,7 @@ Policy: **SDK first, alchemist fallback** - two layers (emit-time tool shrink vs
 
 ### Tasks
 
-1. Spec (done) - SDK-first layering in `docs/internal/specs/2026-11-04-context-growth-fixes.md`
+1. Spec (done) - SDK-first layering in `docs/host-cursor/design/context-growth-fixes.md`
 2. `instructions.md` known-slug one-shot (done)
 3. `DEFAULT_HOST_FLAGS` handoffTool + handoffFork on (done)
 4. `docs/guides/tui.md` ctx vs new / no silent prune (done)

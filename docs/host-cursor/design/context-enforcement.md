@@ -275,8 +275,8 @@ Restart Cursor serve / TUI after flag default change so new sessions pick up def
 | `functions/git/log/*_test.exs` | default argv tests |
 | `hosts/cursor/bot/instructions.md` | shrink Phase E; git oneline hint |
 | `hosts/cursor/evals/context-size.eval.ts` | optional find-detail case |
-| `docs/internal/plans/2026-11-03-context-improvements-progress.md` | matrix + verification row |
-| `docs/internal/specs/2026-11-04-context-growth-fixes.md` | revise defaultMaxBytes non-goal note |
+| `docs/host-cursor/design/context-growth-fixes.md` | matrix + verification row |
+| `docs/host-cursor/design/context-growth-fixes.md` | revise defaultMaxBytes non-goal note |
 | `runtime/lib/runtime/engine.ex` | no change required for split; verify describe payload size in tests |
 
 ---
