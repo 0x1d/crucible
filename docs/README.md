@@ -3,6 +3,7 @@ id: crucible/homunculus
 title: Homunculus
 type: index
 owner: crucible
+standard: formulary/0.1
 date: 2026-11-11
 ---
 
@@ -10,7 +11,7 @@ date: 2026-11-11
 
 Homunculus is a physical AI companion running on ESP32 devices: an animated avatar that listens, thinks and talks, backed by a server-side agent harness (Claude Agent SDK, OpenCode SDK) with tools and internet access.
 
-The documents follow the [Crucible specification framework](https://github.com/0x1d/crucible/blob/main/docs/framework.md). Every document has a fully qualified id that equals its path under `docs/`, prefixed with `crucible/homunculus`.
+The documents conform to the [Formulary standard](https://github.com/0x1d/formulary). Every document has a fully qualified id that equals its path under `docs/`, prefixed with `crucible/homunculus`.
 
 | Component | Profile | Summary |
 | --- | --- | --- |
@@ -27,4 +28,4 @@ The documents follow the [Crucible specification framework](https://github.com/0
 | [crucible/homunculus/decisions](decisions.md) | Decisions `crucible/homunculus/D-NN` |
 | [crucible/homunculus/open-items](open-items.md) | Open items `crucible/homunculus/OI-NN` |
 
-Item ids predate the framework and are kept: `FR-NN`, `NFR-NN` (operational requirements), `AD-NN`, `D-NN` (product decisions), `OI-NN`, `R-NN` (risks).
+Item ids predate the standard and are kept: `FR-NN`, `NFR-NN` (operational requirements), `AD-NN`, `D-NN` (product decisions), `OI-NN`, `R-NN` (risks).
