@@ -1,7 +1,7 @@
 # Alchemist
 
 This file contains repository-agent rules for coding agents editing Alchemist.
-The [product overview](README.md) and [documentation index](docs/index.md)
+The [product overview](README.md) and [documentation index](docs/README.md)
 describe the product and its public reading paths. The served agent's prompt is
 `hosts/cursor/bot/instructions.md`.
 

@@ -63,19 +63,19 @@ npm run tui
 
 ## Documentation
 
-- [Documentation index](docs/index.md) — goal-oriented reading paths
+- [Documentation index](docs/README.md) — goal-oriented reading paths
 - [Getting started](docs/guides/getting-started.md) — install, validate, first call
 - [Terminal UI](docs/guides/tui.md) — run a host in the terminal with streamed output and usage stats
-- [Architecture](docs/concepts/architecture.md) — components, lifecycle, composition
-- [Memory](docs/concepts/memory.md) — MiniGraf memory and bi-temporal queries
-- [Codex protocol](docs/reference/protocol.md) — operation contracts
+- [Architecture](docs/architecture.md) — components, lifecycle, composition
+- [Memory](docs/runtime/design/memory.md) — MiniGraf memory and bi-temporal queries
+- [Codex protocol](docs/codex-protocol/interfaces/codex-protocol.md) — operation contracts
 - [nshde host](hosts/nshde/README.md) — agent sidecar, component entries, and the service gateway
 
 ## Security
 
 `define` accepts arbitrary Elixir source and executes with the privileges of the long-lived BEAM process on the host.
 Restrict codex access to trusted users and inputs.
-See [Security boundary](docs/reference/security.md).
+See [Security boundary](docs/security.md).
 
 ## License
 
