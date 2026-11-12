@@ -8,10 +8,10 @@
 //   pnpm devices revoke <device-id>       delete the token; a connected device is closed and pairs again
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { dataDir as resolveDataDir } from "../data-dir.js";
 
 const env = process.env;
-const dataDir = env.HOMUNCULUS_DATA_DIR ?? fileURLToPath(new URL("../../.data", import.meta.url));
+const dataDir = resolveDataDir(env);
 const tls = Boolean(env.HOMUNCULUS_TLS_CERT && env.HOMUNCULUS_TLS_KEY);
 const base = env.HOMUNCULUS_ADMIN_URL ?? `${tls ? "https" : "http"}://127.0.0.1:${env.HOMUNCULUS_PORT ?? 8443}`;
 const [cmd, ...args] = process.argv.slice(2);

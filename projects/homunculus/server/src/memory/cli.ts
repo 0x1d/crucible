@@ -2,13 +2,13 @@
 //   pnpm memory query '<datalog>' [space]   read-only Datalog on the temporal graph
 //   pnpm memory erase [space]               delete the space (graph and wiki)
 import { rm } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
+import { memoryDir } from "../data-dir.js";
 import { createLogger } from "../log.js";
 import { spacePaths } from "./space.js";
 import { TemporalReasoning } from "./temporal-reasoning.js";
 
 const env = process.env;
-const root = env.HOMUNCULUS_MEMORY_DIR ?? fileURLToPath(new URL("../../.data/memory", import.meta.url));
+const root = memoryDir(env);
 const [cmd, ...rest] = process.argv.slice(2);
 const log = createLogger();
 

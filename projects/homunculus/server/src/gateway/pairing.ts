@@ -254,7 +254,7 @@ function form(r: PairingRequest, code: string, known: boolean, message: string):
   const keyField = known
     ? ""
     : `<label for="key">Server key</label><input id="key" name="key" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="xxxx-xxxx-xxxx" required>
-<p class="muted">In <code>server/.data/admin-key</code> on the server, or <code>make devices ARGS=key</code>. Asked once per phone.</p>`;
+<p class="muted">In <code>admin-key</code> in the server's data directory, or <code>make devices ARGS=key</code>. Asked once per phone.</p>`;
   return `<h1>Pair this device?</h1>
 ${message ? `<p class="msg">${esc(message)}</p>` : ""}
 <div class="card"><dl>

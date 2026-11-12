@@ -1,7 +1,7 @@
 // Homunculus server entry point.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { dataDir as resolveDataDir } from "./data-dir.js";
 import { Bonjour } from "bonjour-service";
 import { AdminKey, DeviceRegistry, Pairings } from "./admin/devices.js";
 import { startGateway } from "./gateway/server.js";
@@ -25,7 +25,7 @@ const deviceTokens = (env.HOMUNCULUS_DEVICE_TOKENS ?? "").split(",").filter(Bool
 const loopbackTokens = deviceTokens.length === 0 ? ["dev"] : [];
 
 // Paired devices and the admin key (spec 03 §3.5).
-const dataDir = env.HOMUNCULUS_DATA_DIR ?? fileURLToPath(new URL("../.data", import.meta.url));
+const dataDir = resolveDataDir(env);
 const registry = new DeviceRegistry(join(dataDir, "devices.json"));
 const adminKey = AdminKey.load(dataDir, env.HOMUNCULUS_ADMIN_KEY);
 const pairings = new Pairings(registry);

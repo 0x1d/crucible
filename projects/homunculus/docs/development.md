@@ -4,7 +4,7 @@ title: Development
 type: DEV
 owner: crucible/homunculus
 status: Draft
-date: 2026-11-11
+date: 2026-11-12
 depends: []
 related: []
 planned: []
@@ -116,8 +116,8 @@ pnpm --filter homunculus-server dev
 | `HOMUNCULUS_PORT` | `8443` | Listen port |
 | `HOMUNCULUS_HOST` | `0.0.0.0` | Listen address |
 | `HOMUNCULUS_DEVICE_TOKENS` | unset -> `dev` from loopback only | Comma-separated shared bearer tokens (any device id); paired devices use their own tokens |
-| `HOMUNCULUS_DATA_DIR` | `server/.data` | `devices.json`, `admin-key`, default OTA directory |
-| `HOMUNCULUS_ADMIN_KEY` | `server/.data/admin-key` | Admin key for pairing approval and `/admin/*` |
+| `HOMUNCULUS_DATA_DIR` | `$HOME/crucible-data/homunculus` (set by the Makefile and `.envrc`); `server/.data` when unset | Root of all server state: `devices.json`, `admin-key`, `ota/`, `memory/`, `sandbox/devices/` |
+| `HOMUNCULUS_ADMIN_KEY` | `<data dir>/admin-key` | Admin key for pairing approval and `/admin/*` |
 | `HOMUNCULUS_MDNS`, `HOMUNCULUS_MDNS_NAME` | `1`, `Homunculus` | mDNS advertisement `_homunculus._tcp`; `0` disables |
 | `HOMUNCULUS_TLS_CERT`, `HOMUNCULUS_TLS_KEY` | unset | PEM paths; enables `wss://` |
 | `HOMUNCULUS_OTA_DIR` | `<data dir>/ota` | OTA images `<model>.bin`, served at `/ota/<model>/firmware.bin` with bearer auth (`make fw-publish`) |
@@ -144,12 +144,12 @@ pnpm --filter homunculus-server dev
 | `HOMUNCULUS_SPEECH_IDLE_TIMEOUT_MS` | `20000` | Max time without TTS/downlink progress |
 | `HOMUNCULUS_INTERRUPT_WAIT_MS` | `8000` | Max wait for an interrupted agent stream before the session is reopened |
 | `HOMUNCULUS_MEMORY` | `1` | `0`: no long-term memory (no temporal-reasoning child, no memory / wiki tools; [crucible/homunculus/server/design/memory](server/design/memory.md)) |
-| `HOMUNCULUS_MEMORY_DIR`, `HOMUNCULUS_MEMORY_SPACE` | `server/.data/memory`, `default` | Memory root and space |
+| `HOMUNCULUS_MEMORY_DIR`, `HOMUNCULUS_MEMORY_SPACE` | `<data dir>/memory`, `default` | Memory root and space |
 | `HOMUNCULUS_MEMORY_MODEL` | `claude-sonnet-5-5` | Model answering temporal-reasoning's extraction (MCP sampling) after each turn |
 | `HOMUNCULUS_MEMORY_MCP` | `uvx temporal-reasoning==0.9.0` | Command of the temporal-reasoning MCP server (started by the backend) |
 | `HOMUNCULUS_TIMEZONE` | host timezone | IANA zone for prompt time and extraction dates |
 
-Per-device agent sandbox: `server/.data/sandbox/devices/<sanitised-device-id>-<hash>/`.
+Per-device agent sandbox: `<data dir>/sandbox/devices/<sanitised-device-id>-<hash>/`.
 
 `make server` starts the temporal-reasoning MCP server itself (stdio child, [crucible/homunculus/server/design/memory](server/design/memory.md) section 4); `make memory-mcp` (part of `make setup`) fetches it into the uv cache.
 

@@ -8,6 +8,9 @@ BOARD ?= esp32_s3_touch_amoled_1_75c
 PORT  ?= /dev/ttyACM0
 # Keep in sync with TEMPORAL_REASONING_PACKAGE (server/src/memory/temporal-reasoning.ts).
 MEMORY_MCP := temporal-reasoning==0.9.0
+# Root of all server state (docs/development.md).
+export HOMUNCULUS_DATA_DIR ?= $(HOME)/crucible-data/homunculus
+OTA_DIR := $(or $(HOMUNCULUS_OTA_DIR),$(HOMUNCULUS_DATA_DIR)/ota)
 
 ifeq ($(IN_NIX_SHELL),)
 FW_SHELL  := nix develop $(CURDIR)\#firmware --command
@@ -26,7 +29,7 @@ IDF := cd firmware && $(FW_SHELL) idf.py
 
 help: ## Show this help
 	@awk 'BEGIN{FS=":.*## "} /^[a-zA-Z_-]+:.*## /{printf "  %-18s %s\n",$$1,$$2}' $(MAKEFILE_LIST)
-	@echo; echo "Variables: BOARD=$(BOARD) PORT=$(PORT)"
+	@echo; echo "Variables: BOARD=$(BOARD) PORT=$(PORT) HOMUNCULUS_DATA_DIR=$(HOMUNCULUS_DATA_DIR)"
 
 # ---- setup -----------------------------------------------------------------
 
@@ -60,8 +63,8 @@ fw-flash-full: ## Flash bootloader, partitions, app, model and littlefs (fresh b
 	cp firmware/build/homunculus.bin firmware/build/last-flashed-app.bin
 
 fw-publish: fw-build ## Copy the built image to the server's OTA directory (device.update_firmware / console u)
-	mkdir -p server/.data/ota
-	cp firmware/build/homunculus.bin server/.data/ota/ws-s3-amoled-175c.bin
+	mkdir -p $(OTA_DIR)
+	cp firmware/build/homunculus.bin $(OTA_DIR)/ws-s3-amoled-175c.bin
 
 fw-monitor: ## Serial monitor on PORT (Ctrl-] to exit)
 	$(IDF) -p $(PORT) monitor

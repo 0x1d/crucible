@@ -4,7 +4,7 @@ title: Design
 type: DES
 owner: crucible/homunculus/server
 status: Draft
-date: 2026-11-11
+date: 2026-11-12
 depends: [crucible/homunculus/requirements, crucible/homunculus/architecture, crucible/homunculus/hdp/interfaces/device-protocol]
 related: []
 planned: []
@@ -181,7 +181,7 @@ The orchestrator only consumes `AgentEvent`s; backends map their native streams 
 | Tools | `allowedTools` e.g. `WebSearch`, `WebFetch`, selected MCP tools; `disallowedTools` for `Bash`/`Write` unless explicitly enabled per profile |
 | Custom tools | `createSdkMcpServer({ name: "avatar", tools: [tool("express", ...)] })` and `createSdkMcpServer({ name: "device", tools: [...] })` generated from the device's `hello.tools` |
 | Permissions | `canUseTool(request)` -> policy check -> optionally `confirm.request` to device, resolve on `confirm.result` |
-| Working directory | Per-device sandbox directory (`cwd`) for file-producing tools: `server/.data/sandbox/devices/<id>-<hash>`, `<id>` = device id with characters outside `[A-Za-z0-9_-]` replaced by `_` (max 48), `<hash>` = first 8 hex digits of SHA-256(device id) |
+| Working directory | Per-device sandbox directory (`cwd`) for file-producing tools: `<data dir>/sandbox/devices/<id>-<hash>`, `<id>` = device id with characters outside `[A-Za-z0-9_-]` replaced by `_` (max 48), `<hash>` = first 8 hex digits of SHA-256(device id) |
 | Settings | `settingSources: []` to avoid loading the host user's Claude Code settings implicitly |
 | Model | Configurable per profile (e.g. `claude-sonnet-5-5` for quality, `claude-haiku-4-5` for latency) |
 | Auth | `ANTHROPIC_API_KEY` if set; otherwise the host's logged-in Claude subscription (personal use only - Anthropic does not permit offering claude.ai login in third-party products) |
@@ -350,7 +350,7 @@ Device tools: allow list in `server/src/tools/policy.ts` (`device.set_volume`, `
 
 ## 7 Persistence
 
-Implemented: paired devices in `server/.data/devices.json` (section 9). Planned SQLite tables: `devices` (id, model, token hash, profile id, last seen), `profiles` (persona, voice, language, backend, model, tool policy), `sessions` (device id, backend, backend session id, created, last turn), `turns` (transcript, response text, heard-so-far, latency metrics, tool calls). Conversation content itself is owned by the backend session store (Claude SDK session files / OpenCode storage); Homunculus stores only what it needs for resume, captions and metrics. Long-term memory (temporal graph, wiki): [crucible/homunculus/server/design/memory](design/memory.md); `profiles.memory_space` selects the memory space.
+Implemented: paired devices in `<data dir>/devices.json` (section 9). Planned SQLite tables: `devices` (id, model, token hash, profile id, last seen), `profiles` (persona, voice, language, backend, model, tool policy), `sessions` (device id, backend, backend session id, created, last turn), `turns` (transcript, response text, heard-so-far, latency metrics, tool calls). Conversation content itself is owned by the backend session store (Claude SDK session files / OpenCode storage); Homunculus stores only what it needs for resume, captions and metrics. Long-term memory (temporal graph, wiki): [crucible/homunculus/server/design/memory](design/memory.md); `profiles.memory_space` selects the memory space.
 
 ## 8 Observability
 
@@ -360,7 +360,7 @@ Implemented: paired devices in `server/.data/devices.json` (section 9). Planned 
 
 ## 9 Admin interface
 
-OTA images (implemented): the gateway's HTTP server answers `GET` / `HEAD /ota/{model}/firmware.bin` with `${HOMUNCULUS_OTA_DIR}/{model}.bin` (default `server/.data/ota`, model `[A-Za-z0-9_-]{1,64}`), device bearer token required (401), 404 when absent. The image version is read by the device from the image header [crucible/homunculus/firmware/design](../firmware/design.md) section 6); no manifest.
+OTA images (implemented): the gateway's HTTP server answers `GET` / `HEAD /ota/{model}/firmware.bin` with `${HOMUNCULUS_OTA_DIR}/{model}.bin` (default `<data dir>/ota`, model `[A-Za-z0-9_-]{1,64}`), device bearer token required (401), 404 when absent. The image version is read by the device from the image header [crucible/homunculus/firmware/design](../firmware/design.md) section 6); no manifest.
 
 Pairing (implemented, crucible/homunculus/D-29; device side [crucible/homunculus/firmware/design](../firmware/design.md) section 5), same HTTP server as HDP:
 
@@ -376,9 +376,10 @@ Pairing (implemented, crucible/homunculus/D-29; device side [crucible/homunculus
 
 | Item | Value |
 | --- | --- |
-| Admin key | `server/.data/admin-key` (mode 0600), created at first start, 12 characters Crockford base32 as `xxxx-xxxx-xxxx`; case, spaces and dashes ignored; `HOMUNCULUS_ADMIN_KEY` overrides. `/admin/*` needs `Authorization: Bearer <admin key>` |
+| Data directory | `<data dir>` = `HOMUNCULUS_DATA_DIR` (default `server/.data`): root of all server state (registry, admin key, OTA images, memory, device sandboxes) |
+| Admin key | `<data dir>/admin-key` (mode 0600), created at first start, 12 characters Crockford base32 as `xxxx-xxxx-xxxx`; case, spaces and dashes ignored; `HOMUNCULUS_ADMIN_KEY` overrides. `/admin/*` needs `Authorization: Bearer <admin key>` |
 | Brute force | 10 failed admin-key checks per minute (all sources) -> 429 / "too many wrong keys" |
-| Registry | `server/.data/devices.json` (mode 0600): `server_id` (12 hex), devices `{name, model, token_sha256, paired_at}` keyed by device id; written atomically (temp file + rename) |
+| Registry | `<data dir>/devices.json` (mode 0600): `server_id` (12 hex), devices `{name, model, token_sha256, paired_at}` keyed by device id; written atomically (temp file + rename) |
 | Tokens | 32 random bytes, base64url; accepted for the upgrade and OTA only with the matching `X-Device-Id`. Shared tokens `HOMUNCULUS_DEVICE_TOKENS` accepted for any device id; unset: `dev` from loopback addresses only (simulator) |
 | mDNS | `_homunculus._tcp` (`bonjour-service`), instance `HOMUNCULUS_MDNS_NAME` (default `Homunculus`), TXT `path=/hdp`, `tls=0\|1`, `id=<server_id>`; `HOMUNCULUS_MDNS=0` disables |
 | CLI | `make devices ARGS="key\|pending\|approve <code> [name]\|reject <code>\|list\|rename <id> <name>\|revoke <id>"` (`server/src/admin/cli.ts`, admin API on `127.0.0.1:${HOMUNCULUS_PORT}`, `HOMUNCULUS_ADMIN_URL` overrides) |

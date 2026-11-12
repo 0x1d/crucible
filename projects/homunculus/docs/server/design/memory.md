@@ -4,7 +4,7 @@ title: Memory
 type: DES
 owner: crucible/homunculus/server
 status: Draft
-date: 2026-11-11
+date: 2026-11-12
 depends: [crucible/homunculus/server/design]
 related: []
 planned: []
@@ -47,7 +47,7 @@ flowchart LR
 | Scope | One memory space per profile (`profiles.memory_space`, default `default`); devices sharing a profile share memory |
 | Selection (no profiles table yet, [crucible/homunculus/server/design](../design.md) section 7) | `HOMUNCULUS_MEMORY_SPACE` (default `default`), one space for all devices |
 | Space name | `[a-z0-9-]{1,64}` |
-| Root | `${HOMUNCULUS_MEMORY_DIR}/<space>/` (default `server/.data/memory`) |
+| Root | `${HOMUNCULUS_MEMORY_DIR}/<space>/` (default `<data dir>/memory`) |
 | Versioning | Root is a git repository; one commit per wiki change (message = change, e.g. `wrote entity max`); `*.graph*` excluded via `.gitignore` (bi-temporal history of its own); committer `homunculus <homunculus@localhost>` |
 | Enable | `HOMUNCULUS_MEMORY=1` (default on); `0` -> no MCP child, no tools, no prepare / finalize |
 | Timezone | `HOMUNCULUS_TIMEZONE` (IANA; default host zone): prompt time, extraction date resolution |

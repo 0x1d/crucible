@@ -1,7 +1,7 @@
 // Assembles the speech pipeline (spec §5.1): providers, persona, agent backend; one Conversation per device.
 import { createHash } from "node:crypto";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { dataDir, memoryDir } from "../data-dir.js";
 import type { EffortLevel } from "@anthropic-ai/claude-agent-sdk";
 import type { DeviceConnection } from "../gateway/connection.js";
 import { ClaudeAgentBackend } from "../inference/claude/backend.js";
@@ -160,7 +160,7 @@ export async function createSpeechPipeline(log: Logger): Promise<Pipeline> {
   const tts = createTts(persona.tts.provider, log);
   const model = env.HOMUNCULUS_MODEL ?? "claude-opus-5-5";
   const effort = (env.HOMUNCULUS_EFFORT ?? "low") as EffortLevel;
-  const sandboxRoot = fileURLToPath(new URL("../../.data/sandbox/devices", import.meta.url));
+  const sandboxRoot = join(dataDir(), "sandbox", "devices");
   const backend = new ClaudeAgentBackend({
     model,
     effort,
@@ -196,7 +196,7 @@ export async function createSpeechPipeline(log: Logger): Promise<Pipeline> {
 async function openMemory(log: Logger): Promise<PipelineMemory | undefined> {
   const env = process.env;
   if (env.HOMUNCULUS_MEMORY === "0") return undefined;
-  const root = env.HOMUNCULUS_MEMORY_DIR ?? fileURLToPath(new URL("../../.data/memory", import.meta.url));
+  const root = memoryDir(env);
   const space = env.HOMUNCULUS_MEMORY_SPACE ?? "default";
   const timeZone = env.HOMUNCULUS_TIMEZONE || undefined;
   const model = env.HOMUNCULUS_MEMORY_MODEL ?? "claude-sonnet-5-5";
