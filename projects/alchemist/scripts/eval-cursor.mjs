@@ -2,8 +2,8 @@
 /**
  * Run the Cursor host evals with their own BEAM and memory graph.
  *
- *   npm run eval:cursor                 # all cases
- *   npm run eval:cursor -- memory       # one file or case, any agent-sdk eval flags
+ *   pnpm run eval:cursor                 # all cases
+ *   pnpm run eval:cursor -- memory       # one file or case, any agent-sdk eval flags
  *
  * An inherited ALCHEMIST_STATE_DIR (e.g. from a chat or TUI session) would make
  * the eval stop that session's BEAM, and the repo memory graph must not

@@ -2,7 +2,7 @@
 /**
  * Seed session_trace memory, then start playground with that graph.
  *
- *   npm run dev:session-trace
+ *   pnpm run dev:session-trace
  */
 import { spawn } from "node:child_process";
 import path from "node:path";

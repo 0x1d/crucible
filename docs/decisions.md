@@ -4,7 +4,7 @@ title: Decisions
 type: AD
 owner: crucible
 status: Draft
-date: 2026-11-10
+date: 2026-11-12
 depends: []
 related: [crucible/open-items]
 ---
@@ -24,6 +24,8 @@ Status values: **Decided** (stated by the project owner), **Proposed** (recommen
 | AD-05 | Alchemist and homunculus share memory functionality, not memory content: each owns its own graph | Different domains (engineering vs personal); no shared owner process needed | One shared graph behind a memory service (rejected) |
 | AD-06 | File access is shared: alchemist's `fs.*` entries and athanor's storage use the same storage layer | Two file layers exist today; athanor files need a second set of entries | Keep `nshde.component.*` beside `fs.*` |
 | AD-07 | Documentation follows the architecture / specification / application-design style; the dated `plans/` and `specs/` records are discontinued | Preference of the project owner; homunculus already follows it | Keep per-feature plan and spec files |
+| AD-22 | pnpm workspace on Node 24 for alchemist, homunculus and packages; athanor keeps Bun; one root Nix flake with per-project shells | Homunculus already uses pnpm; athanor requires Bun (crucible/C-03) | npm workspaces; Bun everywhere |
+| AD-23 | History is preserved on import; source repositories are archived | 272 commits of context | Fresh start |
 | AD-24 | The IDE project nshde is renamed athanor (repository `0x1d/athanor`), after the alchemist's self-feeding furnace | Matches the alchemy naming of crucible, alchemist, homunculus and codex | Ouroboros, retort, alembic (name taken by a Python tool) |
 
 ## 2 Proposed
@@ -44,8 +46,6 @@ Status values: **Decided** (stated by the project owner), **Proposed** (recommen
 | AD-19 | A package is created only for code with two consumers; HDP and speech stay in homunculus | Avoid speculative packages | Extract everything reusable | - |
 | AD-20 | Applications integrate over channels crucible/CH-1...CH-7; TypeScript -> BEAM through `codex-client`, BEAM -> applications through their HTTP APIs | Reuses the two patterns that exist today | Message bus; shared in-process runtime | - |
 | AD-21 | In homunculus, `define` is off by default and `ask` when enabled | crucible/C-01 | Allow | crucible/OI-11 |
-| AD-22 | pnpm workspace on Node 24 for alchemist, homunculus and packages; athanor keeps Bun; one root Nix flake with per-project shells | Homunculus already uses pnpm; athanor requires Bun (crucible/C-03) | npm workspaces; Bun everywhere | crucible/OI-05, crucible/OI-06 |
-| AD-23 | History is preserved on import; source repositories are archived | 272 commits of context | Fresh start | crucible/OI-13 |
 
 ## 3 Carried over
 

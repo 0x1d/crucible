@@ -24,7 +24,7 @@ When reviewing `runtime/`, treat the live service as the **`:runtime` OTP applic
 ```bash
 (cd runtime && mix test)
 node scripts/cli.mjs '{"op":"call","name":"echo","args":{"hello":"world"}}'
-npm run check
+pnpm run check
 ```
 
 ## How to review
@@ -34,7 +34,7 @@ Each linked hexdocs entry follows the same shape: **Problem** (why it hurts), **
 1. Scan the categories below while reading modules under review.
 2. For each hit, use that row’s **detail link** for examples and refactoring guidance.
 3. Record findings with: file/location, anti-pattern name, severity (bug risk / maintainability / performance), and suggested direction (not necessarily a full patch).
-4. After structural changes, run `cd runtime && mix test` and `npm run check` when the review touches the BEAM runtime or cross-language boundaries.
+4. After structural changes, run `cd runtime && mix test` and `pnpm run check` when the review touches the BEAM runtime or cross-language boundaries.
 
 Background on the catalog (categories, when to fix vs leave): [What are anti-patterns?](https://elixir.hexdocs.pm/what-anti-patterns.html).
 

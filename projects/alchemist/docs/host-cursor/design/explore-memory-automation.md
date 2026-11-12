@@ -148,7 +148,7 @@ flowchart LR
 | Gate | Unit test: gated slug blocked until explore |
 | Flags merge | `host-flags.test.ts` defaults for new keys |
 | Memory | `mix test` memory + explore if added |
-| Context eval | `npm run eval:cursor -- context-size` |
+| Context eval | `pnpm run eval:cursor -- context-size` |
 
 ---
 

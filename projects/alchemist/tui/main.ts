@@ -2,7 +2,7 @@
 /**
  * Terminal UI for the Alchemist hosts.
  *
- *   npm run tui
+ *   pnpm run tui
  */
 import { logFile } from "./log.ts";
 import {

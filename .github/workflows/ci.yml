@@ -1,0 +1,44 @@
+# crucible/architecture/repository-and-migration section 3.1
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - run: python3 formulary/check-docs.py
+
+  workspace:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v31
+      - name: Install dependencies
+        run: |
+          nix develop --command pnpm install --frozen-lockfile
+          nix develop --command bash -c 'mix local.hex --force && mix local.rebar --force && cd projects/alchemist/runtime && mix deps.get'
+      - run: nix develop --command pnpm typecheck
+      - run: nix develop --command pnpm test
+
+  athanor:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: projects/athanor
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v31
+      - run: nix develop ../..#athanor --command bun install --frozen-lockfile
+      - run: nix develop ../..#athanor --command bun run lint
+      - run: nix develop ../..#athanor --command bun test src

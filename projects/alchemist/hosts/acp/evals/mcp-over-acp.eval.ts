@@ -1,7 +1,7 @@
 /**
  * Spec success criterion: an agent with `mcpCapabilities.acp` calls `call_function`
  * on a codex slug through MCP-over-ACP and receives capped JSON from the BEAM.
- * Needs Elixir on PATH: npm run eval:acp
+ * Needs Elixir on PATH: pnpm run eval:acp
  */
 import assert from "node:assert/strict";
 import fs from "node:fs";

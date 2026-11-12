@@ -26,7 +26,7 @@ Cursor uses a Cursor credential (`CURSOR_API_KEY`, `CURSOR_API_KEY_FILE`, `CURSO
 1. Run the TUI:
 
    ```bash
-   npm run tui
+   pnpm run tui
    ```
 
 2. Select a host in the dialog.
@@ -171,7 +171,7 @@ The TUI and `agent-sdk dev --dir hosts/cursor` should not serve `hosts/cursor/.a
 ## Tests
 
 ```bash
-npm run test:tui
+pnpm run test:tui
 ```
 
 The tests under `tui/` cover the theme, stats, change tracking, the `/remember` prompt, the command parser, the view components, and the Claude and Cursor event mapping.

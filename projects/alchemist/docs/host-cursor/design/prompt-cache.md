@@ -161,8 +161,8 @@ In `modelConfig`, when the id is `grok-4.7` and the effort is `high`, return `{ 
 Other ids and efforts keep the params they already build.
 
 ```bash
-npm run test:tui
-npx tsc --noEmit
+pnpm run test:tui
+pnpm exec tsc --noEmit
 node_modules/.bin/agent-sdk validate --dir hosts/cursor
 ```
 
@@ -175,7 +175,7 @@ It reads `hosts/cursor/bot/instructions.md` and every `hosts/cursor/bot/tools/*.
 It fails when a file contains `Date.now`, `new Date`, or `${`.
 
 ```bash
-npm run test:hosts
+pnpm run test:hosts
 ```
 
 Pass: the new test passes.
@@ -204,7 +204,7 @@ This command is the gate that the follow-up reuses the prefix.
 Add the two sentences from the spec to `docs/architecture/host-adapters.md` and `docs/guides/tui.md`.
 
 ```bash
-npm run check:docs
+pnpm run check:docs
 ```
 
 Pass: the docs check exits 0.

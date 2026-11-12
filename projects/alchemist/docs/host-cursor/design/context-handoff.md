@@ -281,8 +281,8 @@ agent-sdk tool call handoff --dir hosts/cursor --input '<json>' --json
 - `--dry-run --json` returns confirmation `Dry run. handoff.md was not written.` and does not leave `handoff.md` behind.
 
 `agent-sdk validate --dir hosts/cursor` passes.
-`npx tsc --noEmit` passes.
-`npm run test:tui` and `npm run test:hosts` pass.
+`pnpm exec tsc --noEmit` passes.
+`pnpm run test:tui` and `pnpm run test:hosts` pass.
 
 ### Prompt base, model turn
 
@@ -364,7 +364,7 @@ The description string is the spec's description, unchanged.
 
 ```bash
 node --test hosts/cursor/bot/lib/handoff.test.ts
-npx tsc --noEmit
+pnpm exec tsc --noEmit
 node_modules/.bin/agent-sdk validate --dir hosts/cursor
 ```
 
@@ -411,7 +411,7 @@ Pass: exit is not 0, and the error code is `invalid_tool_input`.
 Create `tui/adapters/handoff.ts` and `handoff.test.ts` for every row of the spec's route table, `seedMessage`, `HANDOFF_REQUEST`, the `action.result` match, and `resolveSuccessor`.
 
 ```bash
-npm run test:tui
+pnpm run test:tui
 ```
 
 Pass: the new file passes, and the existing TUI tests still pass.
@@ -436,8 +436,8 @@ Set pending from the raw `action.result` rule.
 `detachSession` clears pending and `contextTokens`.
 
 ```bash
-npm run test:tui
-npx tsc --noEmit
+pnpm run test:tui
+pnpm exec tsc --noEmit
 ```
 
 Pass: both exit 0.
@@ -488,7 +488,7 @@ State that a compact request at or under 200,000 tokens forks on the following m
 State that the old transcript stays on the old session.
 
 ```bash
-npm run check:docs
+pnpm run check:docs
 ```
 
 Pass: the docs check exits 0.

@@ -37,28 +37,28 @@ Prerequisites: Node 24+ (Cursor adapter and Claude host) and Elixir 1.20+.
 ```bash
 mix local.hex --force && mix local.rebar --force
 (cd runtime && mix deps.get)
-npm ci
-npm run check
+pnpm install --frozen-lockfile
+pnpm run check
 node scripts/cli.mjs '{"op":"call","name":"echo","args":{"hello":"world"}}'
 ```
 
 Optional Cursor development:
 
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 Optional Claude Agent SDK host:
 
 ```bash
-npm run chat:claude
-npm run eval:claude
+pnpm run chat:claude
+pnpm run eval:claude
 ```
 
 Optional terminal UI for the hosts:
 
 ```bash
-npm run tui
+pnpm run tui
 ```
 
 ## Documentation

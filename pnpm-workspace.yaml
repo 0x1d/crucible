@@ -1,0 +1,22 @@
+packages:
+  - packages/*
+  - projects/alchemist
+  - projects/homunculus/protocol
+  - projects/homunculus/server
+  - projects/homunculus/tools/*
+
+# transformers.js imports onnxruntime-common without declaring it (homunculus server).
+packageExtensions:
+  "@huggingface/transformers@3":
+    dependencies:
+      onnxruntime-common: "1.21.0"
+
+# No dependency needs its install script: esbuild and sharp ship prebuilt
+# platform packages, onnxruntime-node its CPU binaries; @grok/agent-sdk's only
+# copies Cursor skills into ~/.cursor.
+ignoredBuiltDependencies:
+  - "@grok/agent-sdk"
+  - esbuild
+  - onnxruntime-node
+  - protobufjs
+  - sharp

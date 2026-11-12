@@ -27,7 +27,7 @@ A successful `nshde.component.write` call adds a `component` event with the writ
 The system prompt is `hosts/claude/instructions.md` followed by `hosts/nshde/instructions.md`.
 
 ```bash
-npm run serve:nshde
+pnpm run serve:nshde
 ```
 
 | Variable | Default | Meaning |

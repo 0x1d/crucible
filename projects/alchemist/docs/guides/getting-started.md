@@ -12,7 +12,7 @@ Cursor Agent SDK adapter and the Nix/direnv shell.
 ## Install dependencies
 
 ```bash
-npm ci
+pnpm install --frozen-lockfile
 mix local.hex --force
 mix local.rebar --force
 (cd runtime && mix deps.get)
@@ -21,7 +21,7 @@ mix local.rebar --force
 ## Validate
 
 ```bash
-npm run check
+pnpm run check
 npx @grok/agent-sdk validate --dir hosts/cursor
 (cd runtime && mix test)
 ```
@@ -47,7 +47,7 @@ node scripts/cli.mjs '{"op":"find","query":""}'
 For playground, deploy, evals, and channels:
 
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 Sign in when prompted (`npx @grok/agent-sdk login`). The adapter exposes four
@@ -70,13 +70,13 @@ The Claude host runs the same four tools through the Claude Code harness.
 It needs Claude Code credentials or `ANTHROPIC_API_KEY`.
 
 ```bash
-npm run chat:claude
+pnpm run chat:claude
 ```
 
 Run the Claude evals:
 
 ```bash
-npm run eval:claude
+pnpm run eval:claude
 ```
 
 Host files and options are described in the [Claude host README](../../hosts/claude/README.md).

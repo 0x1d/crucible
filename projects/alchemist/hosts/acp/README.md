@@ -49,10 +49,10 @@ An agent starts in the repository root unless its entry sets `cwd`.
 
 | Command | Behavior |
 | --- | --- |
-| `npm run tui` | Lists probed agents in the host dialog. |
-| `npm run probe:acp` | Prints the probe result for each configured agent. |
-| `npm run spike:acp` | Runs one prompt against `agent.ts`. |
-| `npm run eval:acp` | Calls `memory.overview` through MCP-over-ACP. It needs Elixir on `PATH`. |
+| `pnpm run tui` | Lists probed agents in the host dialog. |
+| `pnpm run probe:acp` | Prints the probe result for each configured agent. |
+| `pnpm run spike:acp` | Runs one prompt against `agent.ts`. |
+| `pnpm run eval:acp` | Calls `memory.overview` through MCP-over-ACP. It needs Elixir on `PATH`. |
 
 ## Behavior
 

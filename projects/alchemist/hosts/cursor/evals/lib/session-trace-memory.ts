@@ -11,7 +11,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 
 export const cursorHostRoot = path.resolve(here, "../..");
 
-/** Default graph for session_trace evals and `npm run dev:session-trace`. */
+/** Default graph for session_trace evals and `pnpm run dev:session-trace`. */
 export const sessionTraceMemoryPath = path.join(
   cursorHostRoot,
   ".eval-memory",

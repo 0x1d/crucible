@@ -61,7 +61,7 @@ Prerequisites: Node 24+, Elixir 1.14+, and Claude Code credentials.
 The SDK reads the same credentials as the `claude` CLI, or `ANTHROPIC_API_KEY`.
 
 ```bash
-npm run chat:claude
+pnpm run chat:claude
 ```
 
 Type a request at the `you>` prompt. Type `exit` or press Ctrl-D to stop.
@@ -70,7 +70,7 @@ The loop prints each tool call as `[tool] <name> <input>` and then the final rep
 ## Run the evals
 
 ```bash
-npm run eval:claude
+pnpm run eval:claude
 ```
 
 | Eval file | Checks |

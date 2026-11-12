@@ -46,7 +46,7 @@ homunculus/
 └── tools/                        # device simulator (PC client speaking HDP), asset pipeline
 ```
 
-TypeScript packages form one pnpm workspace (root `pnpm-workspace.yaml`): `protocol` (`@homunculus/protocol`), `server`, `tools/simulator` (`@homunculus/simulator`).
+TypeScript packages are members of the crucible pnpm workspace (`pnpm-workspace.yaml` at the crucible root): `protocol` (`@homunculus/protocol`), `server`, `tools/simulator` (`@homunculus/simulator`).
 
 ## 2 Phases
 

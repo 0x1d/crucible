@@ -277,9 +277,9 @@ npm scripts (plain Node; `elixir` must already be on `PATH`):
 
 | Script | Effect |
 | --- | --- |
-| `npm run seed:session-trace` | Resets the default eval graph from the fixture. |
-| `npm run dev:session-trace` | Seeds that graph, then starts the Cursor playground with `AGENT_MEMORY_PATH` set to it. |
-| `npm run eval:session-trace` | Runs `agent-sdk eval` with the same `AGENT_MEMORY_PATH`; each case seeds again. |
+| `pnpm run seed:session-trace` | Resets the default eval graph from the fixture. |
+| `pnpm run dev:session-trace` | Seeds that graph, then starts the Cursor playground with `AGENT_MEMORY_PATH` set to it. |
+| `pnpm run eval:session-trace` | Runs `agent-sdk eval` with the same `AGENT_MEMORY_PATH`; each case seeds again. |
 
 An explicit path may be passed to `scripts/seed-session-trace-memory.mjs` for measure trials.
 `scripts/measure-session-trace-eval.mjs` uses plain `node` and `node_modules/.bin/agent-sdk` (no nix wrappers).

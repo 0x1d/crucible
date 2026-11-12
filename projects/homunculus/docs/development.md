@@ -20,7 +20,7 @@ The project is built exclusively with Nix. All toolchains are pinned in `flake.l
 | --- | --- | --- | --- |
 | default | `nix develop` | `nix-shell` | firmware + server tools |
 | firmware | `nix develop .#firmware` | `nix-shell -A firmware` | ESP-IDF v6.0.2 (Xtensa + RISC-V toolchains), idf-component-manager 3.x, esptool, OpenOCD, picocom |
-| server | `nix develop .#server` | `nix-shell -A server` | Node.js 22, pnpm, libopus, ffmpeg |
+| server | `nix develop .#server` | `nix-shell -A server` | Node.js 24, pnpm, libopus, ffmpeg |
 | docs | `nix develop .#docs` | `nix-shell -A docs` | mermaid-cli, poppler-utils |
 
 All shells include git, git-lfs, jq and nixfmt. With direnv installed, `direnv allow` loads the default shell automatically (`.envrc`).
@@ -99,7 +99,7 @@ Device log lines: `hom_agent: uplink: ...` (per utterance), `hom_agent: turn: af
 
 ## Server
 
-pnpm workspace at the repository root: `protocol`, `server`, `tools/simulator`.
+The packages `protocol`, `server` and `tools/simulator` are members of the crucible pnpm workspace (root `pnpm-workspace.yaml`, one `pnpm-lock.yaml`). In this folder, `pnpm typecheck` and `pnpm test` run over these three.
 
 ```bash
 pnpm install

@@ -164,7 +164,7 @@ The ACP host is TUI-only until streaming parity with `channels/http.ts` is defin
 ## Dependencies
 
 ```bash
-npm install @agentclientprotocol/sdk
+pnpm add @agentclientprotocol/sdk
 ```
 
 Peer: `zod` (^3.25.76 || ^4.0.0). Optional peer `@modelcontextprotocol/server` for MCP-over-ACP (already used elsewhere in the repo).

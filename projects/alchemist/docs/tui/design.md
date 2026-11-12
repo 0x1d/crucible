@@ -35,7 +35,7 @@ The footer shows context use and session cost.
 | Session index for Claude | `.alchemist/tui/claude-sessions.json` | `listSessions()` for the repository root also returns Claude Code CLI sessions. The index keeps only sessions that the TUI created. |
 | Memory checkpoint | A marker line inside the `/remember` prompt | The transcript holds the checkpoint. The TUI keeps no state for it. |
 | Theme | One theme, `alchemist`, in a theme registry | Every component reads its styles from the active theme. |
-| Script | `npm run tui` runs `node tui/main.ts` | Matches `npm run chat:claude`. |
+| Script | `pnpm run tui` runs `node tui/main.ts` | Matches `pnpm run chat:claude`. |
 
 ## Layout
 
@@ -249,22 +249,22 @@ The terminal shows only the TUI.
 
 - `node:test` files under `tui/` cover `stats.ts`, `changes.ts`, `remember.ts`, `theme.ts`, and the event mapping of each adapter.
 - The adapter tests use recorded SDK messages and Cursor NDJSON events. They make no network calls.
-- `npm run test:tui` runs these tests. `npm test` also runs them.
-- `tsconfig.json` includes `tui/**/*`, so `npm run check` checks the types.
+- `pnpm run test:tui` runs these tests. `pnpm test` also runs them.
+- `tsconfig.json` includes `tui/**/*`, so `pnpm run check` checks the types.
 - A manual smoke test runs 1 turn on each host, `/diff`, `/remember`, and a session resume.
 
 ## Documentation
 
 - `docs/guides/tui.md` describes the start flow, commands, keys, footer, theme, and state files.
-- `README.md` adds `npm run tui` to the quick start.
+- `README.md` adds `pnpm run tui` to the quick start.
 - `docs/index.md` lists the TUI guide.
 - `docs/architecture/host-adapters.md` names the TUI as a client of both hosts.
-- `AGENTS.md` adds `tui/` to the layout, `npm run tui` to the loop, and the pi-tui exception to the dependency rule.
+- `AGENTS.md` adds `tui/` to the layout, `pnpm run tui` to the loop, and the pi-tui exception to the dependency rule.
 - `docs/README.md` lists this spec.
 
 ## Out of scope
 
-- Session resume for sessions from `npm run chat:claude`.
+- Session resume for sessions from `pnpm run chat:claude`.
 - Images.
 - More than 1 theme.
 - Permission prompts. Both hosts allow only the codex tools.

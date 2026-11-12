@@ -128,7 +128,7 @@ Behavior unchanged:
 **Acceptance:**
 
 - Unit tests: mock large find result -> truncated digest + artifact path.
-- `npm run eval:cursor -- context-size` still passes (add **`find_function` gate** if a synthetic large `detail: true` response exceeds budget - see section 5).
+- `pnpm run eval:cursor -- context-size` still passes (add **`find_function` gate** if a synthetic large `detail: true` response exceeds budget - see section 5).
 
 **Pitfall:** `find_function` search hits are usually small; **`detail: true`** is the main find risk. Digest must apply to describe responses from `Engine.find_describe/1` (`runtime/lib/runtime/engine.ex`).
 
@@ -218,11 +218,11 @@ Host enforcement must treat **describe** as a first-class large payload. Prompt 
 | --- | --- | --- |
 | Host flags default | `node --test hosts/cursor/bot/lib/host-flags.test.ts` | `defaultMaxBytes === true` |
 | Digest on find | New unit test in `cap-tool-result` or tool test | Large find JSON -> `truncated: true` |
-| Context gates | `nix develop -- npm run eval:cursor -- context-size` | All cases <= budgets in host-context plan |
+| Context gates | `nix develop -- pnpm run eval:cursor -- context-size` | All cases <= budgets in host-context plan |
 | Named read | same | <= 32,000 input tokens |
 | Git defaults | `mix test` in `functions/git/log` | No `--numstat` by default; limit 8 |
 | Instructions size | `wc -c hosts/cursor/bot/instructions.md` | <= ~5500 after Phase E (guideline) |
-| Docs | `npm run check:docs` | pass |
+| Docs | `pnpm run check:docs` | pass |
 
 **New eval (recommended):** `context-size/find-detail` - one `find_function` with `detail: true` on a large entry; assert input tokens <= **28,000** (align with memory search gate) and tool result digested.
 

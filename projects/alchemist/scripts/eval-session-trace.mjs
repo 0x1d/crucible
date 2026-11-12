@@ -2,7 +2,7 @@
 /**
  * Run session_trace evals against the shared eval MiniGraf path.
  *
- *   npm run eval:session-trace
+ *   pnpm run eval:session-trace
  *   node scripts/eval-session-trace.mjs factory-qna
  */
 import { sessionTraceMemoryPath } from "../hosts/cursor/evals/lib/session-trace-memory.ts";

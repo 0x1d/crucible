@@ -11,7 +11,9 @@
 - Refer to every artifact by its full id. A document's id is its path.
 - Relations between documents live in front matter (`depends`, `related`, `planned`), not in the text.
 - Written text is plain ASCII: `-` for dashes, `->` for arrows, words instead of symbols.
+- Commits follow Conventional Commits; the scope is the project or package (`feat(homunculus): ...`).
 
 ## Before finishing
 
-- Formulary's conformance check, run from the workspace root: `python3 <path to formulary>/check-docs.py`
+- Formulary's conformance check, run from the workspace root: `python3 formulary/check-docs.py` (`pnpm check:docs`)
+- For code changes, in the root dev shell: `pnpm typecheck` and `pnpm test`; athanor: `bun test src` in `nix develop .#athanor`

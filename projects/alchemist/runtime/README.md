@@ -119,7 +119,7 @@ node scripts/runtime-doctor.mjs
 node scripts/cli.mjs '{"op":"call","name":"echo","args":{"msg":"hello"}}'
 ```
 
-Local `npm run dev` stops the BEAM when you Ctrl+C (attached lifecycle).
+Local `pnpm run dev` stops the BEAM when you Ctrl+C (attached lifecycle).
 The VM runs in its own session.
 Ctrl+C is handled by the Node host.
 The first Ctrl+C asks the VM to stop and refuses to boot another one.
