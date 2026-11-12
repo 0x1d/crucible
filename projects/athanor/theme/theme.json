@@ -1,0 +1,47 @@
+{
+  "name": "nshde",
+  "cssVars": {
+    "theme": {
+      "radius": "8px",
+      "radius-card": "12px",
+      "radius-control": "6px"
+    },
+    "dark": {
+      "background": "#09090b",
+      "foreground": "#fafafa",
+      "card": "#18181b",
+      "card-foreground": "var(--foreground)",
+      "popover": "#18181b",
+      "popover-foreground": "var(--foreground)",
+      "primary": "#7c3aed",
+      "primary-foreground": "#fafafa",
+      "secondary": "#27272a",
+      "secondary-foreground": "var(--foreground)",
+      "muted": "#27272a",
+      "muted-foreground": "#a1a1aa",
+      "accent": "#3f3f46",
+      "accent-foreground": "var(--foreground)",
+      "destructive": "#ef4444",
+      "border": "#3f3f46",
+      "input": "#52525b",
+      "ring": "#7c3aed",
+      "inset": "#0c0c0e",
+      "raised": "#27272a",
+      "field": "#18181b",
+      "line": "#27272a",
+      "hover": "#27272a",
+      "faint": "#71717a",
+      "brand": "#38bdf8",
+      "code": "#e4e4e7",
+      "info": "#38bdf8",
+      "warn": "#fbbf24",
+      "up": "#34d399",
+      "down": "var(--destructive)",
+      "brand-tint": "color-mix(in srgb, var(--brand) 14%, transparent)",
+      "sidebar": "#0c0c0e",
+      "sidebar-foreground": "var(--foreground)",
+      "sidebar-accent": "#27272a",
+      "sidebar-border": "#27272a"
+    }
+  }
+}

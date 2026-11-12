@@ -1,0 +1,35 @@
+{
+  "name": "nshde",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:api": "bun --hot src/server.ts",
+    "dev:ui": "bash scripts/nsh-run.sh run App.tsx --target web",
+    "dev": "bun run dev:api & bash scripts/nsh-run.sh run App.tsx --target web",
+    "check:nsh": "bash scripts/nsh-run.sh --version",
+    "build": "bun build src/server.ts --target=bun --outdir dist --minify",
+    "build:web": "bash scripts/nsh-run.sh package . --target web",
+    "start": "NODE_ENV=production bun src/server.ts",
+    "lint": "eslint",
+    "test": "bun test src"
+  },
+  "dependencies": {
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "sucrase": "^3.35.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9",
+    "@types/bun": "latest",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "bun-plugin-tailwind": "^0.1.2",
+    "eslint": "^9",
+    "globals": "^17.13.0",
+    "playwright": "^1.64.1",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "typescript-eslint": "^8"
+  }
+}
