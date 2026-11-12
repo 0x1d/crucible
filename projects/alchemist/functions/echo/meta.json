@@ -1,0 +1,13 @@
+{
+  "description": "Example codex entry. Returns the input args map with `\"echoed\" => true`.",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Echo",
+  "moduledoc": "Example codex entry. Returns the input args map with `\"echoed\" => true`.",
+  "name": "echo",
+  "source_sha256": "c1bb152d09789bd2cd16f59c3931b81e97c4e67d37134b77ad8922e88a8fb77d",
+  "specs": [
+    "@type args :: %{optional(String.t()) => term()}",
+    "@spec run(args()) :: {:ok, map()}"
+  ],
+  "updated_at": "2026-11-04T21:59:57.138124Z"
+}

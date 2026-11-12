@@ -1,0 +1,44 @@
+{
+  "description": "Greet someone by name.\n\nExample service for the nshde service gateway.\nIts schemas are in `meta.json` under `service`.\n\nArgs:\n- `name` — who to greet",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Services.Greeting",
+  "moduledoc": "Greet someone by name.\n\nExample service for the nshde service gateway.\nIts schemas are in `meta.json` under `service`.\n\nArgs:\n- `name` — who to greet",
+  "name": "services.greeting",
+  "service": {
+    "input_schema": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        }
+      }
+    },
+    "output_schema": {
+      "type": "object",
+      "required": [
+        "message",
+        "at"
+      ],
+      "properties": {
+        "message": {
+          "type": "string"
+        },
+        "at": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "source_sha256": "b78109e279542fdfa7357ca07d2ab42b25a3b9f3885775f518b81d929b8ac154",
+  "specs": [
+    "@type args :: %{required(:name) => String.t()}",
+    "@spec run(args()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-11-09T12:00:00.000000Z"
+}

@@ -1,0 +1,13 @@
+{
+  "description": "Read a text file from disk.\n\n  Args:\n  - `path` (required) — file to read\n  - `max_bytes` — optional positive integer cap; when set and exceeded,\n    content is truncated and `truncated` is true",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Fs.Read",
+  "moduledoc": "Read a text file from disk.\n\n  Args:\n  - `path` (required) — file to read\n  - `max_bytes` — optional positive integer cap; when set and exceeded,\n    content is truncated and `truncated` is true",
+  "name": "fs.read",
+  "source_sha256": "d70c2a8a6bb0c49544ea695ff8a3c92f3fcdda7cfcc808ecf4c45e2b2a660530",
+  "specs": [
+    "@type args :: %{\n    optional(:max_bytes) => non_neg_integer(),\n    required(:path) => String.t()\n  }",
+    "@spec run(args()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-11-04T21:59:58.073446Z"
+}

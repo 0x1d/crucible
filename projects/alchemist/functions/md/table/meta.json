@@ -1,0 +1,13 @@
+{
+  "description": "Render a structured map as a markdown table.\n\n  Pass any map (e.g. an `fs.list` result). Prefers a list of maps under\n  `entries`, `rows`, or `items`, or under an optional `key`. Otherwise\n  renders the map itself as a two-column key/value table.\n\n  Optional args:\n  - `data` — wrap the payload when mixing with other options\n  - `key` — list key to use for rows\n  - `columns` — ordered column names (defaults to sorted union of keys)",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Md.Table",
+  "moduledoc": "Render a structured map as a markdown table.\n\n  Pass any map (e.g. an `fs.list` result). Prefers a list of maps under\n  `entries`, `rows`, or `items`, or under an optional `key`. Otherwise\n  renders the map itself as a two-column key/value table.\n\n  Optional args:\n  - `data` — wrap the payload when mixing with other options\n  - `key` — list key to use for rows\n  - `columns` — ordered column names (defaults to sorted union of keys)",
+  "name": "md.table",
+  "source_sha256": "d36dd942bc6fa1b92bc0abf6f44ffcabcf2530ff7e61b6208f31e7febb63e0d4",
+  "specs": [
+    "@type args :: %{\n    optional(:columns) => [String.t()],\n    optional(:data) => [map()],\n    optional(:key) => String.t()\n  }",
+    "@spec run(args()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-11-04T22:00:02.182486Z"
+}

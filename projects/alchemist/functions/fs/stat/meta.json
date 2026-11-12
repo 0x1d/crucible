@@ -1,0 +1,13 @@
+{
+  "description": "Stat a single filesystem path.\n\n  Args: `path` (required string).\n\n  Returns `name`, `path`, `type` (`file`/`dir`/`symlink`/`other`), `size`,\n  `extension`, `mode` (octal string), `create_time`, `modify_time`, and\n  `symlink_target` when the path is a symlink.",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Fs.Stat",
+  "moduledoc": "Stat a single filesystem path.\n\n  Args: `path` (required string).\n\n  Returns `name`, `path`, `type` (`file`/`dir`/`symlink`/`other`), `size`,\n  `extension`, `mode` (octal string), `create_time`, `modify_time`, and\n  `symlink_target` when the path is a symlink.",
+  "name": "fs.stat",
+  "source_sha256": "336a6b99710464e67e4f9a407b9dffe2d67df4d714a018de8dcb0e6a89334823",
+  "specs": [
+    "@type args :: %{\n    required(:path) => String.t()\n  }",
+    "@spec run(args()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-11-04T21:59:58.479199Z"
+}

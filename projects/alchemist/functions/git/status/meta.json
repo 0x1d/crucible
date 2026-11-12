@@ -1,0 +1,13 @@
+{
+  "description": "Structured git working-tree status for one repository.\n\n  Runs `git status --porcelain=v1 -z --branch` (NUL-separated, so paths with\n  spaces, quotes or non-ASCII bytes come through exactly as they are) and parses it.\n\n  Args:\n  - `cwd` / `repo` — repository directory (default: runtime cwd)\n  - `paths` — optional list of pathspecs to limit the report (passed after `--`)\n  - `untracked` — `\"all\"` (default), `\"normal\"` (collapse untracked dirs), or `\"no\"`\n  - `ignored` — when true, also list ignored files (default false)\n\n  Returns:\n  - `branch`, `upstream`, `ahead`, `behind`, `detached`, `clean`\n  - `entries` — list of `%{path, orig_path, index, worktree, code}` (raw XY codes)\n  - `staged`, `unstaged`, `untracked`, `conflicted`, `ignored` — path lists\n  - `counts` — size of each list",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Git.Status",
+  "moduledoc": "Structured git working-tree status for one repository.\n\n  Runs `git status --porcelain=v1 -z --branch` (NUL-separated, so paths with\n  spaces, quotes or non-ASCII bytes come through exactly as they are) and parses it.\n\n  Args:\n  - `cwd` / `repo` — repository directory (default: runtime cwd)\n  - `paths` — optional list of pathspecs to limit the report (passed after `--`)\n  - `untracked` — `\"all\"` (default), `\"normal\"` (collapse untracked dirs), or `\"no\"`\n  - `ignored` — when true, also list ignored files (default false)\n\n  Returns:\n  - `branch`, `upstream`, `ahead`, `behind`, `detached`, `clean`\n  - `entries` — list of `%{path, orig_path, index, worktree, code}` (raw XY codes)\n  - `staged`, `unstaged`, `untracked`, `conflicted`, `ignored` — path lists\n  - `counts` — size of each list",
+  "name": "git.status",
+  "source_sha256": "f1dfc59f31529229bb913cb250983362f2114daa0ce062f6f895c0ab8d84763c",
+  "specs": [
+    "@type args :: %{\n    optional(:cwd) => String.t(),\n    optional(:ignored) => boolean(),\n    optional(:paths) => [String.t()],\n    optional(:repo) => String.t(),\n    optional(:untracked) => String.t()\n  }",
+    "@spec run(args()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-11-04T22:00:00.564489Z"
+}

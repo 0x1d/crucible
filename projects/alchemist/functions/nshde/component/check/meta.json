@@ -1,0 +1,13 @@
+{
+  "description": "Compile a component with nshde's Sucrase step and return its errors.\n\nnshde runs the same transform as the preview loader, checks the imports\n(`react` and `@nshde/services` only), the default export, and that every\nservice the source calls is declared in `export const capabilities`.\n\nArgs:\n- `source` — TSX source to check\n- Or `slug` / `path` — check the stored component\n\nReturns `ok`, `errors` (each `message`, optional `line` and `column`), and\nthe declared `capabilities`.",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Nshde.Component.Check",
+  "moduledoc": "Compile a component with nshde's Sucrase step and return its errors.\n\nnshde runs the same transform as the preview loader, checks the imports\n(`react` and `@nshde/services` only), the default export, and that every\nservice the source calls is declared in `export const capabilities`.\n\nArgs:\n- `source` — TSX source to check\n- Or `slug` / `path` — check the stored component\n\nReturns `ok`, `errors` (each `message`, optional `line` and `column`), and\nthe declared `capabilities`.",
+  "name": "nshde.component.check",
+  "source_sha256": "baac29de41c3a01673a3cc8e1b1f0d043437ca43feaf6785c2d2f8b3fb566402",
+  "specs": [
+    "@type args :: %{\n  optional(:path) => String.t(),\n  optional(:slug) => String.t(),\n  optional(:source) => String.t()\n}",
+    "@spec run(args()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-11-10T06:30:00.000000Z"
+}

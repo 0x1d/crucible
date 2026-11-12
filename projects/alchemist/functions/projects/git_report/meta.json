@@ -1,0 +1,13 @@
+{
+  "description": "Scan a root directory for project folders and report git status for each.\n\n  Args:\n  - `root` — directory to scan (default `/home/master/src`)\n  - `max_depth` — how deep to search for `.git` (default 2)",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Projects.GitReport",
+  "moduledoc": "Scan a root directory for project folders and report git status for each.\n\n  Args:\n  - `root` — directory to scan (default `/home/master/src`)\n  - `max_depth` — how deep to search for `.git` (default 2)",
+  "name": "projects.git_report",
+  "source_sha256": "9d823d55f8916137ed16100a9952226327885c87dc0d5ea961a1450eac861ff8",
+  "specs": [
+    "@type args :: %{\n    optional(:max_depth) => non_neg_integer(),\n    optional(:root) => String.t()\n  }",
+    "@spec run(args()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-11-04T22:00:04.113452Z"
+}

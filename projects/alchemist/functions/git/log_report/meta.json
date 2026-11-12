@@ -1,0 +1,13 @@
+{
+  "description": "Summarize recent git changes of a repository as a markdown report.\n\n  Pure composition: commits come from `git.log`, uncommitted state from\n  `git.status`. No direct shell calls.\n\n  Report sections: overview totals, commits by type (conventional-commit\n  prefix), authors, a commit table, most touched files, and the working tree.\n\n  Args:\n  - `cwd` / `repo` — repository directory (default: runtime cwd)\n  - `limit` — number of commits (default 10)\n  - `since`, `until`, `ref`, `author`, `paths`, `no_merges`, `first_parent` —\n    forwarded to `git.log`\n  - `working_tree` — include the uncommitted status section (default true)\n  - `top_files` — number of most-touched files to list (default 10)\n\n  Returns `markdown` plus structured `commits`, `totals`, `authors`, `types`,\n  `top_files`, `working_tree`.",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Git.LogReport",
+  "moduledoc": "Summarize recent git changes of a repository as a markdown report.\n\n  Pure composition: commits come from `git.log`, uncommitted state from\n  `git.status`. No direct shell calls.\n\n  Report sections: overview totals, commits by type (conventional-commit\n  prefix), authors, a commit table, most touched files, and the working tree.\n\n  Args:\n  - `cwd` / `repo` — repository directory (default: runtime cwd)\n  - `limit` — number of commits (default 10)\n  - `since`, `until`, `ref`, `author`, `paths`, `no_merges`, `first_parent` —\n    forwarded to `git.log`\n  - `working_tree` — include the uncommitted status section (default true)\n  - `top_files` — number of most-touched files to list (default 10)\n\n  Returns `markdown` plus structured `commits`, `totals`, `authors`, `types`,\n  `top_files`, `working_tree`.",
+  "name": "git.log_report",
+  "source_sha256": "6c1d3d419cbcad37ab0fa7fc373b20944a5cf4c908dfcd535718b56a012fbc67",
+  "specs": [
+    "@type args :: %{\n    optional(:cwd) => String.t(),\n    optional(:limit) => non_neg_integer(),\n    optional(:repo) => String.t(),\n    optional(:since) => String.t(),\n    optional(:top_files) => non_neg_integer()\n  }",
+    "@spec run(args()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-11-06T12:53:33.401240Z"
+}

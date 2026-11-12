@@ -1,0 +1,13 @@
+{
+  "description": "Demo pipeline: `fs.glob` → `data.filter` → `data.sort` → `md.table` → `md.concat`.\n\n  Args:\n  - `path` / `root` (required)\n  - `pattern` (required)\n  - `field`, `op`, `value` — optional filter (default: extension eq \"ex\")\n  - `by` — sort field (default `path`)\n  - `order` — `asc` or `desc`\n  - `columns` — table columns\n  - `title` — report heading text",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Demo.Report",
+  "moduledoc": "Demo pipeline: `fs.glob` → `data.filter` → `data.sort` → `md.table` → `md.concat`.\n\n  Args:\n  - `path` / `root` (required)\n  - `pattern` (required)\n  - `field`, `op`, `value` — optional filter (default: extension eq \"ex\")\n  - `by` — sort field (default `path`)\n  - `order` — `asc` or `desc`\n  - `columns` — table columns\n  - `title` — report heading text",
+  "name": "demo.report",
+  "source_sha256": "2615291016121c869485ba6252603d773297321a4fb14e41049ba8e044feb8dc",
+  "specs": [
+    "@type args :: %{\n    optional(:by) => String.t(),\n    optional(:columns) => [String.t()],\n    optional(:field) => String.t(),\n    optional(:op) => String.t(),\n    optional(:order) => String.t(),\n    optional(:title) => String.t(),\n    optional(:value) => term()\n  }",
+    "@spec run(args()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-11-04T21:59:56.591621Z"
+}

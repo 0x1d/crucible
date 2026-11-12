@@ -1,0 +1,9 @@
+defmodule AgentLib.Strings do
+  @moduledoc """
+  Shared string helpers for codex entries. Not callable via `call_function`.
+  """
+
+  @spec blank?(String.t() | nil) :: boolean()
+  def blank?(nil), do: true
+  def blank?(str) when is_binary(str), do: String.trim(str) == ""
+end

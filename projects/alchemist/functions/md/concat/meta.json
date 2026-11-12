@@ -1,0 +1,13 @@
+{
+  "description": "Concatenate markdown parts into one document.\n\n  Args:\n  - `parts` (required) — list of strings, or maps containing a `markdown` key\n  - `separator` — join string (default `\"\\\\n\\\\n\"`)",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Md.Concat",
+  "moduledoc": "Concatenate markdown parts into one document.\n\n  Args:\n  - `parts` (required) — list of strings, or maps containing a `markdown` key\n  - `separator` — join string (default `\"\\\\n\\\\n\"`)",
+  "name": "md.concat",
+  "source_sha256": "2462751186a764706a27b8a44b028a0c422755c8ad81b099bbb2906055d54407",
+  "specs": [
+    "@type args :: %{\n    required(:parts) => [String.t()],\n    optional(:separator) => String.t()\n  }",
+    "@spec run(args()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-11-04T22:00:01.903620Z"
+}

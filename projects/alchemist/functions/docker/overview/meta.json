@@ -1,0 +1,13 @@
+{
+  "description": "Short Docker overview: counts by Compose project, image, and state, plus published ports.\n\n  Args:\n  - `all` — if true, include stopped containers (default false)\n\n  Same result as `docker.ps_report`. Use this before `docker.ps` or `docker inspect`.",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Docker.Overview",
+  "moduledoc": "Short Docker overview: counts by Compose project, image, and state, plus published ports.\n\n  Args:\n  - `all` — if true, include stopped containers (default false)\n\n  Same result as `docker.ps_report`. Use this before `docker.ps` or `docker inspect`.",
+  "name": "docker.overview",
+  "source_sha256": "e1561a597c8f5bbcf8f4b226075858ab9681d8e78847d34559f1edf57eb0b4e5",
+  "specs": [
+    "@type args :: %{\n    optional(:all) => boolean()\n  }",
+    "@spec run(args()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-11-04T21:59:56.772445Z"
+}

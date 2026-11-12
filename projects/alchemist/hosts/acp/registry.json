@@ -1,0 +1,26 @@
+{
+  "agents": [
+    {
+      "id": "sdk-example",
+      "label": "ACP SDK example (stdio)",
+      "spawn": {
+        "command": "npx",
+        "args": ["tsx", "hosts/acp/agent.ts"]
+      },
+      "probe": {
+        "timeoutMs": 8000
+      }
+    },
+    {
+      "id": "mcp-example",
+      "label": "ACP scripted agent (MCP-over-ACP)",
+      "spawn": {
+        "command": "npx",
+        "args": ["tsx", "hosts/acp/mcp-over-acp-agent.ts"]
+      },
+      "probe": {
+        "timeoutMs": 8000
+      }
+    }
+  ]
+}

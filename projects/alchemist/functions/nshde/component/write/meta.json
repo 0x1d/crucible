@@ -1,0 +1,13 @@
+{
+  "description": "Write a component to nshde storage as `components/<slug>.nsh.tsx`.\n\nThe source is checked first (`nshde.component.check`); a source with\nerrors is not written and the errors are returned.\nThe nshde preview hot-mounts the written component.\n\nArgs:\n- `slug` — kebab-case name (`todo-list`), or `path` under `components/`\n- `source` — TSX with a default-exported React component",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Nshde.Component.Write",
+  "moduledoc": "Write a component to nshde storage as `components/<slug>.nsh.tsx`.\n\nThe source is checked first (`nshde.component.check`); a source with\nerrors is not written and the errors are returned.\nThe nshde preview hot-mounts the written component.\n\nArgs:\n- `slug` — kebab-case name (`todo-list`), or `path` under `components/`\n- `source` — TSX with a default-exported React component",
+  "name": "nshde.component.write",
+  "source_sha256": "327be106478db02392a418c4d09080eebae1c849db412f40a9580ebd616dbdd8",
+  "specs": [
+    "@type args :: %{\n  optional(:path) => String.t(),\n  optional(:slug) => String.t(),\n  required(:source) => String.t()\n}",
+    "@spec run(args()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-11-10T06:30:00.000000Z"
+}

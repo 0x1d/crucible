@@ -1,0 +1,13 @@
+{
+  "description": "Echo run/1 args for debugging",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Debug.EchoArgs",
+  "moduledoc": null,
+  "name": "debug.echo_args",
+  "source_sha256": "953b5d88549b7cc90f461575b8867dbfe6ea1465404949fcf8f8737e883c54cb",
+  "specs": [
+    "@type args :: %{optional(String.t()) => term()}",
+    "@spec run(args()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-11-04T21:59:55.917747Z"
+}

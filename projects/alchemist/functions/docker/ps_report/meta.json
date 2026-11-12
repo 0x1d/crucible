@@ -1,0 +1,13 @@
+{
+  "description": "Summarize Docker containers from `docker.ps`.\n\n  Args:\n  - `all` — if true, include stopped containers (default false)\n\n  Returns `count`, `by_state`, `by_project`, `by_image`, and `published_ports`.\n  The container list stays out of the result.",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Docker.PsReport",
+  "moduledoc": "Summarize Docker containers from `docker.ps`.\n\n  Args:\n  - `all` — if true, include stopped containers (default false)\n\n  Returns `count`, `by_state`, `by_project`, `by_image`, and `published_ports`.\n  The container list stays out of the result.",
+  "name": "docker.ps_report",
+  "source_sha256": "36f6f630d9fcf9ad8f701b2173ca0304e06587a3038693eddffb094900d3fceb",
+  "specs": [
+    "@type args :: %{\n    optional(:all) => boolean()\n  }",
+    "@spec run(args()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-11-04T21:59:57.092728Z"
+}

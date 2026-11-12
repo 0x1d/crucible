@@ -1,0 +1,74 @@
+{
+  "transactions": [
+    {
+      "reason": "Session trace fixture: K8s durable execution split",
+      "facts": [
+        {
+          "e": "decision/k8s-durable-execution",
+          "a": "description",
+          "v": "Split durable orchestration from GitOps deploy on Kubernetes."
+        },
+        {
+          "e": "decision/k8s-durable-execution",
+          "a": "rationale",
+          "v": "Factory loop uses in-process durability; deploy uses GitOps sync status."
+        },
+        {
+          "e": "decision/k8s-durable-execution",
+          "a": "depends-on",
+          "v": "dependency/temporal"
+        },
+        {
+          "e": "decision/k8s-durable-execution",
+          "a": "depends-on",
+          "v": "dependency/argo-cd"
+        },
+        {
+          "e": "decision/k8s-durable-execution",
+          "a": "depends-on",
+          "v": "dependency/tekton"
+        },
+        {
+          "e": "dependency/argo-cd",
+          "a": "description",
+          "v": "GitOps deploy path: sync DeploymentRequest CR and wait on status, not kubectl as durability layer."
+        },
+        {
+          "e": "dependency/tekton",
+          "a": "description",
+          "v": "Pod-step builds and tests in the factory loop."
+        },
+        {
+          "e": "dependency/temporal",
+          "a": "description",
+          "v": "In-process durable orchestration for the agentic software factory loop."
+        }
+      ]
+    },
+    {
+      "reason": "Session trace fixture: factory architecture",
+      "facts": [
+        {
+          "e": "decision/factory-architecture",
+          "a": "description",
+          "v": "Agentic software factory: Temporal or Restate for loop durability, Tekton or Argo Workflows for pod steps, Argo CD or Flux for deploy."
+        },
+        {
+          "e": "decision/factory-architecture",
+          "a": "motivated-by",
+          "v": "decision/k8s-durable-execution"
+        },
+        {
+          "e": "preference/orchestrator",
+          "a": "description",
+          "v": "Prefer Restate over Temporal when a lighter in-process durable runtime is enough."
+        },
+        {
+          "e": "constraint/no-cluster-admin",
+          "a": "description",
+          "v": "Agents must not hold cluster-admin apply; GitOps owns cluster changes."
+        }
+      ]
+    }
+  ]
+}

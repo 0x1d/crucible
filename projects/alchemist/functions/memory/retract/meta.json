@@ -1,0 +1,13 @@
+{
+  "description": "Ends facts in memory (close, default) or withdraws facts recorded in error (correct).\n\n  Args: `reason` (required), `facts` (list of `e`/`a`/`v`), optional `mode`, optional `valid_at`.\n\n  - `mode: \"close\"` (default) — the fact stopped being true. Its live valid window\n    ends at `valid_at` (default now; past or present only). `valid_at` queries inside\n    the window still find it. Facts take `e`, `a`, `v` only.\n  - `mode: \"correct\"` — the fact was never true. It is withdrawn across all valid\n    time; only an earlier `as_of` still shows it. Takes no `valid_at`.",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Memory.Retract",
+  "moduledoc": "Ends facts in memory (close, default) or withdraws facts recorded in error (correct).\n\n  Args: `reason` (required), `facts` (list of `e`/`a`/`v`), optional `mode`, optional `valid_at`.\n\n  - `mode: \"close\"` (default) — the fact stopped being true. Its live valid window\n    ends at `valid_at` (default now; past or present only). `valid_at` queries inside\n    the window still find it. Facts take `e`, `a`, `v` only.\n  - `mode: \"correct\"` — the fact was never true. It is withdrawn across all valid\n    time; only an earlier `as_of` still shows it. Takes no `valid_at`.",
+  "name": "memory.retract",
+  "source_sha256": "ad2888834ce14aca9e31de2d57977bf47721fb76b38136ed3e63b1d32d8b7511",
+  "specs": [
+    "@type args :: %{\n    required(:facts) => [map()],\n    optional(:mode) => String.t(),\n    required(:reason) => String.t(),\n    optional(:valid_at) => String.t()\n  }",
+    "@spec run(args()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-11-04T22:00:03.226360Z"
+}

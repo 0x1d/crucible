@@ -1,0 +1,13 @@
+{
+  "description": "Reverse lookup: session id → memory entities.\n\n  Finds entities whose `source-session` attribute equals (or contains) the\n  given id, and returns their `description` when present.\n\n  Args:\n  - `session_id` / `source_session` (required) — `ses_…` id or substring\n  - `exact` — when true (default), require exact `source-session` match;\n    when false, substring match on the value\n  - `as_of` / `valid_at` — optional temporal args forwarded to `memory.query`",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Memory.BySession",
+  "moduledoc": "Reverse lookup: session id → memory entities.\n\n  Finds entities whose `source-session` attribute equals (or contains) the\n  given id, and returns their `description` when present.\n\n  Args:\n  - `session_id` / `source_session` (required) — `ses_…` id or substring\n  - `exact` — when true (default), require exact `source-session` match;\n    when false, substring match on the value\n  - `as_of` / `valid_at` — optional temporal args forwarded to `memory.query`",
+  "name": "memory.by_session",
+  "source_sha256": "7e26f00af53e87c03dfa383ef5b3c7387428ae0a79665f0505fa4d2d1e9f1149",
+  "specs": [
+    "@type args :: %{\n    optional(:as_of) => String.t() | non_neg_integer(),\n    optional(:exact) => boolean(),\n    optional(:session_id) => String.t(),\n    optional(:source_session) => String.t(),\n    optional(:valid_at) => String.t()\n  }",
+    "@spec run(args()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-11-04T22:00:02.802528Z"
+}

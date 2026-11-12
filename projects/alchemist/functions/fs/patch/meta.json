@@ -1,0 +1,13 @@
+{
+  "description": "Apply exact search/replace edits to an arbitrary text file.\n\n  Args:\n  - `path` (required) — file to edit\n  - `edits` (required) — list of `%{\"old\" => string, \"new\" => string}`;\n    optional per-edit `\"replace_all\" => true`\n  - `dry_run` — validate and report without writing (default false)\n\n  Each `old` must match exactly once in the current text (unless\n  `replace_all`), otherwise nothing is written. Edits apply in order.\n  Returns `path`, `applied` (per-edit match counts), `written`.",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Fs.Patch",
+  "moduledoc": "Apply exact search/replace edits to an arbitrary text file.\n\n  Args:\n  - `path` (required) — file to edit\n  - `edits` (required) — list of `%{\"old\" => string, \"new\" => string}`;\n    optional per-edit `\"replace_all\" => true`\n  - `dry_run` — validate and report without writing (default false)\n\n  Each `old` must match exactly once in the current text (unless\n  `replace_all`), otherwise nothing is written. Edits apply in order.\n  Returns `path`, `applied` (per-edit match counts), `written`.",
+  "name": "fs.patch",
+  "source_sha256": "31c7964459e491eedc750b9e06a8de9a0e512def8236edd61ed10cd668c60ae6",
+  "specs": [
+    "@type args :: %{\n    optional(:dry_run) => boolean(),\n    required(:edits) => [map()],\n    required(:path) => String.t()\n  }",
+    "@spec run(args()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-11-04T21:59:57.929517Z"
+}

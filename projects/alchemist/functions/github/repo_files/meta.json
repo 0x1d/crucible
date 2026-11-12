@@ -1,0 +1,13 @@
+{
+  "description": "List file paths (blobs) in a public GitHub repo via the git trees API.\n\n  Args:\n  - `repo` (required) — `owner/name`\n  - `ref` — branch/sha (default `HEAD`)\n  - `contains` — optional substring filter on path\n  - `ext` — optional list of extensions (e.g. [\".rs\", \".md\"])\n  - `limit` — max paths returned (default 500)\n\n  Returns `paths` (with `size`), `count`, `total`, `truncated`.",
+  "loaded": true,
+  "module": "Elixir.AgentFn.Github.RepoFiles",
+  "moduledoc": "List file paths (blobs) in a public GitHub repo via the git trees API.\n\n  Args:\n  - `repo` (required) — `owner/name`\n  - `ref` — branch/sha (default `HEAD`)\n  - `contains` — optional substring filter on path\n  - `ext` — optional list of extensions (e.g. [\".rs\", \".md\"])\n  - `limit` — max paths returned (default 500)\n\n  Returns `paths` (with `size`), `count`, `total`, `truncated`.",
+  "name": "github.repo_files",
+  "source_sha256": "9f520c4e506a9b09beef885cc89fe4db27c1770c5b60d66d796749ff04b2b26f",
+  "specs": [
+    "@type args :: %{\n    optional(:contains) => String.t(),\n    optional(:ext) => [String.t()],\n    optional(:limit) => non_neg_integer(),\n    optional(:ref) => String.t(),\n    required(:repo) => String.t()\n  }",
+    "@spec run(args()) :: {:ok, map()} | {:error, String.t()}"
+  ],
+  "updated_at": "2026-11-04T22:00:01.133184Z"
+}
