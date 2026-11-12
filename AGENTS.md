@@ -2,7 +2,7 @@
 
 ## Read first
 
-- [Specification framework](docs/framework.md), section "For agents"
+- [Formulary](https://github.com/0x1d/formulary), the standard the documents conform to; section "For agents"
 - [System manifest and index](docs/README.md) -> project index -> component manifest -> documents
 
 ## Rules
@@ -14,4 +14,4 @@
 
 ## Before finishing
 
-- `python3 tools/check-docs.py`
+- Formulary's conformance check, run from the workspace root: `python3 <path to formulary>/check-docs.py`

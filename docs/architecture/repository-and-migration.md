@@ -38,16 +38,14 @@ planned:
 
 ## 1 Monorepo layout
 
-Follows the [framework workspace layout](../framework.md#workspace-layout).
+Follows the [Formulary workspace layout](https://github.com/0x1d/formulary#workspace-layout).
 
 ```text
 crucible/
 ├── docs/                          # cross-project only
 │   ├── README.md                  # system manifest and index
 │   ├── requirements.md  architecture.md  decisions.md  open-items.md
-│   ├── architecture/              # sub-documents of architecture.md, this one among them
-│   ├── framework.md               # specification framework
-│   └── framework/                 # profiles, templates
+│   └── architecture/              # sub-documents of architecture.md, this one among them
 ├── projects/
 │   ├── alchemist/
 │   │   ├── docs/                  # alchemist components, codex protocol, guides
@@ -72,7 +70,7 @@ crucible/
 │   ├── memory/
 │   ├── storage/
 │   └── codex-client/
-├── tools/                         # workspace scripts, docs checks
+├── tools/                         # workspace scripts
 ├── AGENTS.md
 ├── flake.nix                      # one dev shell per project
 └── pnpm-workspace.yaml
@@ -113,9 +111,9 @@ crucible/
 
 ## 5 Documentation migration
 
-Each project keeps its documents under `projects/<project>/docs/`, restructured per the [specification framework](../framework.md). `docs/` keeps only the system documents and the framework.
+Each project keeps its documents under `projects/<project>/docs/`, restructured per the [Formulary standard](https://github.com/0x1d/formulary). `docs/` keeps only the system documents.
 
-Components and their [profiles](../framework/profiles.md):
+Components and their [profiles](https://github.com/0x1d/formulary/blob/main/profiles.md):
 
 | Component | Profile | Docs |
 | --- | --- | --- |
@@ -150,7 +148,7 @@ Removed files remain in git history.
 
 ## 6 Planned work
 
-The migration is a set of planned changes that form a dependency graph ([framework](../framework.md#planned-work)). The dependencies are declared under `planned` in this document's front matter; the graph and the table are a view of them. There are no dates and no fixed order: a change may start when everything it depends on is done.
+The migration is a set of planned changes that form a dependency graph ([Formulary](https://github.com/0x1d/formulary#planned-work)). The dependencies are declared under `planned` in this document's front matter; the graph and the table are a view of them. There are no dates and no fixed order: a change may start when everything it depends on is done.
 
 ```mermaid
 flowchart LR
