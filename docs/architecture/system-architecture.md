@@ -18,7 +18,7 @@ flowchart LR
     Dev(["Developer"])
     User(["Device user"])
     subgraph Crucible
-        NSH["nshde"]
+        ATH["athanor"]
         ALC["alchemist"]
         HOM["homunculus server"]
     end
@@ -27,14 +27,14 @@ flowchart LR
     LLM["LLM providers"]
     Ext["External agents (ACP),<br/>Cursor"]
 
-    Dev --> NSH
+    Dev --> ATH
     Dev --> ALC
     User <--> Device
     Device <-- "HDP (WSS)" --> HOM
-    NSH <--> ALC
+    ATH <--> ALC
     HOM <--> ALC
     ALC <--> CodexRepo
-    NSH & ALC & HOM --> LLM
+    ATH & ALC & HOM --> LLM
     ALC <--> Ext
 ```
 
@@ -42,23 +42,23 @@ flowchart LR
 
 | Block | Kind | Responsibility |
 | --- | --- | --- |
-| nshde | Application | IDE shell, Bun API, preview sandbox, service tokens, storage HTTP API |
+| athanor | Application | IDE shell, Bun API, preview sandbox, service tokens, storage HTTP API |
 | homunculus | Application | Firmware; server: device gateway, orchestrator, speech pipeline, device tool bridge, pairing, OTA |
-| alchemist | Application | Codex runtime (BEAM): compile, discover, call entries; service gateway; kernel entries; TUI; Cursor host; nshde sidecar |
+| alchemist | Application | Codex runtime (BEAM): compile, discover, call entries; service gateway; kernel entries; TUI; Cursor host; athanor sidecar |
 | `packages/agent` | Shared package | Agent backend abstraction, session and event model, tool and permission model, context policies |
 | `packages/memory` | Shared package | Memory provider interface, minigraf provider, schema profiles, wiki |
 | `packages/storage` | Shared package | Storage provider interface, backends, mounts |
 | `packages/codex-client` | Shared package | Node bridge to the BEAM, codex protocol types, codex operations as a tool server |
 | Codex entry SDK | Shared (Elixir) | Behaviours and helpers entries compile and test against |
-| Codex repository | External repository | Function library, agent-written entries, nshde components, published-services manifest |
+| Codex repository | External repository | Function library, agent-written entries, athanor components, published-services manifest |
 
 ## 3 Dependency rules
 
 ```mermaid
 flowchart TB
-    NSH["nshde"] --> AG["agent"]
-    NSH --> ST["storage"]
-    NSH --> CC["codex-client"]
+    ATH["athanor"] --> AG["agent"]
+    ATH --> ST["storage"]
+    ATH --> CC["codex-client"]
     HOM["homunculus server"] --> AG
     HOM --> MEM["memory"]
     HOM --> CC
@@ -84,8 +84,8 @@ flowchart TB
 
 | Process | Runtime | Owns | Started by |
 | --- | --- | --- | --- |
-| nshde API | Bun | Storage providers, service tokens, storage HTTP API | user / deployment |
-| nshde sidecar | Node | Agent sessions for nshde (HTTP + SSE) | user / sandbox controller |
+| athanor API | Bun | Storage providers, service tokens, storage HTTP API | user / deployment |
+| athanor sidecar | Node | Agent sessions for athanor (HTTP + SSE) | user / sandbox controller |
 | Long-lived BEAM | Elixir | Compiled entries, service gateway, `Runtime.Memory` | `codex-client` bridge on first use |
 | Alchemist memory child | Node | Alchemist's graph file (crucible/C-02) | `Runtime.Memory` |
 | homunculus server | Node | Device connections, voice sessions, homunculus's memory spaces (in-process or child) | user / deployment |
@@ -112,7 +112,7 @@ Each application owns its own memory store (crucible/AD-05). No memory process i
 | `AgentFn.Tool`, `AgentFn.Codex`, `Runtime.Result`, `functions/test_helper.exs` | codex entry SDK |
 | `alchemist/functions/{memory,codex,runtime,echo}` | kernel entries, stay in the monorepo |
 | `alchemist/functions/` (everything else) | codex repository (crucible/OI-01) |
-| `nshde/src/lib/storage/*` | `packages/storage` |
+| `athanor/src/lib/storage/*` | `packages/storage` |
 | `alchemist/functions/fs/*` `File.*` calls | `AgentLib.Storage` (entry SDK) |
 | `homunculus/protocol` (HDP) | stays in homunculus (one consumer) |
 | `homunculus/server/src/speech` | stays in homunculus until a second consumer exists |

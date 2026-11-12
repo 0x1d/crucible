@@ -156,7 +156,7 @@ Host-side rules that today live in `alchemist/hosts/cursor/bot/lib` and are impo
 | Front-end | Application | Built on |
 | --- | --- | --- |
 | Voice orchestrator | homunculus | `AgentSession`, long-lived, `interrupt` on barge-in |
-| HTTP / SSE sidecar | alchemist (for nshde) | `AgentSession`; maps `AgentEvent` to the sidecar's SSE events |
+| HTTP / SSE sidecar | alchemist (for athanor) | `AgentSession`; maps `AgentEvent` to the sidecar's SSE events |
 | TUI | alchemist | `AgentSession` |
 
 ## 3 `packages/codex-client`
@@ -187,7 +187,7 @@ export interface StorageProvider {
 }
 ```
 
-Extends nshde's existing `StorageProvider` with `tree`, `stat` and a content hash.
+Extends athanor's existing `StorageProvider` with `tree`, `stat` and a content hash.
 
 ### 4.2 Mounts
 
@@ -195,7 +195,7 @@ Extends nshde's existing `StorageProvider` with `tree`, `stat` and a content has
 | --- | --- |
 | Path form | `<mount>:<relative path>`, e.g. `workspace:components/todo.nsh.tsx` |
 | Mount table | Configuration: mount name -> provider + root |
-| Typical mounts | `workspace:` (nshde's store), `local:` (a directory on the host), per-device sandbox mounts in homunculus |
+| Typical mounts | `workspace:` (athanor's store), `local:` (a directory on the host), per-device sandbox mounts in homunculus |
 | Boundary | A path outside every configured mount is refused |
 
 ### 4.3 Access from the BEAM
@@ -204,7 +204,7 @@ Extends nshde's existing `StorageProvider` with `tree`, `stat` and a content has
 | --- | --- |
 | `AgentLib.Storage` | Elixir behaviour in the codex entry SDK: `read`, `write`, `list`, `stat`, `delete` |
 | `Local` adapter | `File.*` under the mount root |
-| `Remote` adapter | HTTP to the storage API of the process that owns the provider (nshde API today) |
+| `Remote` adapter | HTTP to the storage API of the process that owns the provider (athanor API today) |
 | `fs.*` entries | Resolve the mount, call `AgentLib.Storage`. `nshde.component.read / list / write` reduce to `fs.*` plus the compile check |
 | Limit | `git.*`, `fs.rg` and other entries that shell out work only on mounts backed by local disk and return an error otherwise |
 
@@ -225,6 +225,6 @@ A Mix package in the monorepo. The codex repository depends on it as a git depen
 | Candidate | Reason |
 | --- | --- |
 | HDP protocol (`homunculus/protocol`) | One consumer |
-| Speech (STT, TTS, VAD, shaper) | One consumer; already behind interfaces, extract when nshde or the TUI gets voice |
+| Speech (STT, TTS, VAD, shaper) | One consumer; already behind interfaces, extract when athanor or the TUI gets voice |
 | `AgentLib.Strings`, `AgentLib.Nshde` | 95 lines; move with the entries that use them |
-| Service tokens, service gateway client | nshde-specific |
+| Service tokens, service gateway client | athanor-specific |

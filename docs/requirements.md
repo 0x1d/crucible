@@ -20,15 +20,15 @@ They become one git monorepo with shared packages for the duplicated parts and d
 
 | Project | What it is | Stack | Repository |
 | --- | --- | --- | --- |
-| alchemist | Host-independent agent harness. The **codex** is its capability layer: Elixir entries under `functions/`, served by a long-lived BEAM through four operations (`define`, `load`, `find`, `call`). Hosts: Cursor, Claude Agent SDK, ACP, nshde sidecar, TUI | Elixir, Node 24, npm | `0x1d/alchemist`, 142 commits |
+| alchemist | Host-independent agent harness. The **codex** is its capability layer: Elixir entries under `functions/`, served by a long-lived BEAM through four operations (`define`, `load`, `find`, `call`). Hosts: Cursor, Claude Agent SDK, ACP, athanor sidecar, TUI | Elixir, Node 24, npm | `0x1d/alchemist`, 142 commits |
 | homunculus | Physical AI companion: ESP32 firmware (audio, avatar) and a server (gateway, orchestrator, speech, agent, memory) speaking HDP over WebSocket | ESP-IDF, Node >= 22, pnpm, Git LFS | `0x1d/homunculus`, 91 commits |
-| nshde | Recursive IDE: an agent writes NSH components and backend services; the IDE hot-mounts them | Bun, React, NSH | `0x1d/nshde`, 39 commits |
+| athanor | Recursive IDE: an agent writes NSH components and backend services; the IDE hot-mounts them | Bun, React, NSH | `0x1d/athanor`, 39 commits |
 
-Existing coupling: nshde uses the alchemist Claude host as its agent (sidecar, `nshde.component.*` entries, service gateway). Homunculus is not connected to either.
+Existing coupling: athanor uses the alchemist Claude host as its agent (sidecar, `nshde.component.*` entries, service gateway). Homunculus is not connected to either.
 
 ## 3 Overlap found in the review
 
-| Area | alchemist | homunculus | nshde |
+| Area | alchemist | homunculus | athanor |
 | --- | --- | --- | --- |
 | Memory | `core/minigraf-memory.ts`: `minigraf` npm binding in a Node child owned by `Runtime.Memory`; JSON API `transact / retract / query / overview` | `server/src/memory/`: Python `temporal-reasoning` MCP child (same minigraf engine); raw Datalog tools, per-turn `prepare` / `finalize`, wiki | - |
 | Agent | `hosts/claude/codex.ts`, `hosts/nshde/session.ts`: one SDK `query()` per turn, own `SessionEvent` stream; ACP host | `server/src/inference/`: `AgentBackend` / `AgentSession` / `AgentEvent`, long-lived session, interrupt, `allow` / `ask` tool policy | consumes the alchemist sidecar |
@@ -43,7 +43,7 @@ Existing coupling: nshde uses the alchemist Claude host as its agent (sidecar, `
 | One implementation each for memory, agent sessions, storage access and codex access | Merging the applications into one process or product |
 | Memory behind a generic interface; providers can be swapped (minigraf first) | Sharing one memory graph between applications |
 | The codex function library in its own repository | Moving the codex runtime out of the monorepo |
-| Defined channels between homunculus, alchemist and nshde | A general message bus |
+| Defined channels between homunculus, alchemist and athanor | A general message bus |
 | Architecture / specification / design documentation; no dated plan and spec files | Keeping the superpowers-style `plans/` and `specs/` records |
 
 ## 5 Constraints
@@ -52,7 +52,7 @@ Existing coupling: nshde uses the alchemist Claude host as its agent (sidecar, `
 | --- | --- |
 | C-01 | `define` compiles and runs arbitrary Elixir with the privileges of the BEAM process |
 | C-02 | A minigraf graph file has exactly one open handle (one owner process) |
-| C-03 | nshde runs on Bun (`Bun.serve`); alchemist's CLI and hosts run on Node, never Bun |
+| C-03 | athanor runs on Bun (`Bun.serve`); alchemist's CLI and hosts run on Node, never Bun |
 | C-04 | Homunculus needs voice-to-first-audio <= 1.5 s p50 (HOM NFR-01); nothing on the turn path may block on long work |
 | C-05 | Homunculus firmware needs the ESP-IDF toolchain; it must not be required for the other projects |
 | C-06 | The Cursor host is built on `@grok/agent-sdk`, which is its own harness and deployment format |
@@ -64,7 +64,7 @@ Project-specific terms keep their existing definitions (alchemist domain languag
 | Term | Meaning |
 | --- | --- |
 | Crucible | The monorepo and the combined system |
-| Application | One of nshde, homunculus, alchemist: a deployable with its own processes |
+| Application | One of athanor, homunculus, alchemist: a deployable with its own processes |
 | Shared package | A library under `packages/` used by at least two applications |
 | Codex runtime | The `:runtime` OTP application on the long-lived BEAM (alchemist) |
 | Codex repository | The separate git repository holding the function library and agent-written content |

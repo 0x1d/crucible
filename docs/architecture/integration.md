@@ -15,17 +15,17 @@ related: []
 
 ```mermaid
 flowchart LR
-    NSH["nshde API"]
+    ATH["athanor API"]
     SC["alchemist sidecar"]
     BEAM["BEAM<br/>codex runtime"]
     GW["BEAM<br/>service gateway"]
     HOM["homunculus server"]
     DEV["Device"]
 
-    NSH -- "CH-1 sessions (HTTP + SSE)" --> SC
+    ATH -- "CH-1 sessions (HTTP + SSE)" --> SC
     SC -- "codex protocol" --> BEAM
-    BEAM -- "CH-2 storage API (HTTP)" --> NSH
-    NSH -- "CH-3 service call" --> GW
+    BEAM -- "CH-2 storage API (HTTP)" --> ATH
+    ATH -- "CH-3 service call" --> GW
     HOM -- "CH-4 codex tool server" --> BEAM
     HOM -- "CH-5 delegation (HTTP + SSE)" --> SC
     BEAM -- "CH-6 device API (HTTP)" --> HOM
@@ -35,9 +35,9 @@ flowchart LR
 
 | ID | From -> To | Transport | Purpose | Status |
 | --- | --- | --- | --- | --- |
-| CH-1 | nshde -> alchemist sidecar | HTTP `POST /sessions`, SSE | Agent turns for the IDE | Implemented |
-| CH-2 | codex entries -> nshde | HTTP storage API | Read and write workspace files (`AgentLib.Storage` remote adapter; today `AgentLib.Nshde`) | Implemented as `nshde.component.*`; generalisation planned |
-| CH-3 | nshde -> service gateway | Framed TCP, call-only | Components call published services | Implemented |
+| CH-1 | athanor -> alchemist sidecar | HTTP `POST /sessions`, SSE | Agent turns for the IDE | Implemented |
+| CH-2 | codex entries -> athanor | HTTP storage API | Read and write workspace files (`AgentLib.Storage` remote adapter; today `AgentLib.Nshde`) | Implemented as `nshde.component.*`; generalisation planned |
+| CH-3 | athanor -> service gateway | Framed TCP, call-only | Components call published services | Implemented |
 | CH-4 | homunculus -> BEAM | `codex-client` (loopback TCP) | Voice agent finds and calls codex entries | Planned |
 | CH-5 | homunculus -> alchemist agent | In-process `packages/agent` session, or sidecar HTTP + SSE | Delegate long tasks | Planned |
 | CH-6 | codex entries -> homunculus | HTTP device API | Speak, show, call device tools | Planned |

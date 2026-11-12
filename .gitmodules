@@ -1,0 +1,3 @@
+[submodule "formulary"]
+	path = formulary
+	url = git@github.com:0x1d/formulary.git

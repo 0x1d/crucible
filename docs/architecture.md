@@ -12,13 +12,13 @@ planned: []
 
 # Architecture
 
-Crucible is one monorepo: three applications (alchemist, homunculus, nshde) built on a set of shared packages and talking to each other over defined channels. This document is the summary and index of the system architecture; each part is a sub-document, listed in reading order.
+Crucible is one monorepo: three applications (alchemist, homunculus, athanor) built on a set of shared packages and talking to each other over defined channels. This document is the summary and index of the system architecture; each part is a sub-document, listed in reading order.
 
 | Sub-document | Content |
 | --- | --- |
 | [crucible/architecture/system-architecture](architecture/system-architecture.md) | Context, building blocks, dependency rules, processes, current-to-target mapping |
 | [crucible/architecture/shared-packages](architecture/shared-packages.md) | `memory`, `agent`, `codex-client`, `storage`, codex entry SDK: responsibilities and interfaces |
-| [crucible/architecture/integration](architecture/integration.md) | How nshde, alchemist and homunculus talk to each other |
+| [crucible/architecture/integration](architecture/integration.md) | How athanor, alchemist and homunculus talk to each other |
 | [crucible/architecture/repository-and-migration](architecture/repository-and-migration.md) | Monorepo layout, codex repository, tooling, documentation migration, planned work |
 
 ## Architecture at a glance
@@ -26,7 +26,7 @@ Crucible is one monorepo: three applications (alchemist, homunculus, nshde) buil
 ```mermaid
 flowchart TB
     subgraph Apps["Applications"]
-        NSH["nshde<br/>IDE + Bun API"]
+        ATH["athanor<br/>IDE + Bun API"]
         HOM["homunculus<br/>firmware + voice server"]
         ALC["alchemist<br/>BEAM runtime, TUI, Cursor host"]
     end
@@ -39,7 +39,7 @@ flowchart TB
     end
     CODEX[("codex repository<br/>function library, components")]
 
-    NSH --> AG & ST & CC
+    ATH --> AG & ST & CC
     HOM --> AG & MEM & CC
     ALC --> AG & MEM & CC & SDK
     ALC -. "loads entries" .-> CODEX

@@ -6,7 +6,7 @@ owner: crucible
 standard: formulary/0.1
 profile: system
 status: draft
-summary: Monorepo that unifies alchemist, homunculus and nshde around shared packages
+summary: Monorepo that unifies alchemist, homunculus and athanor around shared packages
 code: .
 depends: []
 documents: [crucible/requirements, crucible/architecture, crucible/decisions, crucible/open-items]
@@ -15,7 +15,7 @@ date: 2026-11-11
 
 # Crucible
 
-Crucible is the monorepo that unifies three projects: **alchemist** (agent harness and codex runtime), **homunculus** (voice companion on ESP32 devices) and **nshde** (self-extending IDE).
+Crucible is the monorepo that unifies three projects: **alchemist** (agent harness and codex runtime), **homunculus** (voice companion on ESP32 devices) and **athanor** (self-extending IDE).
 
 Draft 0.1, 2026-11-10. Describes the **target** architecture; nothing in it is implemented yet unless a section says so.
 
@@ -33,7 +33,7 @@ This folder holds only what spans projects. Each project documents its own compo
 | --- | --- |
 | alchemist | [0x1d/alchemist docs](https://github.com/0x1d/alchemist/tree/main/docs) -> `projects/alchemist/docs/` *(to be moved and restructured)* |
 | homunculus | [0x1d/homunculus docs](https://github.com/0x1d/homunculus/tree/main/docs) -> `projects/homunculus/docs/` *(to be moved and restructured)* |
-| nshde | [0x1d/nshde docs](https://github.com/0x1d/nshde/tree/main/docs) -> `projects/nshde/docs/` *(to be moved)* |
+| athanor | [0x1d/athanor docs](https://github.com/0x1d/athanor/tree/main/docs) -> `projects/athanor/docs/` *(to be moved)* |
 | shared packages | `packages/<name>/docs/` *(to be written)* |
 
 ## Documentation conventions
@@ -49,4 +49,4 @@ This folder holds only what spans projects. Each project documents its own compo
 | Open items | `crucible/OI-NN` in [open-items.md](open-items.md), each with a next step; closed by a decision |
 | Planned work | A section marked **Planned** in the document that will describe it once built, declared with its dependencies in the document's front matter ([Formulary](https://github.com/0x1d/formulary#planned-work)) |
 | Diagrams | Mermaid |
-| Replaces | `alchemist/docs/internal/{plans,specs}`, `nshde/docs/internal/plans` (see [crucible/architecture/repository-and-migration](architecture/repository-and-migration.md) section 5) |
+| Replaces | `alchemist/docs/internal/{plans,specs}`, `athanor/docs/internal/plans` (see [crucible/architecture/repository-and-migration](architecture/repository-and-migration.md) section 5) |

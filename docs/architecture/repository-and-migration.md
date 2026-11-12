@@ -53,7 +53,7 @@ crucible/
 │   │   ├── sdk/                   # codex entry SDK (Mix)
 │   │   ├── functions/             # kernel entries only
 │   │   ├── hosts/<name>/          # Cursor, ACP, ... hosts
-│   │   ├── sidecar/               # HTTP + SSE front-end (nshde, delegation)
+│   │   ├── sidecar/               # HTTP + SSE front-end (athanor, delegation)
 │   │   └── tui/
 │   ├── homunculus/
 │   │   ├── docs/                  # homunculus components, HDP
@@ -61,8 +61,8 @@ crucible/
 │   │   ├── server/
 │   │   ├── protocol/              # HDP
 │   │   └── tools/simulator/
-│   └── nshde/
-│       ├── docs/                  # nshde components
+│   └── athanor/
+│       ├── docs/                  # athanor components
 │       ├── ide/                   # today: App.tsx, src/client, src/nshde
 │       └── api/                   # today: src/server.ts, src/lib
 ├── packages/                      # each with its own docs/
@@ -80,7 +80,7 @@ crucible/
 
 | Item | Value |
 | --- | --- |
-| Content | `functions/` (function library and agent-written entries), `components/` (nshde components), `services.json` (published-services manifest) |
+| Content | `functions/` (function library and agent-written entries), `components/` (athanor components), `services.json` (published-services manifest) |
 | Stays in the monorepo | Kernel entries: `memory.*`, `codex.*`, `runtime.*`, `echo` |
 | Moves out | General library: `fs`, `git`, `http`, `md`, `json`, `data`, `docker`, `github`, `text`, `sys`, `util`, `env`, `explore`, ...; `services/*`; `nshde/*` (split line: crucible/OI-01) |
 | Loading | Overlay root (`AGENT_CODEX_DIR`): lookup overlay first, then the kernel root; `define` writes to the overlay; shadowing a kernel entry is refused |
@@ -93,10 +93,10 @@ crucible/
 | Item | Value | Status |
 | --- | --- | --- |
 | JS workspace | pnpm workspace for `packages/*`, `projects/alchemist`, `projects/homunculus/*` | Proposed (crucible/OI-05) |
-| nshde | Keeps Bun and `bun.lock`; consumes packages (crucible/OI-06) | Proposed |
+| athanor | Keeps Bun and `bun.lock`; consumes packages (crucible/OI-06) | Proposed |
 | Node | 24 for all Node projects | Proposed |
 | Elixir | `alchemist/runtime`, `alchemist/sdk` as Mix projects | - |
-| Nix | One root flake; dev shells `default` (Node, Elixir), `firmware` (ESP-IDF), `nshde` (Bun, NSH) | Proposed |
+| Nix | One root flake; dev shells `default` (Node, Elixir), `firmware` (ESP-IDF), `athanor` (Bun, NSH) | Proposed |
 | Git LFS | Path-scoped patterns for `homunculus/**` binaries in the root `.gitattributes` | Required |
 | Commits | Conventional Commits, scope = project or package | Proposed |
 
@@ -104,7 +104,7 @@ crucible/
 
 | Step | Detail |
 | --- | --- |
-| 1 | Merge or drop unmerged remote branches (`alchemist`: `feat/acp-host`, `ccr-42861548-wocrlg`; `nshde`: `ccr-42861548-wocrlg`, `claude/*`) (crucible/OI-13) |
+| 1 | Merge or drop unmerged remote branches (`alchemist`: `feat/acp-host`, `ccr-42861548-wocrlg`; `athanor`: `ccr-42861548-wocrlg`, `claude/*`) (crucible/OI-13) |
 | 2 | `git init` in `crucible/`; import each repository under `projects/<name>/` with history (`git subtree add` or `git filter-repo`) |
 | 3 | Fetch homunculus LFS objects before the import; rewrite `.gitattributes` to path-scoped patterns |
 | 4 | Archive the three source repositories (read-only) |
@@ -121,8 +121,8 @@ Components and their [profiles](https://github.com/0x1d/formulary/blob/main/prof
 | `crucible/homunculus/firmware` | device | `projects/homunculus/docs/firmware/` |
 | `crucible/homunculus/server` | service | `projects/homunculus/docs/server/` |
 | `crucible/homunculus/hdp` | protocol | `projects/homunculus/docs/hdp/` |
-| `crucible/nshde/ide` | app | `projects/nshde/docs/ide/` |
-| `crucible/nshde/api` | service | `projects/nshde/docs/api/` |
+| `crucible/athanor/ide` | app | `projects/athanor/docs/ide/` |
+| `crucible/athanor/api` | service | `projects/athanor/docs/api/` |
 | `crucible/alchemist/runtime` | service | `projects/alchemist/docs/runtime/` |
 | `crucible/alchemist/tui` | app | `projects/alchemist/docs/tui/` |
 | `crucible/alchemist/host-<name>` (code `hosts/<name>/`) | integration | `projects/alchemist/docs/host-<name>/` |
@@ -139,8 +139,8 @@ Moves:
 | `alchemist/docs/guides` | `projects/alchemist/docs/guides/` |
 | `alchemist/docs/internal/{plans,specs}` - implemented | Content folded into the component documents; files removed |
 | `alchemist/docs/internal/{plans,specs}` - proposed / planned | A **Planned** section in the component document, with an id and its dependencies; files removed |
-| `nshde/docs/internal/plans/001-006` (done) | `projects/nshde/docs/ide/`; files removed |
-| `nshde/docs/internal/plans/007-009`, alchemist `2026-11-10-nshde-deployment` | `projects/nshde/docs/api/` deployment and access-control sections marked **Planned**; cross-project decisions to `crucible/decisions` |
+| `athanor/docs/internal/plans/001-006` (done) | `projects/athanor/docs/ide/`; files removed |
+| `athanor/docs/internal/plans/007-009`, alchemist `2026-11-10-nshde-deployment` | `projects/athanor/docs/api/` deployment and access-control sections marked **Planned**; cross-project decisions to `crucible/decisions` |
 | `docs/architecture/shared-packages.md` interface details | `packages/<package>/docs/interfaces.md`; `crucible/architecture/shared-packages` keeps responsibilities and links |
 | `AGENTS.md` per project | One root `AGENTS.md` plus short per-project files |
 
@@ -174,4 +174,4 @@ flowchart LR
 | P-07 | Codex repository split, overlay, `codex.sync` | crucible/P-06, entry SDK | Functions load from the overlay | blocked |
 | P-08 | Integration crucible/CH-4, crucible/CH-6, then crucible/CH-5 + crucible/CH-7 | crucible/P-03, crucible/P-05 | New features | blocked |
 
-crucible/P-07 may be needed early, if the nshde deployment requires it.
+crucible/P-07 may be needed early, if the athanor deployment requires it.
