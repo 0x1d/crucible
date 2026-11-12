@@ -31,9 +31,9 @@ This folder holds only what spans projects. Each project documents its own compo
 
 | Project | Documentation |
 | --- | --- |
-| alchemist | [alchemist/docs/](../alchemist/docs/index.md) -> `projects/alchemist/docs/` *(to be moved and restructured)* |
-| homunculus | [homunculus/docs/](../homunculus/docs/README.md) -> `projects/homunculus/docs/` *(to be moved and restructured)* |
-| nshde | `projects/nshde/docs/` *(to be written)* |
+| alchemist | [0x1d/alchemist docs](https://github.com/0x1d/alchemist/tree/main/docs) -> `projects/alchemist/docs/` *(to be moved and restructured)* |
+| homunculus | [0x1d/homunculus docs](https://github.com/0x1d/homunculus/tree/main/docs) -> `projects/homunculus/docs/` *(to be moved and restructured)* |
+| nshde | [0x1d/nshde docs](https://github.com/0x1d/nshde/tree/main/docs) -> `projects/nshde/docs/` *(to be moved)* |
 | shared packages | `packages/<name>/docs/` *(to be written)* |
 
 ## Documentation conventions
