@@ -1,0 +1,36 @@
+{
+  "name": "homunculus-server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "spike:claude": "tsx src/spikes/claude-streaming.ts",
+    "dev": "tsx src/main.ts",
+    "memory": "tsx src/memory/cli.ts",
+    "devices": "tsx src/admin/cli.ts",
+    "test": "node --import tsx --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.3.319",
+    "@homunculus/protocol": "workspace:*",
+    "@huggingface/transformers": "3.8.1",
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "bonjour-service": "^1.4.4",
+    "kokoro-js": "^1.2.1",
+    "onnxruntime-node": "1.21.0",
+    "opusscript": "^0.1.1",
+    "ws": "^8.22.1",
+    "yaml": "^2.9.1",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "@types/ws": "^8.18.2",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "description": "HDP/1 binary audio frames (spec 4.3). hex = complete WebSocket binary frame.",
+  "valid": [
+    { "name": "uplink first frame", "hex": "010100070000000000037f8001", "type": 1, "flags": 1, "stream_id": 7, "seq": 0, "payload_hex": "7f8001" },
+    { "name": "uplink last frame", "hex": "01020007000000290001fc", "type": 1, "flags": 2, "stream_id": 7, "seq": 41, "payload_hex": "fc" },
+    { "name": "downlink single-frame stream", "hex": "0203ffff12345678000201ff", "type": 2, "flags": 3, "stream_id": 65535, "seq": 305419896, "payload_hex": "01ff" },
+    { "name": "pcm16 debug, empty payload", "hex": "03000001000000010000", "type": 3, "flags": 0, "stream_id": 1, "seq": 1, "payload_hex": "" }
+  ],
+  "invalid": [
+    { "name": "shorter than header", "hex": "0101000700000000" },
+    { "name": "unknown type 0x04", "hex": "04000001000000000000" },
+    { "name": "payload_len larger than frame", "hex": "010000010000000000057f" },
+    { "name": "payload_len smaller than frame", "hex": "010000010000000000017f80" }
+  ]
+}

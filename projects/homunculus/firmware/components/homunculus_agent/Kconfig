@@ -1,0 +1,102 @@
+menu "Homunculus agent"
+
+    config HOMUNCULUS_WIFI_SSID
+        string "Wi-Fi SSID"
+        default ""
+        help
+            Station SSID. Set in the git-ignored firmware/sdkconfig.local, never in committed files.
+
+    config HOMUNCULUS_WIFI_PASSWORD
+        string "Wi-Fi password"
+        default ""
+        help
+            Station password (empty for open networks). Set in firmware/sdkconfig.local.
+
+    config HOMUNCULUS_SERVER_URL
+        string "HDP server URL (fallback)"
+        default "ws://192.168.1.10:8443/hdp"
+        help
+            HDP WebSocket endpoint (spec 4.1), e.g. wss://homunculus.lan:8443/hdp. Used for pairing
+            when no server answers the mDNS query for _homunculus._tcp (spec 3.5).
+
+    config HOMUNCULUS_MDNS_TIMEOUT_MS
+        int "mDNS discovery timeout (ms)"
+        range 500 10000
+        default 3000
+
+    config HOMUNCULUS_ALLOW_PLAIN_WS
+        bool "Allow ws:// (development builds)"
+        default y
+        help
+            Spec 4.1 allows unencrypted ws:// only in development builds. When disabled,
+            a ws:// server URL is rejected.
+
+    config HOMUNCULUS_JITTER_PREFILL_FRAMES
+        int "Downlink jitter buffer prefill (60 ms frames)"
+        range 1 16
+        default 3
+        help
+            Frames buffered before playback starts (and after an underrun).
+
+    config HOMUNCULUS_MAX_UTTERANCE_MS
+        int "Maximum utterance length (ms)"
+        range 1000 60000
+        default 15000
+        help
+            Uplink is ended with a last-flagged frame and listen.stop after this time
+            if the server has not sent listen.stop.
+
+    config HOMUNCULUS_THINKING_TIMEOUT_MS
+        int "Thinking timeout (ms)"
+        range 5000 300000
+        default 90000
+        help
+            Return to idle if no TTS starts this long after the uplink ended.
+
+    config HOMUNCULUS_DEVICE_ENDPOINT
+        bool "Device-side endpointing (AFE VAD end)"
+        default n
+        help
+            End auto-mode utterances on the device when the AFE reports VAD end after
+            speech (sends a last-flagged frame). Spec 4.3 auto mode relies on server
+            endpointing; this is a fallback for servers without VAD (e.g. the p1a loopback).
+
+    config HOMUNCULUS_DEVICE_ENDPOINT_MIN_MS
+        int "Minimum utterance before device-side endpointing (ms)"
+        depends on HOMUNCULUS_DEVICE_ENDPOINT
+        range 0 10000
+        default 1200
+
+    config HOMUNCULUS_OTA_CHECK_ON_CONNECT
+        bool "Check for a firmware update when the HDP session starts"
+        default y
+        help
+            Reads the version of <server>/ota/<model>/firmware.bin (spec 3.6); installing needs
+            device.update_firmware (confirmed on the device) or console key u.
+
+    config HOMUNCULUS_OTA_CHECK_INTERVAL_H
+        int "Firmware update check interval (hours)"
+        range 1 168
+        default 24
+
+    config HOMUNCULUS_TURN_STATS
+        bool "Log per-turn uplink/latency statistics"
+        default y
+
+    config HOMUNCULUS_SYSTEM_STATS_INTERVAL_S
+        int "CPU load / heap log interval (s, 0 = off)"
+        range 0 3600
+        default 5
+        help
+            Logs per-core CPU load (100 % minus idle task share) and internal heap
+            free / minimum every N seconds.
+
+    config HOMUNCULUS_DEV_CONSOLE
+        bool "Development console on USB-Serial-JTAG"
+        default y
+        help
+            Single-key commands read from the USB-Serial-JTAG console:
+            t = touch, w = wake word, s = system stats, r = HDP reconnect,
+            d = Wi-Fi disconnect, u = firmware update. Development builds only.
+
+endmenu

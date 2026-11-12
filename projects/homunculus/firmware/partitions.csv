@@ -1,0 +1,10 @@
+# Name,        Type, SubType,  Offset, Size
+# Cache-mapped partitions (apps, esp-sr model) must end below 16 MB: the ESP32-S3 cache does not map
+# quad-flash addresses above 16 MB (CONFIG_BOOTLOADER_CACHE_32BIT_ADDR_QUAD_FLASH is experimental).
+nvs,           data, nvs,      ,       0x6000,
+phy_init,      data, phy,      ,       0x1000,
+otadata,       data, ota,      ,       0x2000,
+model,         data, littlefs, 0x20000, 1M,
+ota_0,         app,  ota_0,    ,       7M,
+ota_1,         app,  ota_1,    ,       7M,
+littlefs_data, data, littlefs, ,       16M,

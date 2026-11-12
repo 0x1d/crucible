@@ -1,0 +1,18 @@
+description: Homunculus HDP/1 agent (Brookesia agent_manager agent + WebSocket client)
+dependencies:
+  idf:
+    version: ">=6.0,<6.3"
+  espressif/brookesia_agent_manager:
+    version: "0.8.*"
+    require: public
+  espressif/brookesia_service_audio:
+    version: "0.8.*"
+    require: public
+  espressif/esp_websocket_client:
+    version: "^1.8"
+    require: public
+  espressif/brookesia_service_wifi:
+    version: "0.8.*"
+    require: public
+  espressif/mdns:
+    version: "^1.8"

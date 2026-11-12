@@ -1,0 +1,33 @@
+CONFIG_IDF_TARGET="esp32s3"
+CONFIG_FREERTOS_HZ=1000
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=10240
+
+# Reference device has 32 MB flash (spec D-06); the upstream board definition sets 16 MB.
+CONFIG_ESPTOOLPY_FLASHSIZE_32MB=y
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+
+# Wake word "Computer" (spec D-03).
+CONFIG_SR_WN_WN9_COMPUTER_TTS=y
+
+# Per-task CPU statistics for the Phase 0 bench.
+CONFIG_BROOKESIA_UTILS_THREAD_PROFILER_ENABLE_FREERTOS_CONFIG=y
+
+# RealTime chat mode: the agent gates uplink/downlink itself (spec 03 §3.2.1).
+CONFIG_BROOKESIA_AGENT_MANAGER_DEFAULT_CHAT_MODE_REAL_TIME=y
+
+# Playback default 85 % (Brookesia default 75 % is too quiet on the 1.75C speaker). AudioPlayback
+# persists the volume, so device.set_volume survives reboots.
+CONFIG_BROOKESIA_SERVICE_AUDIO_PLAYBACK_VOLUME_DEFAULT=85
+
+# -O2: Brookesia (Boost-heavy C++) at -Og dominated idle CPU; the vendor example uses PERF too.
+CONFIG_COMPILER_OPTIMIZATION_PERF=y
+
+# OTA (spec 03 §3.6): a new image boots pending verification; the first HDP session confirms it,
+# otherwise the bootloader rolls back on the next reset.
+CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
+# Development: images over plain http from a ws:// server (wss:// servers use https).
+CONFIG_ESP_HTTPS_OTA_ALLOW_HTTP=y
+
+# Time zone until device.set_timezone stores one (reference setup: Europe/Zurich).
+CONFIG_BROOKESIA_SERVICE_SNTP_DEFAULT_TIMEZONE="CET-1CEST,M3.5.0,M10.5.0/3"

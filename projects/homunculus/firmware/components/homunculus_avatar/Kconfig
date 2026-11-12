@@ -1,0 +1,24 @@
+menu "Homunculus visualizer"
+
+    config HOMUNCULUS_VISUALIZER
+        bool "Circular audio-output visualizer"
+        default y
+        help
+            Ring waveform of the speaker output (ES7210 DAC reference lane), coloured by
+            agent state (spec 06). Disabled: solid state colours.
+
+    config HOMUNCULUS_VIS_FPS
+        int "Frame rate while audio is playing"
+        depends on HOMUNCULUS_VISUALIZER
+        range 5 60
+        default 20
+
+    config HOMUNCULUS_VIS_GATE_DBFS
+        int "Silence gate (dBFS RMS of the reference lane)"
+        depends on HOMUNCULUS_VISUALIZER
+        range -90 0
+        default -55
+        help
+            Below this level the ring relaxes to a flat circle and rendering stops.
+
+endmenu

@@ -1,0 +1,92 @@
+{
+  "description": "HDP/1 control message vectors (spec 4.4-4.6). valid: must parse; invalid: must be rejected (error bad_message); unknown: unknown type, must be ignored.",
+  "device": {
+    "valid": [
+      {
+        "type": "hello",
+        "version": 1,
+        "device": { "model": "ws-s3-amoled-175c", "firmware": "0.1.0", "board": "waveshare/esp32_s3_touch_amoled_1_75c" },
+        "capabilities": {
+          "display": { "width": 466, "height": 466, "shape": "round", "color_depth": 16 },
+          "audio": {
+            "input": { "format": "opus", "sample_rate": 16000, "channels": 1, "frame_ms": 60 },
+            "output": { "formats": ["opus"], "sample_rates": [16000, 24000] },
+            "mics": 2, "aec": true, "wake_word": true
+          },
+          "input": ["touch", "button", "imu"],
+          "power": { "battery": true },
+          "avatar": { "engine": "homunculus-face/1", "emotes": ["neutral", "happy", "sad", "surprised", "curious", "concerned", "confused", "excited", "sleepy", "love", "angry"] }
+        },
+        "tools": [
+          { "name": "device.set_volume", "description": "Set speaker volume", "inputSchema": { "type": "object", "properties": { "level": { "type": "integer", "minimum": 0, "maximum": 100 } }, "required": ["level"] } }
+        ],
+        "resume": { "session_id": "s_01JC0000000000000000000000" }
+      },
+      {
+        "type": "hello",
+        "version": 2,
+        "device": { "model": "future", "firmware": "9.0.0" },
+        "capabilities": { "audio": { "input": { "format": "opus", "sample_rate": 16000, "channels": 1, "frame_ms": 60 }, "output": { "formats": ["opus"], "sample_rates": [24000] } } },
+        "future_field": { "ignored": true }
+      },
+      { "type": "listen", "state": "start", "mode": "auto", "trigger": "wake_word", "wake_word": "computer" },
+      { "type": "listen", "state": "stop" },
+      { "type": "abort", "reason": "barge_in" },
+      { "type": "tts.played", "segment_id": 1 },
+      { "type": "tool.result", "payload": { "jsonrpc": "2.0", "id": 3, "result": { "content": [{ "type": "text", "text": "ok" }] } } },
+      { "type": "tool.result", "payload": { "jsonrpc": "2.0", "id": "t-4", "error": { "code": -32602, "message": "level out of range" } } },
+      { "type": "confirm.result", "request_id": "c1", "approved": false },
+      { "type": "event", "name": "picked_up", "data": { "g": 1.4 } },
+      { "type": "goodbye", "reason": "power_off" }
+    ],
+    "invalid": [
+      { "type": "listen" },
+      { "type": "listen", "state": "pause" },
+      { "type": "abort", "reason": "bored" },
+      { "type": "tts.played", "segment_id": -1 },
+      { "type": "tool.result", "payload": { "jsonrpc": "1.0", "id": 1 } },
+      { "type": "hello", "version": 1, "device": { "model": "x", "firmware": "0" } },
+      { "state": "start" },
+      ["listen"]
+    ],
+    "unknown": [
+      { "type": "telemetry", "rssi": -61 }
+    ]
+  },
+  "server": {
+    "valid": [
+      {
+        "type": "hello",
+        "session_id": "s_01JC0000000000000000000000",
+        "audio": { "output": { "format": "opus", "sample_rate": 24000, "channels": 1, "frame_ms": 60 } },
+        "config": { "follow_up_window_ms": 6000, "captions": true, "language": "en" }
+      },
+      { "type": "listen", "state": "stop" },
+      { "type": "stt", "text": "what's the weather in", "final": false },
+      { "type": "stt", "text": "What's the weather in Vienna tomorrow?", "final": true },
+      { "type": "avatar", "state": "thinking" },
+      { "type": "avatar", "emote": "happy", "intensity": 0.6, "duration_ms": 1500, "gaze": { "x": -0.2, "y": 0.5 } },
+      { "type": "agent.status", "phase": "tool", "tool": "web_search" },
+      { "type": "tts", "state": "start" },
+      { "type": "tts", "state": "segment_start", "segment_id": 1, "text": "Tomorrow in Vienna it'll be sunny and around 14 degrees." },
+      { "type": "tts", "state": "segment_end", "segment_id": 1 },
+      { "type": "tts", "state": "stop" },
+      { "type": "tool.call", "payload": { "jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": { "name": "device.set_volume", "arguments": { "level": 40 } } } },
+      { "type": "confirm.request", "request_id": "c1", "title": "Send message?", "detail": "Text Alex: running late", "timeout_ms": 15000 },
+      { "type": "notify", "text": "Timer done", "level": "info" },
+      { "type": "config", "config": { "captions": false } },
+      { "type": "error", "code": "unsupported_version", "message": "HDP major 2 not supported" }
+    ],
+    "invalid": [
+      { "type": "listen", "state": "start" },
+      { "type": "avatar", "intensity": 1.5 },
+      { "type": "avatar", "state": "dancing" },
+      { "type": "tts", "state": "segment_start", "segment_id": "1" },
+      { "type": "error", "code": "teapot", "message": "x" },
+      { "type": "hello", "session_id": "", "audio": { "output": { "format": "opus", "sample_rate": 24000, "channels": 1, "frame_ms": 60 } }, "config": {} }
+    ],
+    "unknown": [
+      { "type": "viseme", "segment_id": 1, "frames": [] }
+    ]
+  }
+}

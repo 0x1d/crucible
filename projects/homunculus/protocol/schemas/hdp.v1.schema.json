@@ -1,0 +1,1002 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://homunculus.local/protocol/hdp.v1.schema.json",
+  "title": "Homunculus Device Protocol HDP/1 control messages",
+  "description": "Generated from protocol/src/messages.ts. One text frame = one message. Unknown types and unknown fields must be ignored.",
+  "$defs": {
+    "device.hello": {
+      "description": "Device capability descriptor; first message on a connection",
+      "type": "object",
+      "required": [
+        "type",
+        "version",
+        "device",
+        "capabilities"
+      ],
+      "properties": {
+        "type": {
+          "const": "hello",
+          "type": "string"
+        },
+        "version": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "device": {
+          "type": "object",
+          "required": [
+            "model",
+            "firmware"
+          ],
+          "properties": {
+            "model": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "firmware": {
+              "type": "string"
+            },
+            "board": {
+              "type": "string"
+            }
+          }
+        },
+        "capabilities": {
+          "type": "object",
+          "required": [
+            "audio"
+          ],
+          "properties": {
+            "display": {
+              "type": "object",
+              "required": [
+                "width",
+                "height",
+                "shape"
+              ],
+              "properties": {
+                "width": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "height": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "shape": {
+                  "anyOf": [
+                    {
+                      "const": "round",
+                      "type": "string"
+                    },
+                    {
+                      "const": "rect",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "color_depth": {
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              }
+            },
+            "audio": {
+              "type": "object",
+              "required": [
+                "input",
+                "output"
+              ],
+              "properties": {
+                "input": {
+                  "type": "object",
+                  "required": [
+                    "format",
+                    "sample_rate",
+                    "channels",
+                    "frame_ms"
+                  ],
+                  "properties": {
+                    "format": {
+                      "anyOf": [
+                        {
+                          "const": "opus",
+                          "type": "string"
+                        },
+                        {
+                          "const": "pcm16",
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "sample_rate": {
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "channels": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "frame_ms": {
+                      "minimum": 1,
+                      "type": "integer"
+                    }
+                  }
+                },
+                "output": {
+                  "type": "object",
+                  "required": [
+                    "formats",
+                    "sample_rates"
+                  ],
+                  "properties": {
+                    "formats": {
+                      "minItems": 1,
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "sample_rates": {
+                      "minItems": 1,
+                      "type": "array",
+                      "items": {
+                        "minimum": 0,
+                        "type": "integer"
+                      }
+                    }
+                  }
+                },
+                "mics": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "aec": {
+                  "type": "boolean"
+                },
+                "wake_word": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "input": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "power": {
+              "type": "object",
+              "required": [
+                "battery"
+              ],
+              "properties": {
+                "battery": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "avatar": {
+              "type": "object",
+              "required": [
+                "engine",
+                "emotes"
+              ],
+              "properties": {
+                "engine": {
+                  "type": "string"
+                },
+                "emotes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tools": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "description",
+              "inputSchema"
+            ],
+            "properties": {
+              "name": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "inputSchema": {
+                "description": "JSON Schema of the tool arguments",
+                "type": "object",
+                "properties": {}
+              }
+            }
+          }
+        },
+        "resume": {
+          "type": "object",
+          "required": [
+            "session_id"
+          ],
+          "properties": {
+            "session_id": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "device.listen": {
+      "description": "Begin/end an utterance; auto = server endpointing, manual = push-to-talk",
+      "type": "object",
+      "required": [
+        "type",
+        "state"
+      ],
+      "properties": {
+        "type": {
+          "const": "listen",
+          "type": "string"
+        },
+        "state": {
+          "anyOf": [
+            {
+              "const": "start",
+              "type": "string"
+            },
+            {
+              "const": "stop",
+              "type": "string"
+            }
+          ]
+        },
+        "mode": {
+          "anyOf": [
+            {
+              "const": "auto",
+              "type": "string"
+            },
+            {
+              "const": "manual",
+              "type": "string"
+            },
+            {
+              "const": "realtime",
+              "type": "string"
+            }
+          ]
+        },
+        "trigger": {
+          "anyOf": [
+            {
+              "const": "wake_word",
+              "type": "string"
+            },
+            {
+              "const": "touch",
+              "type": "string"
+            },
+            {
+              "const": "button",
+              "type": "string"
+            },
+            {
+              "const": "motion",
+              "type": "string"
+            },
+            {
+              "const": "follow_up",
+              "type": "string"
+            }
+          ]
+        },
+        "wake_word": {
+          "type": "string"
+        }
+      }
+    },
+    "device.abort": {
+      "description": "Interrupt current turn / playback",
+      "type": "object",
+      "required": [
+        "type",
+        "reason"
+      ],
+      "properties": {
+        "type": {
+          "const": "abort",
+          "type": "string"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "const": "barge_in",
+              "type": "string"
+            },
+            {
+              "const": "user_cancel",
+              "type": "string"
+            },
+            {
+              "const": "wake_word",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    "device.tts.played": {
+      "description": "Segment fully played",
+      "type": "object",
+      "required": [
+        "type",
+        "segment_id"
+      ],
+      "properties": {
+        "type": {
+          "const": "tts.played",
+          "type": "string"
+        },
+        "segment_id": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      }
+    },
+    "device.tool.result": {
+      "description": "Result of a device tool call",
+      "type": "object",
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "tool.result",
+          "type": "string"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "jsonrpc",
+            "id"
+          ],
+          "properties": {
+            "jsonrpc": {
+              "const": "2.0",
+              "type": "string"
+            },
+            "id": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "result": {},
+            "error": {
+              "type": "object",
+              "required": [
+                "code",
+                "message"
+              ],
+              "properties": {
+                "code": {
+                  "type": "integer"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "data": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "device.confirm.result": {
+      "description": "User answer to a confirmation request",
+      "type": "object",
+      "required": [
+        "type",
+        "request_id",
+        "approved"
+      ],
+      "properties": {
+        "type": {
+          "const": "confirm.result",
+          "type": "string"
+        },
+        "request_id": {
+          "type": "string"
+        },
+        "approved": {
+          "type": "boolean"
+        }
+      }
+    },
+    "device.event": {
+      "description": "Asynchronous device event",
+      "type": "object",
+      "required": [
+        "type",
+        "name"
+      ],
+      "properties": {
+        "type": {
+          "const": "event",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "data": {}
+      }
+    },
+    "device.goodbye": {
+      "description": "Graceful disconnect",
+      "type": "object",
+      "required": [
+        "type",
+        "reason"
+      ],
+      "properties": {
+        "type": {
+          "const": "goodbye",
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        }
+      }
+    },
+    "server.hello": {
+      "description": "Session established; downlink audio params and config",
+      "type": "object",
+      "required": [
+        "type",
+        "session_id",
+        "audio",
+        "config"
+      ],
+      "properties": {
+        "type": {
+          "const": "hello",
+          "type": "string"
+        },
+        "session_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "audio": {
+          "type": "object",
+          "required": [
+            "output"
+          ],
+          "properties": {
+            "output": {
+              "type": "object",
+              "required": [
+                "format",
+                "sample_rate",
+                "channels",
+                "frame_ms"
+              ],
+              "properties": {
+                "format": {
+                  "anyOf": [
+                    {
+                      "const": "opus",
+                      "type": "string"
+                    },
+                    {
+                      "const": "pcm16",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "sample_rate": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "channels": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "frame_ms": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        },
+        "config": {
+          "type": "object",
+          "properties": {
+            "follow_up_window_ms": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "captions": {
+              "type": "boolean"
+            },
+            "language": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "server.listen": {
+      "description": "Server-side endpoint detected; device stops uplink",
+      "type": "object",
+      "required": [
+        "type",
+        "state"
+      ],
+      "properties": {
+        "type": {
+          "const": "listen",
+          "type": "string"
+        },
+        "state": {
+          "const": "stop",
+          "type": "string"
+        }
+      }
+    },
+    "server.stt": {
+      "description": "User transcript (captions)",
+      "type": "object",
+      "required": [
+        "type",
+        "text",
+        "final"
+      ],
+      "properties": {
+        "type": {
+          "const": "stt",
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "final": {
+          "type": "boolean"
+        }
+      }
+    },
+    "server.agent.status": {
+      "description": "Agent progress",
+      "type": "object",
+      "required": [
+        "type",
+        "phase"
+      ],
+      "properties": {
+        "type": {
+          "const": "agent.status",
+          "type": "string"
+        },
+        "phase": {
+          "anyOf": [
+            {
+              "const": "thinking",
+              "type": "string"
+            },
+            {
+              "const": "tool",
+              "type": "string"
+            },
+            {
+              "const": "responding",
+              "type": "string"
+            },
+            {
+              "const": "done",
+              "type": "string"
+            },
+            {
+              "const": "error",
+              "type": "string"
+            }
+          ]
+        },
+        "tool": {
+          "type": "string"
+        },
+        "detail": {
+          "type": "string"
+        }
+      }
+    },
+    "server.tts": {
+      "description": "Speech output framing; text for captions",
+      "type": "object",
+      "required": [
+        "type",
+        "state"
+      ],
+      "properties": {
+        "type": {
+          "const": "tts",
+          "type": "string"
+        },
+        "state": {
+          "anyOf": [
+            {
+              "const": "start",
+              "type": "string"
+            },
+            {
+              "const": "segment_start",
+              "type": "string"
+            },
+            {
+              "const": "segment_end",
+              "type": "string"
+            },
+            {
+              "const": "stop",
+              "type": "string"
+            }
+          ]
+        },
+        "segment_id": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "text": {
+          "type": "string"
+        }
+      }
+    },
+    "server.avatar": {
+      "description": "Avatar control (spec 06)",
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "const": "avatar",
+          "type": "string"
+        },
+        "state": {
+          "anyOf": [
+            {
+              "const": "idle",
+              "type": "string"
+            },
+            {
+              "const": "listening",
+              "type": "string"
+            },
+            {
+              "const": "thinking",
+              "type": "string"
+            },
+            {
+              "const": "working",
+              "type": "string"
+            },
+            {
+              "const": "speaking",
+              "type": "string"
+            },
+            {
+              "const": "confirming",
+              "type": "string"
+            },
+            {
+              "const": "sleeping",
+              "type": "string"
+            },
+            {
+              "const": "offline",
+              "type": "string"
+            },
+            {
+              "const": "error",
+              "type": "string"
+            }
+          ]
+        },
+        "emote": {
+          "type": "string"
+        },
+        "intensity": {
+          "minimum": 0,
+          "maximum": 1,
+          "type": "number"
+        },
+        "duration_ms": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "gaze": {
+          "type": "object",
+          "required": [
+            "x",
+            "y"
+          ],
+          "properties": {
+            "x": {
+              "minimum": -1,
+              "maximum": 1,
+              "type": "number"
+            },
+            "y": {
+              "minimum": -1,
+              "maximum": 1,
+              "type": "number"
+            }
+          }
+        }
+      }
+    },
+    "server.tool.call": {
+      "description": "Invoke a device tool (method tools/call)",
+      "type": "object",
+      "required": [
+        "type",
+        "payload"
+      ],
+      "properties": {
+        "type": {
+          "const": "tool.call",
+          "type": "string"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "jsonrpc",
+            "id",
+            "method"
+          ],
+          "properties": {
+            "jsonrpc": {
+              "const": "2.0",
+              "type": "string"
+            },
+            "id": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "method": {
+              "type": "string"
+            },
+            "params": {}
+          }
+        }
+      }
+    },
+    "server.confirm.request": {
+      "description": "Ask user to approve a risky agent action",
+      "type": "object",
+      "required": [
+        "type",
+        "request_id",
+        "title",
+        "detail",
+        "timeout_ms"
+      ],
+      "properties": {
+        "type": {
+          "const": "confirm.request",
+          "type": "string"
+        },
+        "request_id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "timeout_ms": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      }
+    },
+    "server.notify": {
+      "description": "Proactive notification",
+      "type": "object",
+      "required": [
+        "type",
+        "text",
+        "level"
+      ],
+      "properties": {
+        "type": {
+          "const": "notify",
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "level": {
+          "anyOf": [
+            {
+              "const": "info",
+              "type": "string"
+            },
+            {
+              "const": "warning",
+              "type": "string"
+            },
+            {
+              "const": "alert",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    "server.config": {
+      "description": "Runtime config update (partial)",
+      "type": "object",
+      "required": [
+        "type",
+        "config"
+      ],
+      "properties": {
+        "type": {
+          "const": "config",
+          "type": "string"
+        },
+        "config": {
+          "type": "object",
+          "properties": {
+            "follow_up_window_ms": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "captions": {
+              "type": "boolean"
+            },
+            "language": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "server.error": {
+      "description": "Protocol / server error",
+      "type": "object",
+      "required": [
+        "type",
+        "code",
+        "message"
+      ],
+      "properties": {
+        "type": {
+          "const": "error",
+          "type": "string"
+        },
+        "code": {
+          "anyOf": [
+            {
+              "const": "unsupported_version",
+              "type": "string"
+            },
+            {
+              "const": "unauthorized",
+              "type": "string"
+            },
+            {
+              "const": "hello_required",
+              "type": "string"
+            },
+            {
+              "const": "bad_message",
+              "type": "string"
+            },
+            {
+              "const": "busy",
+              "type": "string"
+            },
+            {
+              "const": "internal",
+              "type": "string"
+            }
+          ]
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "anyOf": [
+    {
+      "title": "Device to server",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/device.hello"
+        },
+        {
+          "$ref": "#/$defs/device.listen"
+        },
+        {
+          "$ref": "#/$defs/device.abort"
+        },
+        {
+          "$ref": "#/$defs/device.tts.played"
+        },
+        {
+          "$ref": "#/$defs/device.tool.result"
+        },
+        {
+          "$ref": "#/$defs/device.confirm.result"
+        },
+        {
+          "$ref": "#/$defs/device.event"
+        },
+        {
+          "$ref": "#/$defs/device.goodbye"
+        }
+      ]
+    },
+    {
+      "title": "Server to device",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/server.hello"
+        },
+        {
+          "$ref": "#/$defs/server.listen"
+        },
+        {
+          "$ref": "#/$defs/server.stt"
+        },
+        {
+          "$ref": "#/$defs/server.agent.status"
+        },
+        {
+          "$ref": "#/$defs/server.tts"
+        },
+        {
+          "$ref": "#/$defs/server.avatar"
+        },
+        {
+          "$ref": "#/$defs/server.tool.call"
+        },
+        {
+          "$ref": "#/$defs/server.confirm.request"
+        },
+        {
+          "$ref": "#/$defs/server.notify"
+        },
+        {
+          "$ref": "#/$defs/server.config"
+        },
+        {
+          "$ref": "#/$defs/server.error"
+        }
+      ]
+    }
+  ]
+}
