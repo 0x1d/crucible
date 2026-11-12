@@ -8,6 +8,6 @@
   "scripts": {
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
-    "check:docs": "python3 formulary/check-docs.py"
+    "check:docs": "python3 projects/formulary/check-docs.py"
   }
 }

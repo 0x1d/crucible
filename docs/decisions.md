@@ -49,4 +49,4 @@ Status values: **Decided** (stated by the project owner), **Proposed** (recommen
 
 ## 3 Carried over
 
-Project decisions keep their ids and move with their documents ([crucible/architecture/repository-and-migration](architecture/repository-and-migration.md) section 5): homunculus `AD-01...AD-07` and `D-NN` (as `HOM-...`), and the decisions in the athanor and alchemist deployment plans (codex repository layout, sandbox, sync rules).
+Project decisions keep their ids and move with their documents ([crucible/increments/repository-and-migration](increments/repository-and-migration.md) section 3.3): homunculus `AD-01...AD-07` and `D-NN` (as `HOM-...`), and the decisions in the athanor and alchemist deployment plans (codex repository layout, sandbox, sync rules).

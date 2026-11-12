@@ -1,12 +1,13 @@
 ---
-id: crucible/architecture/repository-and-migration
+id: crucible/increments/repository-and-migration
 title: Repository and Migration
-type: ARCH
+type: PI
 owner: crucible
 status: Draft
 date: 2026-11-12
-depends: [crucible/architecture/system-architecture, crucible/architecture/shared-packages]
-related: []
+depends: [crucible/requirements, crucible/architecture/system-architecture, crucible/architecture/shared-packages]
+related: [crucible/architecture/repository-layout, crucible/development]
+includes: []
 planned:
   - id: crucible/P-02
     title: Documentation restructure
@@ -33,50 +34,43 @@ planned:
 
 # Repository and Migration
 
-## 1 Monorepo layout
+This increment turns the three source repositories into the crucible monorepo: one workspace layout and toolchain, the shared packages that replace the duplicated parts, the codex function library in a repository of its own, the documentation restructured to Formulary, and the integration channels between the applications.
 
-Follows the [Formulary workspace layout](https://github.com/0x1d/formulary#workspace-layout).
+## 1 Goal
 
-```text
-crucible/
-├── docs/                          # cross-project only
-│   ├── README.md                  # system manifest and index
-│   ├── requirements.md  architecture.md  decisions.md  open-items.md
-│   └── architecture/              # sub-documents of architecture.md, this one among them
-├── projects/
-│   ├── alchemist/
-│   │   ├── docs/                  # alchemist components, codex protocol, guides
-│   │   ├── runtime/               # BEAM codex runtime (Mix)
-│   │   ├── sdk/                   # codex entry SDK (Mix)
-│   │   ├── functions/             # kernel entries only
-│   │   ├── hosts/<name>/          # Cursor, ACP, ... hosts
-│   │   ├── sidecar/               # HTTP + SSE front-end (athanor, delegation)
-│   │   └── tui/
-│   ├── homunculus/
-│   │   ├── docs/                  # homunculus components, HDP
-│   │   ├── firmware/
-│   │   ├── server/
-│   │   ├── protocol/              # HDP
-│   │   └── tools/simulator/
-│   └── athanor/
-│       ├── docs/                  # athanor components
-│       ├── ide/                   # today: App.tsx, src/client, src/nshde
-│       └── api/                   # today: src/server.ts, src/lib
-├── packages/                      # each with its own docs/
-│   ├── agent/
-│   ├── memory/
-│   ├── storage/
-│   └── codex-client/
-├── tools/                         # workspace scripts
-├── .github/workflows/ci.yml
-├── AGENTS.md
-├── flake.nix                      # dev shells for all projects
-├── package.json                   # root scripts, pnpm pin
-├── pnpm-lock.yaml
-└── pnpm-workspace.yaml
-```
+Afterwards the system meets the goals in [crucible/requirements](../requirements.md) section 4: one monorepo with preserved history, one implementation each for memory, agent sessions, storage access and codex access, memory behind a generic interface, the codex function library in its own repository, defined channels between homunculus, alchemist and athanor, and descriptive documentation instead of dated plan and spec files.
 
-## 2 Codex repository
+## 2 Scope
+
+| Feature | Change | Target |
+| --- | --- | --- |
+| Documentation per Formulary | crucible/P-02 | the project and package documents |
+| Shared packages `codex-client`, `memory`, `agent`, `storage` | crucible/P-03, crucible/P-04, crucible/P-05, crucible/P-06 | crucible/packages/codex-client, crucible/packages/memory, crucible/packages/agent, crucible/packages/storage |
+| Codex repository | crucible/P-07 | crucible/alchemist/runtime |
+| Integration channels | crucible/P-08 | crucible/architecture/integration |
+
+Already built: the monorepo itself, its tooling and CI, and the history import ([crucible/architecture/repository-layout](../architecture/repository-layout.md), [crucible/development](../development.md)).
+
+Out of scope: rewriting or merging the applications, and building the firmware in CI (crucible/requirements section 4).
+
+## 3 Target state
+
+### 3.1 Workspace layout
+
+The workspace as it is: [crucible/architecture/repository-layout](../architecture/repository-layout.md). This increment adds:
+
+| Path | Content | Change |
+| --- | --- | --- |
+| `packages/codex-client/`, `packages/memory/`, `packages/agent/`, `packages/storage/` | The shared packages, each with its own `docs/` | crucible/P-03, crucible/P-04, crucible/P-05, crucible/P-06 |
+| `projects/alchemist/sdk/` | Codex entry SDK (Mix) | - |
+| `projects/alchemist/functions/` | Kernel entries only; the general library moves to the codex repository (section 3.2) | crucible/P-07 |
+| `projects/alchemist/sidecar/` | HTTP + SSE front-end (athanor, delegation) | - |
+| `projects/athanor/ide/`, `projects/athanor/api/` | The IDE (today `App.tsx`, `src/client`, `src/nshde`) and the API (today `src/server.ts`, `src/lib`) as separate code folders | - |
+| `tools/` | Workspace scripts | - |
+
+### 3.2 Codex repository
+
+**Planned** P-07
 
 | Item | Value |
 | --- | --- |
@@ -88,42 +82,9 @@ crucible/
 | Contract | Depends on the codex entry SDK as a git dependency |
 | Tests | Entry tests move with the entries; CI checks out crucible for the runtime |
 
-## 3 Tooling
+### 3.3 Documentation migration
 
-| Item | Value |
-| --- | --- |
-| JS workspace | Root `pnpm-workspace.yaml` with the members `packages/*`, `projects/alchemist`, `projects/homunculus/{protocol,server,tools/*}`; one `pnpm-lock.yaml` at the root. Workspace-wide settings (`packageExtensions`) live in the root file |
-| Package manager | pnpm 10, pinned by `packageManager` in the root `package.json`. npm lockfiles are not kept |
-| Root scripts | `pnpm typecheck` and `pnpm test` run the script of that name in every member; `pnpm check:docs` runs Formulary's `check-docs.py` |
-| athanor | Keeps Bun and `bun.lock`; not a workspace member until it consumes a package (crucible/OI-06). The NSH CLI is installed per machine, outside Nix |
-| Node | 24 for all Node projects, stated in `engines` |
-| Elixir | `alchemist/runtime` as a Mix project; Elixir 1.20 |
-| Nix | Root `flake.nix`, built on the project flakes, which stay usable on their own. Shells: `default` (Node 24, pnpm, Elixir, Erlang, Python for the docs check), `athanor` (Bun, Node 24), `firmware` and `homunculus-server` (the homunculus shells) |
-| Git LFS | Path-scoped patterns for `homunculus/**` binaries in the root `.gitattributes` |
-| Commits | Conventional Commits, scope = project or package (`feat(homunculus): ...`) |
-
-### 3.1 Continuous integration
-
-`.github/workflows/ci.yml` runs on every push to `main` and on every pull request. Each job runs inside a root Nix shell, so CI uses the toolchain of the dev shells.
-
-| Job | Shell | Steps |
-| --- | --- | --- |
-| `docs` | none | Formulary's `check-docs.py` on the workspace, from the `formulary` submodule at its pinned commit |
-| `workspace` | `default` | `pnpm install --frozen-lockfile`, `pnpm typecheck`, `pnpm test` (alchemist: Mix runtime and functions suites, docs-check, TUI, core and host tests; homunculus: protocol, server and simulator) |
-| `athanor` | `athanor` | `bun install --frozen-lockfile`, `bun run lint`, `bun test src` |
-
-The firmware is not built in CI: the ESP-IDF toolchain is built locally (`make fw-build` in `projects/homunculus`).
-
-## 4 History import
-
-| Step | Detail | State |
-| --- | --- | --- |
-| 1 | Merge or drop unmerged remote branches (`alchemist`: `feat/acp-host`, `ccr-42861548-wocrlg`; `athanor`: `ccr-42861548-wocrlg`, `claude/*`) (crucible/OI-13) | Done |
-| 2 | Import each repository under `projects/<name>/` with history (`git subtree add`) | Done |
-| 3 | Fetch homunculus LFS objects before the import; rewrite `.gitattributes` to path-scoped patterns | Done |
-| 4 | Archive the three source repositories (read-only): `0x1d/alchemist`, `0x1d/homunculus`, `0x1d/athanor` | Done |
-
-## 5 Documentation migration
+**Planned** P-02
 
 Each project keeps its documents under `projects/<project>/docs/`, restructured per the [Formulary standard](https://github.com/0x1d/formulary). `docs/` keeps only the system documents.
 
@@ -160,9 +121,9 @@ Moves:
 
 Removed files remain in git history.
 
-## 6 Planned work
+## 4 Planned work
 
-The migration is a set of planned changes that form a dependency graph ([Formulary](https://github.com/0x1d/formulary#planned-work)). The dependencies are declared under `planned` in this document's front matter; the graph and the table are a view of them. There are no dates and no fixed order: a change may start when everything it depends on is done.
+The increment is a set of planned changes that form a dependency graph ([Formulary](https://github.com/0x1d/formulary#planned-work)). The dependencies are declared under `planned` in this document's front matter; the graph and the table are a view of them. There are no dates and no fixed order: a change may start when everything it depends on is done.
 
 ```mermaid
 flowchart LR
@@ -178,7 +139,7 @@ flowchart LR
 
 | Id | Content | Depends on | Behaviour change | State |
 | --- | --- | --- | --- | --- |
-| P-02 | Documentation restructure (section 5) | - | None | ready |
+| P-02 | Documentation restructure (section 3.3) | - | None | ready |
 | P-03 | `packages/codex-client` | - | None | ready |
 | P-04 | `packages/memory`: interface, minigraf provider; alchemist and homunculus switched | - | Homunculus may keep the interim provider | ready |
 | P-05 | `packages/agent`: interfaces, Claude backend, context policies; sidecar, TUI and homunculus switched; ACP backend | crucible/P-03, crucible/P-04 | None intended | blocked |

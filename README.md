@@ -13,7 +13,7 @@ Start with [docs/README.md](docs/README.md). Everything here is specified to the
 
 ## Development
 
-The root Nix flake has a dev shell per toolchain ([crucible/architecture/repository-and-migration](docs/architecture/repository-and-migration.md) section 3):
+The root Nix flake has a dev shell per toolchain ([crucible/development](docs/development.md)):
 
 ```bash
 nix develop                 # Node 24, pnpm, Elixir: alchemist, homunculus server, packages

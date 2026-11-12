@@ -6,7 +6,7 @@ owner: crucible
 status: Draft
 date: 2026-11-11
 depends: [crucible/requirements]
-related: [crucible/decisions, crucible/open-items]
+related: [crucible/increments, crucible/decisions, crucible/open-items]
 planned: []
 ---
 
@@ -19,7 +19,7 @@ Crucible is one monorepo: three applications (alchemist, homunculus, athanor) bu
 | [crucible/architecture/system-architecture](architecture/system-architecture.md) | Context, building blocks, dependency rules, processes, current-to-target mapping |
 | [crucible/architecture/shared-packages](architecture/shared-packages.md) | `memory`, `agent`, `codex-client`, `storage`, codex entry SDK: responsibilities and interfaces |
 | [crucible/architecture/integration](architecture/integration.md) | How athanor, alchemist and homunculus talk to each other |
-| [crucible/architecture/repository-and-migration](architecture/repository-and-migration.md) | Monorepo layout, codex repository, tooling, documentation migration, planned work |
+| [crucible/architecture/repository-layout](architecture/repository-layout.md) | Workspace layout, origin of the imported projects |
 
 ## Architecture at a glance
 

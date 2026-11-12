@@ -15,5 +15,5 @@
 
 ## Before finishing
 
-- Formulary's conformance check, run from the workspace root: `python3 formulary/check-docs.py` (`pnpm check:docs`)
+- Formulary's conformance check, run from the workspace root: `python3 projects/formulary/check-docs.py` (`pnpm check:docs`)
 - For code changes, in the root dev shell: `pnpm typecheck` and `pnpm test`; athanor: `bun test src` in `nix develop .#athanor`

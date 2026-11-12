@@ -3,7 +3,7 @@ id: crucible/athanor
 title: athanor
 type: index
 owner: crucible
-standard: formulary/0.1
+standard: formulary/0.2
 date: 2026-11-11
 ---
 

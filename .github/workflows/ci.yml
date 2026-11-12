@@ -1,4 +1,4 @@
-# crucible/architecture/repository-and-migration section 3.1
+# crucible/development section 3.1
 name: CI
 
 on:
@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: true
-      - run: python3 formulary/check-docs.py
+      - run: python3 projects/formulary/check-docs.py
 
   workspace:
     runs-on: ubuntu-latest

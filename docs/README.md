@@ -3,13 +3,13 @@ id: crucible
 title: Crucible
 type: manifest
 owner: crucible
-standard: formulary/0.1
+standard: formulary/0.2
 profile: system
 status: draft
 summary: Monorepo that unifies alchemist, homunculus and athanor around shared packages
 code: .
 depends: []
-documents: [crucible/requirements, crucible/architecture, crucible/decisions, crucible/open-items]
+documents: [crucible/requirements, crucible/architecture, crucible/development, crucible/increments, crucible/decisions, crucible/open-items]
 date: 2026-11-11
 ---
 
@@ -25,9 +25,10 @@ This folder holds only what spans projects. Each project documents its own compo
 | --- | --- |
 | [requirements.md](requirements.md) | Purpose, scope, the three projects today, goals, constraints, terminology |
 | [architecture.md](architecture.md) | System architecture: building blocks, shared packages, integration, repository layout |
+| [development.md](development.md) | Dev shells, workspace commands, CI, conventions |
+| [increments.md](increments.md) | Product increments and their planned work |
 | [decisions.md](decisions.md) | Decisions `crucible/AD-NN` |
 | [open-items.md](open-items.md) | Open items `crucible/OI-NN` |
-| [Planned work](architecture/repository-and-migration.md) | Dependency graph of the planned changes (section 6) |
 
 | Project | Documentation |
 | --- | --- |
@@ -40,13 +41,13 @@ This folder holds only what spans projects. Each project documents its own compo
 
 | Rule | Value |
 | --- | --- |
-| Standard | The documents conform to [Formulary](https://github.com/0x1d/formulary) 0.1. Its rules and templates are not copied here |
+| Standard | The documents conform to [Formulary](https://github.com/0x1d/formulary) 0.2. Its rules and templates are not copied here |
 | Style | Descriptive: what exists, what it does, its contract. No task lists, no dated plan files |
 | Document header | Front matter: id, title, type, owner, status, date, and every relation to other documents (`depends`, `related`, `planned`) ([Formulary](https://github.com/0x1d/formulary#front-matter)) |
 | File names | One document per type (`architecture.md`); its sub-documents in the folder of the same name (`architecture/integration.md`) ([Formulary](https://github.com/0x1d/formulary#titles-and-file-names)) |
 | Ids | Always fully qualified. A document's id is its path: `crucible/architecture/integration`, `crucible/homunculus/server/interfaces/http-api`. Items: `crucible/AD-08` ([Formulary](https://github.com/0x1d/formulary#identifiers)) |
 | Decisions | `crucible/AD-NN` in [decisions.md](decisions.md), with status, rationale and alternatives |
 | Open items | `crucible/OI-NN` in [open-items.md](open-items.md), each with a next step; closed by a decision |
-| Planned work | A section marked **Planned** in the document that will describe it once built, declared with its dependencies in the document's front matter ([Formulary](https://github.com/0x1d/formulary#planned-work)) |
+| Planned work | A section marked **Planned** in the document that will describe it once built, declared with its dependencies in the document's front matter ([Formulary](https://github.com/0x1d/formulary#planned-work)). Changes that span projects are grouped into product increments in [increments.md](increments.md) |
 | Diagrams | Mermaid |
-| Replaces | `alchemist/docs/internal/{plans,specs}`, `athanor/docs/internal/plans` (see [crucible/architecture/repository-and-migration](architecture/repository-and-migration.md) section 5) |
+| Replaces | `alchemist/docs/internal/{plans,specs}`, `athanor/docs/internal/plans` (see [crucible/increments/repository-and-migration](increments/repository-and-migration.md) section 3.3) |
