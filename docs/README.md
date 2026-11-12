@@ -12,7 +12,7 @@ documents: [crucible/requirements, crucible/architecture, crucible/decisions, cr
 date: 2026-11-11
 ---
 
-# Crucible Documentation
+# Crucible
 
 Crucible is the monorepo that unifies three projects: **alchemist** (agent harness and codex runtime), **homunculus** (voice companion on ESP32 devices) and **nshde** (self-extending IDE).
 

@@ -8,7 +8,7 @@ date: YYYY-MM-DD
 related: []
 ---
 
-# <Component> - Open Items
+# Open Items
 
 <!-- Open-item log. One row per unresolved question or unverified assumption; a row is never deleted or renumbered.
      Use this file only for items that affect nothing outside the component. All others go in the system's log (<system>/open-items, docs/open-items.md), which has the same shape.

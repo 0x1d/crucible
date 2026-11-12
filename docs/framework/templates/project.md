@@ -9,7 +9,7 @@ date: YYYY-MM-DD
 <!-- Project index. Copy to projects/<project>/docs/README.md. Level L2 of the framework: it names the components and points to them; nothing else.
      Documents follow the specification framework: <relative path to docs/framework.md>. -->
 
-# <Project> - Documentation
+# <Project>
 
 <!-- One or two sentences: what the project is. -->
 

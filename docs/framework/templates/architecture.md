@@ -10,7 +10,7 @@ related: []
 planned: []
 ---
 
-# <Component> - Architecture
+# Architecture
 
 <Summary: one paragraph saying what this document establishes and its main points.>
 

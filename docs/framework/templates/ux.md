@@ -10,7 +10,7 @@ related: []
 planned: []
 ---
 
-# <Component> - UI Design
+# UI Design
 
 <Summary: one paragraph saying what this document establishes and its main points.>
 

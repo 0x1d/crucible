@@ -1,7 +1,7 @@
 <!-- Agent notes. Copy to AGENTS.md at the workspace root or to projects/<project>/AGENTS.md. Keep it under one screen.
      It points to documents and adds only what an agent cannot find there. It never restates the spec, DEV or the framework. -->
 
-# <Workspace or project> - Agent notes
+# Agent notes
 
 ## Read first
 

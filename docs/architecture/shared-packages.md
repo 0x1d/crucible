@@ -9,7 +9,7 @@ depends: [crucible/architecture/system-architecture]
 related: []
 ---
 
-# Crucible - Shared Packages
+# Shared Packages
 
 Interfaces below are architectural sketches. The binding contract of each package is its `IFC` (`packages/<name>/docs/interfaces.md`).
 

@@ -9,7 +9,7 @@ depends: []
 related: []
 ---
 
-# Crucible - Requirements
+# Requirements
 
 ## 1 Purpose
 

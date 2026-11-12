@@ -9,7 +9,7 @@ depends: []
 related: [crucible/open-items]
 ---
 
-# Crucible - Decisions
+# Decisions
 
 Status values: **Decided** (stated by the project owner), **Proposed** (recommended in the review, not yet confirmed), **Superseded**.
 

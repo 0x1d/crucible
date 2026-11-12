@@ -34,7 +34,7 @@ planned:
     depends: [crucible/P-03, crucible/P-05]
 ---
 
-# Crucible - Repository and Migration
+# Repository and Migration
 
 ## 1 Monorepo layout
 

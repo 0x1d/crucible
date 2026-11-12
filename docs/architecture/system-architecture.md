@@ -9,7 +9,7 @@ depends: [crucible/requirements]
 related: []
 ---
 
-# Crucible - System Architecture
+# System Architecture
 
 ## 1 System context
 

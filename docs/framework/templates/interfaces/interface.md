@@ -11,7 +11,7 @@ related: []
 planned: []
 ---
 
-# <Component> - <Interface name>
+# <Interface name>
 
 <Summary: one paragraph saying what this document establishes and its main points.>
 

@@ -8,7 +8,7 @@ date: YYYY-MM-DD
 related: []
 ---
 
-# <Component> - Decisions
+# Decisions
 
 <!-- Decision log. One row per decision; a row is never deleted or renumbered.
      Use this file only for decisions that affect nothing outside the component. All others go in the system's log (<system>/decisions, docs/decisions.md), which has the same shape.

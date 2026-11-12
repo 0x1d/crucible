@@ -10,7 +10,7 @@ related: []
 planned: []
 ---
 
-# <System> - Infrastructure
+# Infrastructure
 
 <Summary: one paragraph saying what this document establishes and its main points.>
 

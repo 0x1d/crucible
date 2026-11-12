@@ -9,7 +9,7 @@ depends: [crucible/architecture/system-architecture, crucible/architecture/share
 related: []
 ---
 
-# Crucible - Integration
+# Integration
 
 ## 1 Channels
 

@@ -10,7 +10,7 @@ related: []
 planned: []
 ---
 
-# <Project> - Development
+# Development
 
 <Summary: one paragraph saying what this document establishes and its main points.>
 

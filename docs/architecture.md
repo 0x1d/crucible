@@ -10,7 +10,7 @@ related: [crucible/decisions, crucible/open-items]
 planned: []
 ---
 
-# Crucible - Architecture
+# Architecture
 
 Crucible is one monorepo: three applications (alchemist, homunculus, nshde) built on a set of shared packages and talking to each other over defined channels. This document is the summary and index of the system architecture; each part is a sub-document, listed in reading order.
 

@@ -234,7 +234,7 @@ A document may define further kinds in the same form (`CH-NN` for channels, for 
 | Rule | Detail |
 | --- | --- |
 | Title | Every document has a `title` in its front matter. A type document's title is the name of its type (`Architecture`). A sub-document's title names its subject (`HTTP API`). A manifest's or index's title is the name of what it describes |
-| Heading | The H1 carries the title: `# <Component> - <title>` |
+| Heading | The H1 is the title and nothing else: `# Architecture`, `# HTTP API`. The owner is not repeated; the id and `owner` in front matter say whose document it is |
 | Type document | The file name is fixed by the type ([Document types](#document-types)) |
 | Sub-document | The file name is the title slug: the title in lowercase, with every run of other characters replaced by `-`. `HTTP API` is `http-api.md` |
 | Manifests and indexes | `README.md`, so that their folder shows them. Agent notes are `AGENTS.md` and have no front matter |

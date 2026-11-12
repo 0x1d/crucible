@@ -14,7 +14,7 @@ date: YYYY-MM-DD
 
 <!-- System manifest and workspace index. Copy to docs/README.md. Level L0 of the framework: it names the system's documents, the projects and the packages and points to them; nothing else. One screen. -->
 
-# <System> - Documentation
+# <System>
 
 <!-- One or two sentences: what the system is and which projects it unifies. -->
 

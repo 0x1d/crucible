@@ -10,7 +10,7 @@ related: []
 planned: []
 ---
 
-# <Component> - Verification
+# Verification
 
 <Summary: one paragraph saying what this document establishes and its main points.>
 

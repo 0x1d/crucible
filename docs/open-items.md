@@ -9,7 +9,7 @@ depends: []
 related: [crucible/decisions]
 ---
 
-# Crucible - Open Items
+# Open Items
 
 ## 1 Questions for the project owner
 

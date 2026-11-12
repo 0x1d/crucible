@@ -10,7 +10,7 @@ related: []
 planned: []
 ---
 
-# <Component> - Security and Privacy
+# Security and Privacy
 
 <Summary: one paragraph saying what this document establishes and its main points.>
 
