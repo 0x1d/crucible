@@ -3,6 +3,7 @@ id: crucible/alchemist
 title: Alchemist
 type: index
 owner: crucible
+standard: formulary/0.1
 date: 2026-11-11
 ---
 
@@ -10,7 +11,7 @@ date: 2026-11-11
 
 Alchemist is a host-independent agent harness. The codex is its capability layer: an Elixir source tree, its metadata, and the operations `define`, `load`, `find`, and `call`. Hosts share that layer. Memory and the long-lived runtime sit beside it.
 
-The documents follow the [Crucible specification framework](https://github.com/0x1d/crucible/blob/main/docs/framework.md). Every document has a fully qualified id that equals its path under `docs/`, prefixed with `crucible/alchemist`.
+The documents conform to the [Formulary standard](https://github.com/0x1d/formulary). Every document has a fully qualified id that equals its path under `docs/`, prefixed with `crucible/alchemist`.
 
 | Component | Profile | Summary |
 | --- | --- | --- |
