@@ -5,7 +5,7 @@ type: manifest
 owner: crucible/athanor
 profile: app
 status: active
-summary: The IDE shell: docks, editor, agent panel, explorer and runtime preview, built with NSH
+summary: "The IDE shell: docks, editor, agent panel, explorer and runtime preview, built with NSH"
 code: .
 depends: [crucible/athanor/api]
 implements: []

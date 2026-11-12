@@ -5,7 +5,7 @@ type: manifest
 owner: crucible/athanor
 profile: service
 status: active
-summary: The Bun server: /api routes for storage, the preview sandbox and the agent
+summary: "The Bun server: /api routes for storage, the preview sandbox and the agent"
 code: src/server.ts
 depends: []
 implements: []

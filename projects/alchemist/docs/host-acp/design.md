@@ -9,7 +9,7 @@ depends: [crucible/alchemist/architecture/host-adapters]
 related: []
 planned:
   - id: crucible/alchemist/host-acp/P-01
-    title: ACP client host: remaining phases
+    title: "ACP client host: remaining phases"
     depends: []
 ---
 

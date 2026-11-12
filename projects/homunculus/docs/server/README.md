@@ -5,7 +5,7 @@ type: manifest
 owner: crucible/homunculus
 profile: service
 status: active
-summary: TypeScript server: gateway, orchestrator, speech pipeline, agent backends, tools and memory
+summary: "TypeScript server: gateway, orchestrator, speech pipeline, agent backends, tools and memory"
 code: server
 depends: [crucible/homunculus/hdp]
 implements: [crucible/homunculus/hdp/interfaces/device-protocol]

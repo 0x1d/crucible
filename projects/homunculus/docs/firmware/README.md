@@ -5,7 +5,7 @@ type: manifest
 owner: crucible/homunculus
 profile: device
 status: active
-summary: ESP-IDF firmware for the Homunculus device: audio, wake word, avatar, device tools, HDP client
+summary: "ESP-IDF firmware for the Homunculus device: audio, wake word, avatar, device tools, HDP client"
 code: firmware
 depends: [crucible/homunculus/hdp]
 implements: [crucible/homunculus/hdp/interfaces/device-protocol]

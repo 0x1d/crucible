@@ -9,7 +9,7 @@ depends: [crucible/homunculus/architecture]
 related: [crucible/homunculus/decisions, crucible/homunculus/open-items]
 planned:
   - id: crucible/homunculus/P-01
-    title: Multi-device: second board
+    title: "Multi-device: second board"
     depends: []
   - id: crucible/homunculus/P-02
     title: OpenCode backend

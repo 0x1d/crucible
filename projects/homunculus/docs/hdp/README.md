@@ -5,7 +5,7 @@ type: manifest
 owner: crucible/homunculus
 profile: protocol
 status: active
-summary: Homunculus Device Protocol: the WebSocket protocol between device and server
+summary: "Homunculus Device Protocol: the WebSocket protocol between device and server"
 code: protocol
 depends: []
 implements: []

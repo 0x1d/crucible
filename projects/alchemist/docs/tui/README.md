@@ -5,7 +5,7 @@ type: manifest
 owner: crucible/alchemist
 profile: app
 status: active
-summary: Terminal UI for chatting with a host: streamed output, session selection, usage stats
+summary: "Terminal UI for chatting with a host: streamed output, session selection, usage stats"
 code: tui
 depends: [crucible/alchemist/codex-protocol]
 implements: []
