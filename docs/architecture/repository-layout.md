@@ -44,6 +44,7 @@ crucible/
 │   │   └── src/server.ts  src/lib/             # api
 │   └── formulary/                 # git submodule: the documentation standard and its check
 ├── packages/                      # shared libraries; empty until the first is extracted
+├── site/                          # documentation site: Quartz config, lockfile, build script
 ├── .github/workflows/ci.yml
 ├── .gitattributes                 # Git LFS patterns
 ├── AGENTS.md
@@ -57,7 +58,7 @@ crucible/
 | --- | --- |
 | `projects/<project>/` | Everything one project owns: code, documents, project tooling, its own flake. Projects never import from each other's folders |
 | `packages/<package>/` | A library with consumers in more than one project, specified as a `library` component in `packages/<package>/docs/` |
-| Root | Workspace configuration only: workspace, lockfile, flake, CI, LFS patterns |
+| Root | Workspace configuration only: workspace, lockfile, flake, CI, LFS patterns, the documentation site build (`site/`) |
 
 ## 2 Origin
 

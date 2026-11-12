@@ -59,8 +59,24 @@ The workspace is built and tested from the root: a Nix flake provides one dev sh
 | `docs` | none | Formulary's `check-docs.py` on the workspace, from the `formulary` submodule at its pinned commit |
 | `workspace` | `default` | `pnpm install --frozen-lockfile`, `pnpm typecheck`, `pnpm test` |
 | `athanor` | `athanor` | `bun install --frozen-lockfile`, `bun run lint`, `bun test src` |
+| `site` | `default` | `site/build.sh`: builds the documentation site (section 3.2) and uploads it as the Pages artifact |
+| `pages` | none | Deploys the `site` artifact to GitHub Pages; on pushes to `main` only, after `docs` and `site` pass |
 
 The firmware is not built in CI: the ESP-IDF toolchain is built locally.
+
+### 3.2 Documentation site
+
+The documents of the whole workspace are published as a static site at https://0x1d.github.io/crucible, built with [Quartz](https://quartz.jzhao.xyz/) by the `site` and `pages` jobs. Locally, `pnpm site` builds it into `site/public/`.
+
+| Item | Value |
+| --- | --- |
+| Content | `docs/`, `projects/*/docs/` and `packages/*/docs/`, at their repository paths, so relative links between documents keep working; a generated `index.md` links the system manifest and every project manifest |
+| Links out of the site | A relative link to a file outside these folders (code, `AGENTS.md`, a project README) is rewritten to the file on GitHub at the built commit |
+| Quartz | Cloned at a pinned tag (`QUARTZ_REF` in `site/build.sh`) into `site/.quartz/`, not committed |
+| Configuration | `site/quartz.config.yaml`, based on the `xdflatline/quartz` configuration; no analytics, dates from front matter, GitHub-style line breaks |
+| Plugins | Pinned to commits in `site/quartz.lock.json`; after changing plugins in the configuration, run `npx quartz plugin install --from-config` in `site/.quartz/` and copy its `quartz.lock.json` back |
+| Front matter | Must be valid YAML for the site build: values that contain `: ` are quoted |
+| Pages setup | Repository setting Pages, source "GitHub Actions" |
 
 ## 4 Running locally
 
