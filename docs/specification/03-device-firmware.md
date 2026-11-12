@@ -240,7 +240,7 @@ Device tools are declared in the `hello` message and bridged by the server into 
 
 | Tool | Parameters | Description |
 | --- | --- | --- |
-| `device.set_volume` | `level: 0–100` | Speaker volume (persisted by AudioPlayback; default 85 %, `CONFIG_BROOKESIA_SERVICE_AUDIO_PLAYBACK_VOLUME_DEFAULT`) |
+| `device.set_volume` | `level: 0–100` | Speaker volume (persisted by AudioPlayback, which stays bound from boot; default 85 %, `CONFIG_BROOKESIA_SERVICE_AUDIO_PLAYBACK_VOLUME_DEFAULT`) |
 | `device.set_brightness` | `level: 0–100` | AMOLED brightness (DCS 0x51) |
 | `device.show_text` | `text, duration_s` | Show a card on screen (e.g. a phone number) |
 | `device.show_qr` | `data, caption` | QR code (Brookesia emote `SetQrcode`) |

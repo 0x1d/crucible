@@ -810,6 +810,11 @@ extern "C" void app_main(void)
     auto agent_manager_binding = service_manager.bind("AgentManager");
     BROOKESIA_CHECK_FALSE_EXIT(agent_manager_binding.is_valid(), "Failed to bind AgentManager");
 
+    // AudioPlayback runs only while bound; the agent's playback operation releases it between turns,
+    // so device.set_volume would fail with "service is not running" while idle.
+    auto audio_playback_binding = service_manager.bind(service::helper::AudioPlayback::get_name().data());
+    BROOKESIA_CHECK_FALSE_EXIT(audio_playback_binding.is_valid(), "Failed to bind AudioPlayback");
+
     init_display();
 
     // Wire display state feedback before activation so boot states are visible.
