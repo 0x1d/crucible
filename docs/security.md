@@ -1,11 +1,18 @@
-# 7. Security and Privacy
+---
+id: crucible/homunculus/security
+title: Security and Privacy
+type: SEC
+owner: crucible/homunculus
+status: Draft
+date: 2026-11-11
+depends: [crucible/homunculus/requirements, crucible/homunculus/architecture]
+related: []
+planned: []
+---
 
-| | |
-| --- | --- |
-| Document | HOM-SPEC-07 |
-| Status | Draft 0.1 |
+# Security and Privacy
 
-## 7.1 Threat model (summary)
+## 1 Threat model (summary)
 
 | Asset | Threat | Mitigation |
 | --- | --- | --- |
@@ -17,16 +24,16 @@
 | Firmware | Malicious OTA | Signed images, Secure Boot v2, flash encryption (production builds) |
 | API keys | Leakage | Keys only on server, never on device; environment/secret store |
 
-## 7.2 Privacy principles
+## 2 Privacy principles
 
 - Wake word detection runs **locally**; no audio leaves the device before activation (wake word, touch, button).
 - Visual indication whenever the microphone is streaming (listening state ring); hardware-independent mic mute via PWR key / quick settings.
 - Audio recordings are not stored by default; debug recording is opt-in per device.
-- Long-term memory (temporal graph, wiki) stays on the server host; each exchange is sent to the extraction model after the turn; wiki page deletion is confirmed on the device; erase via admin CLI (spec 10 §10.7).
+- Long-term memory (temporal graph, wiki) stays on the server host; each exchange is sent to the extraction model after the turn; wiki page deletion is confirmed on the device; erase via admin CLI [crucible/homunculus/server/design/memory](server/design/memory.md) section 7).
 - Local-only operation is possible: local STT/TTS + OpenCode with a local model provider.
 
-## 7.3 Authentication
+## 3 Authentication
 
-Devices: per-device token from pairing (spec 03 §3.5, spec 05 §5.9). A pairing request alone grants nothing: approval needs the admin key (phone page, once per phone via cookie; or the admin CLI on the server host). The approval URL and code travel over the LAN in plain HTTP unless TLS is configured.
+Devices: per-device token from pairing [crucible/homunculus/firmware/design](firmware/design.md) section 5, [crucible/homunculus/server/design](server/design.md) section 9). A pairing request alone grants nothing: approval needs the admin key (phone page, once per phone via cookie; or the admin CLI on the server host). The approval URL and code travel over the LAN in plain HTTP unless TLS is configured.
 
-The Claude Agent SDK backend authenticates with `ANTHROPIC_API_KEY` if set, otherwise with the host's logged-in Claude subscription. Subscription login: personal use only; offering claude.ai login in a distributed third-party product built on the Agent SDK is not permitted; product naming must follow Anthropic's branding guidelines (e.g. "Homunculus, powered by Claude" — not "Claude Code").
+The Claude Agent SDK backend authenticates with `ANTHROPIC_API_KEY` if set, otherwise with the host's logged-in Claude subscription. Subscription login: personal use only; offering claude.ai login in a distributed third-party product built on the Agent SDK is not permitted; product naming must follow Anthropic's branding guidelines (e.g. "Homunculus, powered by Claude" - not "Claude Code").

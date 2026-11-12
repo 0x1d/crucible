@@ -1,4 +1,16 @@
-# Development Environment
+---
+id: crucible/homunculus/development
+title: Development
+type: DEV
+owner: crucible/homunculus
+status: Draft
+date: 2026-11-11
+depends: []
+related: []
+planned: []
+---
+
+# Development
 
 The project is built exclusively with Nix. All toolchains are pinned in `flake.lock`.
 
@@ -13,7 +25,7 @@ The project is built exclusively with Nix. All toolchains are pinned in `flake.l
 
 All shells include git, git-lfs, jq and nixfmt. With direnv installed, `direnv allow` loads the default shell automatically (`.envrc`).
 
-ESP-IDF comes from [esp-idf-nix](https://github.com/Cbeck527/esp-idf-nix) (`lib.mkEspIdfEnv`, version pinned in `flake.nix`). ESP-Brookesia 0.8 requires ESP-IDF ≥ 6.0, ≤ 6.2 on ESP32-S3.
+ESP-IDF comes from [esp-idf-nix](https://github.com/Cbeck527/esp-idf-nix) (`lib.mkEspIdfEnv`, version pinned in `flake.nix`). ESP-Brookesia 0.8 requires ESP-IDF >= 6.0, <= 6.2 on ESP32-S3.
 
 Binary cache: `https://esp-idf-nix.cachix.org` (declared in `nixConfig`). It is used only if your user is a trusted Nix user or the substituter is added system-wide:
 
@@ -65,7 +77,7 @@ CONFIG_HOMUNCULUS_WIFI_PASSWORD="..."
 CONFIG_HOMUNCULUS_SERVER_URL="ws://<server-lan-ip>:8443/hdp"
 ```
 
-`CONFIG_HOMUNCULUS_SERVER_URL` is used for pairing only when no server answers mDNS (spec 03 §3.5).
+`CONFIG_HOMUNCULUS_SERVER_URL` is used for pairing only when no server answers mDNS [crucible/homunculus/firmware/design](firmware/design.md) section 5).
 
 Defaults only fill keys missing from `sdkconfig`: after editing, delete the keys from `sdkconfig` or run `idf.py menuconfig`, then `idf.py reconfigure`.
 
@@ -75,7 +87,7 @@ HDP codec host test (protocol vectors, needs `managed_components`):
 firmware/components/homunculus_agent/test/host/run.sh
 ```
 
-Ring visualizer rasteriser host test (spec 06; optional argument writes a PPM contact sheet of flat, speech and recovered frames):
+Ring visualizer rasteriser host test ([crucible/homunculus/firmware/design/avatar](firmware/design/avatar.md); optional argument writes a PPM contact sheet of flat, speech and recovered frames):
 
 ```bash
 firmware/components/homunculus_avatar/test/host/run.sh /tmp/ring.ppm
@@ -103,7 +115,7 @@ pnpm --filter homunculus-server dev
 | --- | --- | --- |
 | `HOMUNCULUS_PORT` | `8443` | Listen port |
 | `HOMUNCULUS_HOST` | `0.0.0.0` | Listen address |
-| `HOMUNCULUS_DEVICE_TOKENS` | unset → `dev` from loopback only | Comma-separated shared bearer tokens (any device id); paired devices use their own tokens |
+| `HOMUNCULUS_DEVICE_TOKENS` | unset -> `dev` from loopback only | Comma-separated shared bearer tokens (any device id); paired devices use their own tokens |
 | `HOMUNCULUS_DATA_DIR` | `server/.data` | `devices.json`, `admin-key`, default OTA directory |
 | `HOMUNCULUS_ADMIN_KEY` | `server/.data/admin-key` | Admin key for pairing approval and `/admin/*` |
 | `HOMUNCULUS_MDNS`, `HOMUNCULUS_MDNS_NAME` | `1`, `Homunculus` | mDNS advertisement `_homunculus._tcp`; `0` disables |
@@ -121,17 +133,17 @@ pnpm --filter homunculus-server dev
 | `HOMUNCULUS_WHISPER_THREADS` | `4` | whisper-server threads |
 | `HOMUNCULUS_STT_PARTIAL_MS` | `1000` | Audio between partial transcriptions; `0` disables |
 | `HOMUNCULUS_TTS`, `HOMUNCULUS_TTS_VOICE` | persona | `kokoro` or `piper`; voice |
-| `HOMUNCULUS_TTS_GAIN_DB` | `0` | TTS output gain with soft limiter (ceiling −0.3 dBFS); `0` disables |
-| `HOMUNCULUS_KOKORO_DTYPE` | `fp32` | Kokoro ONNX weights (`q8` is slower on x86, spec §5.4.2) |
+| `HOMUNCULUS_TTS_GAIN_DB` | `0` | TTS output gain with soft limiter (ceiling -0.3 dBFS); `0` disables |
+| `HOMUNCULUS_KOKORO_DTYPE` | `fp32` | Kokoro ONNX weights (`q8` is slower on x86, spec [crucible/homunculus/server/design](server/design.md) section 4.2) |
 | `HOMUNCULUS_PIPER_BIN` | `piper` | Piper binary |
 | `HOMUNCULUS_VAD_HANGOVER_MS`, `HOMUNCULUS_VAD_THRESHOLD` | `600`, `0.5` | Endpointing |
-| `HOMUNCULUS_FIRST_MIN_WORDS`, `HOMUNCULUS_FIRST_MAX_WORDS` | `3`, `8` | First speech segment length (spec §5.4.2) |
+| `HOMUNCULUS_FIRST_MIN_WORDS`, `HOMUNCULUS_FIRST_MAX_WORDS` | `3`, `8` | First speech segment length (spec [crucible/homunculus/server/design](server/design.md) section 4.2) |
 | `HOMUNCULUS_UPLINK_GAP_MS` | `2500` | Uplink silence (no frames) that ends an utterance |
 | `HOMUNCULUS_STT_TIMEOUT_MS` | `20000` | Max wait for the final transcript |
 | `HOMUNCULUS_AGENT_IDLE_TIMEOUT_MS` | `90000` | Max time between agent events |
 | `HOMUNCULUS_SPEECH_IDLE_TIMEOUT_MS` | `20000` | Max time without TTS/downlink progress |
 | `HOMUNCULUS_INTERRUPT_WAIT_MS` | `8000` | Max wait for an interrupted agent stream before the session is reopened |
-| `HOMUNCULUS_MEMORY` | `1` | `0`: no long-term memory (no temporal-reasoning child, no memory / wiki tools; spec 10) |
+| `HOMUNCULUS_MEMORY` | `1` | `0`: no long-term memory (no temporal-reasoning child, no memory / wiki tools; [crucible/homunculus/server/design/memory](server/design/memory.md)) |
 | `HOMUNCULUS_MEMORY_DIR`, `HOMUNCULUS_MEMORY_SPACE` | `server/.data/memory`, `default` | Memory root and space |
 | `HOMUNCULUS_MEMORY_MODEL` | `claude-sonnet-5-5` | Model answering temporal-reasoning's extraction (MCP sampling) after each turn |
 | `HOMUNCULUS_MEMORY_MCP` | `uvx temporal-reasoning==0.9.0` | Command of the temporal-reasoning MCP server (started by the backend) |
@@ -139,9 +151,9 @@ pnpm --filter homunculus-server dev
 
 Per-device agent sandbox: `server/.data/sandbox/devices/<sanitised-device-id>-<hash>/`.
 
-`make server` starts the temporal-reasoning MCP server itself (stdio child, spec 10 §10.4); `make memory-mcp` (part of `make setup`) fetches it into the uv cache.
+`make server` starts the temporal-reasoning MCP server itself (stdio child, [crucible/homunculus/server/design/memory](server/design/memory.md) section 4); `make memory-mcp` (part of `make setup`) fetches it into the uv cache.
 
-Pairing (spec 03 §3.5, spec 05 §5.9): an unpaired device shows a QR code; scan it and approve on the phone page (server key: `make devices ARGS=key`, asked once per phone), or approve from the server host:
+Pairing [crucible/homunculus/firmware/design](firmware/design.md) section 5, [crucible/homunculus/server/design](server/design.md) section 9): an unpaired device shows a QR code; scan it and approve on the phone page (server key: `make devices ARGS=key`, asked once per phone), or approve from the server host:
 
 ```bash
 make devices ARGS="approve 123456 kitchen"
@@ -156,7 +168,7 @@ make devices ARGS="approve 123456 kitchen"
 | `rename <id> <name>` | Rename a device |
 | `revoke <id>` | Delete the token; a connected device is closed (4001) and pairs again |
 
-Memory admin CLI (spec 10 §10.7), server stopped:
+Memory admin CLI [crucible/homunculus/server/design/memory](server/design/memory.md) section 7), server stopped:
 
 ```bash
 pnpm --filter homunculus-server memory query '[:find ?e ?d :where [?e :description ?d]]'
