@@ -54,7 +54,7 @@ export const FIND_SEARCH_SLIM_INPUT_TOKEN_BUDGET = 28_000;
 export const EXPLORE_STATUS_INPUT_TOKEN_BUDGET = 32_000;
 
 const NAMED_READ_PROMPT =
-  "read  docs/host-cursor/design/context-growth.md";
+  "read  hosts/cursor/evals/fixtures/named-read.md";
 
 const LARGE_PAYLOAD = "/tmp/alchemist-ctx-eval/payload.txt";
 
