@@ -4,7 +4,7 @@ title: Repository Layout
 type: ARCH
 owner: crucible
 status: Draft
-date: 2026-11-12
+date: 2026-11-13
 depends: [crucible/architecture/system-architecture]
 related: [crucible/development, crucible/increments/repository-and-migration]
 planned: []
@@ -45,7 +45,7 @@ crucible/
 │   └── formulary/                 # git submodule: the documentation standard and its check
 ├── packages/                      # shared libraries; empty until the first is extracted
 ├── site/                          # documentation site: Quartz config, lockfile, build script
-├── .github/workflows/ci.yml
+├── .github/workflows/          # ci.yml (code), docs.yml (documents and site)
 ├── .gitattributes                 # Git LFS patterns
 ├── AGENTS.md
 ├── flake.nix                      # dev shells for all projects
