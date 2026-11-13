@@ -1,28 +1,30 @@
 # crucible/development section 3.1
 name: CI
 
+# A change that touches only the documentation paths runs docs.yml alone.
 on:
   push:
     branches: [main]
+    paths-ignore: &docs-paths
+      - "docs/**"
+      - "**/docs/**"
+      - "**/README.md"
+      - "**/AGENTS.md"
+      - "site/**"
+      - "projects/formulary"
+      - ".github/workflows/docs.yml"
   pull_request:
+    paths-ignore: *docs-paths
 
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  docs:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: true
-      - run: python3 projects/formulary/check-docs.py
-
   workspace:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: cachix/install-nix-action@v31
       - name: Install dependencies
         run: |
@@ -37,41 +39,8 @@ jobs:
       run:
         working-directory: projects/athanor
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: cachix/install-nix-action@v31
       - run: nix develop ../..#athanor --command bun install --frozen-lockfile
       - run: nix develop ../..#athanor --command bun run lint
       - run: nix develop ../..#athanor --command bun test src
-
-  # crucible/development section 3.2
-  site:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: cachix/install-nix-action@v31
-      - name: Cache Quartz plugins
-        uses: actions/cache@v4
-        with:
-          path: site/.quartz/.quartz/plugins
-          key: quartz-plugins-${{ hashFiles('site/quartz.lock.json') }}
-      - run: nix develop --command site/build.sh site/public
-      - uses: actions/upload-pages-artifact@v5
-        with:
-          path: site/public
-
-  pages:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [docs, site]
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    concurrency:
-      group: pages
-      cancel-in-progress: false
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v5

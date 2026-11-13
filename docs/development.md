@@ -4,7 +4,7 @@ title: Development
 type: DEV
 owner: crucible
 status: Draft
-date: 2026-11-12
+date: 2026-11-13
 depends: [crucible/architecture/repository-layout]
 related: [crucible/alchemist/development, crucible/homunculus/development]
 planned: []
@@ -52,15 +52,24 @@ The workspace is built and tested from the root: a Nix flake provides one dev sh
 
 ### 3.1 Continuous integration
 
-`.github/workflows/ci.yml` runs on every push to `main` and on every pull request. Each job runs inside a root Nix shell, so CI uses the toolchain of the dev shells.
+Two workflows run on every push to `main` and on every pull request. Each job runs inside a root Nix shell, so CI uses the toolchain of the dev shells.
 
-| Job | Shell | Steps |
+| Workflow | Runs on | Jobs |
 | --- | --- | --- |
-| `docs` | none | Formulary's `check-docs.py` on the workspace, from the `formulary` submodule at its pinned commit |
-| `workspace` | `default` | `pnpm install --frozen-lockfile`, `pnpm typecheck`, `pnpm test` |
-| `athanor` | `athanor` | `bun install --frozen-lockfile`, `bun run lint`, `bun test src` |
-| `site` | `default` | `site/build.sh`: builds the documentation site (section 3.2) and uploads it as the Pages artifact |
-| `pages` | none | Deploys the `site` artifact to GitHub Pages; on pushes to `main` only, after `docs` and `site` pass |
+| `.github/workflows/docs.yml` | Every change | `docs`, `site`, `pages` |
+| `.github/workflows/ci.yml` | Changes outside the documentation paths | `workspace`, `athanor` |
+
+The documentation paths are `docs/`, `projects/*/docs/` and `packages/*/docs/` (`**/docs/**`), every `README.md` and `AGENTS.md`, `site/`, the `projects/formulary` submodule and `.github/workflows/docs.yml`. No code or test reads a file in these paths, so a change that touches only them runs `docs.yml` alone. A file read by code, such as a host's `instructions.md` or a test fixture, is kept outside them.
+
+| Job | Workflow | Shell | Steps |
+| --- | --- | --- | --- |
+| `docs` | `docs.yml` | none | Formulary's `check-docs.py` on the workspace, from the `formulary` submodule at its pinned commit |
+| `site` | `docs.yml` | `default` | `site/build.sh`: builds the documentation site (section 3.2) and uploads it as the Pages artifact |
+| `pages` | `docs.yml` | none | Deploys the `site` artifact to GitHub Pages; on pushes to `main` only, after `docs` and `site` pass |
+| `workspace` | `ci.yml` | `default` | `pnpm install --frozen-lockfile`, `pnpm typecheck`, `pnpm test` |
+| `athanor` | `ci.yml` | `athanor` | `bun install --frozen-lockfile`, `bun run lint`, `bun test src` |
+
+Actions are pinned to their latest major version tag.
 
 The firmware is not built in CI: the ESP-IDF toolchain is built locally.
 

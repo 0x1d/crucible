@@ -1,0 +1,53 @@
+# crucible/development section 3.1
+name: Docs
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: true
+      - run: python3 projects/formulary/check-docs.py
+
+  # crucible/development section 3.2
+  site:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: cachix/install-nix-action@v31
+      - name: Cache Quartz plugins
+        uses: actions/cache@v6
+        with:
+          path: site/.quartz/.quartz/plugins
+          key: quartz-plugins-${{ hashFiles('site/quartz.lock.json') }}
+      - run: nix develop --command site/build.sh site/public
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: site/public
+
+  pages:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [docs, site]
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
