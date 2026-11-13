@@ -81,7 +81,7 @@ Entries call a new HTTP API on the homunculus server, which reuses the existing 
 | --- | --- |
 | Mechanism | `AgentInput { kind: "event", name, data }` pushed into the device's session |
 | Effect | The voice agent decides whether and how to speak it |
-| Dependency | Server-initiated speech, deferred in homunculus (HOM OI-14, D-26) |
+| Dependency | Server-initiated speech, deferred in homunculus (crucible/homunculus/OI-14, crucible/homunculus/D-26) |
 
 ## 4 Memory
 

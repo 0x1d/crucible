@@ -10,7 +10,7 @@ summary: Monorepo that unifies alchemist, homunculus and athanor around shared p
 code: .
 depends: []
 documents: [crucible/requirements, crucible/architecture, crucible/development, crucible/increments, crucible/decisions, crucible/open-items]
-date: 2026-11-11
+date: 2026-11-13
 ---
 
 # Crucible
@@ -35,7 +35,8 @@ This folder holds only what spans projects. Each project documents its own compo
 | alchemist | [crucible/alchemist](../projects/alchemist/docs/README.md) |
 | homunculus | [crucible/homunculus](../projects/homunculus/docs/README.md) |
 | athanor | [crucible/athanor](../projects/athanor/docs/README.md) |
-| shared packages | `packages/<name>/docs/` *(to be written)* |
+| codex-client (package) | [crucible/packages/codex-client](../packages/codex-client/docs/README.md) |
+| memory (package) | [crucible/packages/memory](../packages/memory/docs/README.md) |
 
 ## Documentation conventions
 
@@ -50,4 +51,4 @@ This folder holds only what spans projects. Each project documents its own compo
 | Open items | `crucible/OI-NN` in [open-items.md](open-items.md), each with a next step; closed by a decision |
 | Planned work | A section marked **Planned** in the document that will describe it once built, declared with its dependencies in the document's front matter ([Formulary](https://github.com/0x1d/formulary#planned-work)). Changes that span projects are grouped into product increments in [increments.md](increments.md) |
 | Diagrams | Mermaid |
-| Replaces | `alchemist/docs/internal/{plans,specs}`, `athanor/docs/internal/plans` (see [crucible/increments/repository-and-migration](increments/repository-and-migration.md) section 3.3) |
+| No plan files | Dated plan and specification files are not kept; the earlier ones were folded into the component documents ([crucible/architecture/repository-layout](architecture/repository-layout.md) section 2) |

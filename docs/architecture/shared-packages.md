@@ -4,89 +4,33 @@ title: Shared Packages
 type: ARCH
 owner: crucible
 status: Draft
-date: 2026-11-10
+date: 2026-11-13
 depends: [crucible/architecture/system-architecture]
-related: []
+related: [crucible/packages/codex-client, crucible/packages/memory]
+planned: []
 ---
 
 # Shared Packages
 
-Interfaces below are architectural sketches. The binding contract of each package is its `IFC` (`packages/<name>/docs/interfaces.md`).
+This document names the shared packages and what each is responsible for. The binding contract of a package is its `IFC` (`packages/<name>/docs/interfaces.md`). `codex-client` and `memory` are specified there; the interfaces of `agent` and `storage` below are architectural sketches until their packages are specified.
 
 ## 1 `packages/memory`
 
-### 1.1 Responsibility
+Specified in [crucible/packages/memory](../../packages/memory/docs/README.md); the binding contract is [crucible/packages/memory/interfaces](../../packages/memory/docs/interfaces.md).
 
-A generic memory interface with swappable providers. The generic part is `recall` / `retain` / `forget`; it does not assume a fact graph, Datalog or bi-temporal time, so that a provider such as Hindsight (retain / recall / reflect) fits.
-
-### 1.2 Interface
-
-```typescript
-export interface MemoryProvider {
-  readonly id: string;                         // "minigraf" | "hindsight" | ...
-  capabilities(): { facts: boolean; temporal: boolean; extraction: boolean };
-  open(space: string, deps: { sample?: Sampler }): Promise<MemorySpace>;
-}
-
-export interface MemorySpace {
-  /** Before a turn: context relevant to the query. */
-  recall(query: string, opts?: { limit?: number; at?: string }): Promise<MemoryItem[]>;
-  /** After a turn (exchange -> provider extracts) or explicitly (items). */
-  retain(
-    input: { exchange: string } | { items: MemoryItem[] },
-    meta?: { session?: string; reason?: string },
-  ): Promise<RetainResult>;
-  forget(ref: string, mode: "close" | "erase"): Promise<void>;
-  /** Provider-native agent tools (minigraf: query / transact / retract; Hindsight: reflect). */
-  tools(): HostTool[];
-  /** Provider's usage rules for the system prompt. */
-  promptSection(): string;
-  close(): Promise<void>;
-}
-
-/** Answers a provider's extraction prompt with model text. */
-export type Sampler = (prompt: string, maxTokens: number) => Promise<string>;
-```
+| Part | Responsibility |
+| --- | --- |
+| Memory interface | `recall`, `retain`, `forget`, provider tools and a prompt section. It does not assume a fact graph, Datalog or bi-temporal time, so that a provider such as Hindsight fits (crucible/AD-03, crucible/AD-09) |
+| Minigraf provider | The first provider (crucible/AD-04), built on the `minigraf` npm binding, with the schema profiles `engineering` and `personal` (crucible/AD-11) |
+| Line server | The provider behind a stdio process, for a consumer that is not TypeScript: alchemist's `Runtime.Memory` |
 
 | Rule | Statement |
 | --- | --- |
-| Hosts | Use only `recall`, `retain`, `forget`, `tools()`, `promptSection()`. They never name a provider |
-| Provider-specific power | Reaches the agent through `tools()` and `promptSection()` only |
-| Extraction model | Injected as `Sampler`; the package has no LLM dependency |
-| Selection | Provider id and space name come from application configuration |
-
-### 1.3 Minigraf provider
-
-| Item | Value |
-| --- | --- |
-| Engine | `minigraf` npm binding (alchemist's current implementation) |
-| Capabilities | `facts`, `temporal`; `extraction` once prepare / finalize are ported (crucible/OI-03) |
-| Native tools | Pattern / Datalog query, transact, retract (`close` / `correct`), overview, rules |
-| Schema profiles | Entity namespaces shared (`decision`, `preference`, `constraint`, `dependency`); attribute set per profile |
-| Profile `engineering` | `description`, `rationale`, `depends-on`, `motivated-by`, `governs`, `supersedes`, `source-session` (alchemist today) |
-| Profile `personal` | `description`, `rationale`, `alias`, `date`, `entity-type` incl. `type/person`, `type/place` (homunculus today) |
-| Interim | Homunculus's temporal-reasoning MCP client stays available as a second provider until `recall` / `retain`-by-exchange exist natively |
-
-### 1.4 Entry points and ownership
-
-| Entry point | Consumer |
-| --- | --- |
-| TypeScript library | homunculus server, `agent` |
-| stdio line-JSON server | alchemist `Runtime.Memory` (the protocol it already speaks) |
-
-Each application opens its own store: alchemist one graph with the `engineering` profile; homunculus one space per device profile with the `personal` profile. No store is shared (crucible/AD-05), so crucible/C-02 is met without a memory service.
-
-### 1.5 Codex entries
-
-| Entry | Maps to | Available |
-| --- | --- | --- |
-| `memory.remember` | `retain({ items })` | always |
-| `memory.overview`, `memory.recall` | `recall` | always |
-| `memory.query`, `memory.transact`, `memory.retract` | provider tools | when `capabilities().facts` |
-
-### 1.6 Wiki
-
-Homunculus's wiki (Markdown pages, BM25 search, git commit per change) moves into the package as an optional second store beside the provider (crucible/OI-07).
+| Hosts | Use only the memory interface. They never name a provider; the provider id and the space name come from application configuration |
+| Provider-specific power | Reaches the agent through the provider's tools and prompt section only |
+| Extraction model | Injected by the application; the package has no LLM dependency |
+| Ownership | Each application opens its own store: alchemist one graph with the `engineering` profile, homunculus one graph per memory space with the `personal` profile. No store is shared (crucible/AD-05), so crucible/C-02 is met without a memory service |
+| Wiki | Not part of the package; it stays in homunculus (crucible/AD-26) |
 
 ## 2 `packages/agent`
 
@@ -117,7 +61,7 @@ export interface SessionContext {
   servers?: Record<string, HostTool[]>;          // tool servers by name: codex, memory, device, ...
   confirm?: (req: ConfirmRequest, signal?: AbortSignal) => Promise<boolean>;
   memory?: MemorySpace;                          // recall before / retain after a turn
-  policies?: ContextPolicy[];                    // see 3.2.4
+  policies?: ContextPolicy[];                    // see 2.4
 }
 
 export interface HostTool {
@@ -129,7 +73,7 @@ export interface HostTool {
 }
 ```
 
-`AgentInput` (`utterance` with optional `heardSoFar` and `context`, or `event`) and `AgentEvent` (`status`, `text.delta`, `tool.start`, `tool.end`, `permission.request`, `done`, `error`) keep the homunculus definitions (HOM-SPEC-05 section 5.3.1).
+`AgentInput` (`utterance` with optional `heardSoFar` and `context`, or `event`) and `AgentEvent` (`status`, `text.delta`, `tool.start`, `tool.end`, `permission.request`, `done`, `error`) keep the homunculus definitions ([crucible/homunculus/server/design](../../projects/homunculus/docs/server/design.md)).
 
 ### 2.3 Backends
 
@@ -161,14 +105,14 @@ Host-side rules that today live in `alchemist/hosts/cursor/bot/lib` and are impo
 
 ## 3 `packages/codex-client`
 
-| Part | Content |
-| --- | --- |
-| Bridge | Starts or reuses the long-lived BEAM, compiles `runtime/` when needed, framed TCP RPC |
-| Protocol | `CodexRequest` types, tool names for the four operations |
-| Codex tool server | The four operations as `HostTool[]`, ready for `SessionContext.servers` |
-| CLI | `scripts/cli.mjs` equivalent |
+Specified in [crucible/packages/codex-client](../../packages/codex-client/docs/README.md); the binding contract is [crucible/packages/codex-client/interfaces](../../packages/codex-client/docs/interfaces.md).
 
-The bridge currently imports a type from `@grok/agent-sdk`; the package removes that dependency.
+| Part | Responsibility |
+| --- | --- |
+| Client | Starts or reuses the long-lived BEAM, compiles `runtime/` when needed, sends codex requests over framed TCP |
+| Protocol types | The request and result types and the tool names of the four operations |
+| Codex tool set | The four operations as tools, ready for `SessionContext.servers` |
+| Command line | The `codex` command: one request per invocation |
 
 ## 4 `packages/storage`
 

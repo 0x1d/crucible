@@ -53,7 +53,7 @@ Existing coupling: athanor uses the alchemist Claude host as its agent (sidecar,
 | C-01 | `define` compiles and runs arbitrary Elixir with the privileges of the BEAM process |
 | C-02 | A minigraf graph file has exactly one open handle (one owner process) |
 | C-03 | athanor runs on Bun (`Bun.serve`); alchemist's CLI and hosts run on Node, never Bun |
-| C-04 | Homunculus needs voice-to-first-audio <= 1.5 s p50 (HOM NFR-01); nothing on the turn path may block on long work |
+| C-04 | Homunculus needs voice-to-first-audio <= 1.5 s p50 (crucible/homunculus/NFR-01); nothing on the turn path may block on long work |
 | C-05 | Homunculus firmware needs the ESP-IDF toolchain; it must not be required for the other projects |
 | C-06 | The Cursor host is built on `@grok/agent-sdk`, which is its own harness and deployment format |
 
