@@ -4,9 +4,9 @@ title: athanor Deployment
 type: ARCH
 owner: crucible/alchemist
 status: Draft
-date: 2026-11-11
+date: 2026-11-13
 depends: [crucible/alchemist/architecture]
-related: []
+related: [crucible/athanor/api/design/access-control, crucible/athanor/api/design/agent-sandbox, crucible/athanor/api/design/free-tier-deployment]
 planned:
   - id: crucible/alchemist/P-01
     title: Codex overlay, repository sync and sidecar hardening for athanor
@@ -17,8 +17,7 @@ planned:
 
 **Planned** P-01.
 
-**Date:** 2026-11-10
-**Counterpart:** athanor plans `007_access-control`, `008_agent-sandbox`, `009_free-tier-deployment`.
+The athanor side is specified in [crucible/athanor/api/design/access-control](../../../athanor/docs/api/design/access-control.md), [crucible/athanor/api/design/agent-sandbox](../../../athanor/docs/api/design/agent-sandbox.md) and [crucible/athanor/api/design/free-tier-deployment](../../../athanor/docs/api/design/free-tier-deployment.md).
 
 ## Problem
 
@@ -29,7 +28,7 @@ In the deployment, the sidecar and BEAM run in a short-lived Vercel Sandbox, ath
 
 - Agent-written codex entries and athanor components live in a separate **codex repo**, not in alchemist.
 - Alchemist does the git work for that repo: on start, after turns that changed something, and on request.
-- The memory graph is saved and restored by athanor's controller from outside the sandbox (athanor plan 008 slice 5). Alchemist only needs `AGENT_MEMORY_PATH`, which already exists.
+- The memory graph is saved and restored by athanor's controller from outside the sandbox (crucible/athanor/api/P-08 slice 5). Alchemist only needs `AGENT_MEMORY_PATH`, which already exists.
 
 ## Codex repo layout
 
@@ -64,7 +63,7 @@ An entry in alchemist (`functions/codex/sync/`), so the agent, the sidecar and a
 - **First run**: clone into `CODEX_CHECKOUT` (shallow); empty repo -> write the layout and a README. Git auth through a credential helper reading `CODEX_GITHUB_TOKEN` from the environment; the token is never written to `.git/config`.
 - **Each run**:
   1. `git pull --rebase`.
-  2. Three-way sync of `components/**` and `services.json` with athanor's working copy, through the athanor API with `NSHDE_AGENT_API_TOKEN` (`GET /api/codex/files`, `GET/POST /api/storage`, `POST /api/codex/base`). Rules in athanor plan 008: one side changed -> copy to the other; both changed -> keep athanor's, write the repo's as `<name>.remote.<ext>` in athanor, report a conflict; delete on one side with the other unchanged -> delete.
+  2. Three-way sync of `components/**` and `services.json` with athanor's working copy, through the athanor API with `NSHDE_AGENT_API_TOKEN` (`GET /api/codex/files`, `GET/POST /api/storage`, `POST /api/codex/base`). Rules in crucible/athanor/api/design/agent-sandbox: one side changed -> copy to the other; both changed -> keep athanor's, write the repo's as `<name>.remote.<ext>` in athanor, report a conflict; delete on one side with the other unchanged -> delete.
   3. Stage `functions/**`, `components/**`, `services.json`.
   4. Nothing staged -> `{ ok, changed: [] }`.
   5. Commit `codex: <summary>`; body lists changed components and entries, the reason, and `source-session` when given. Author `Alchemist <alchemist@users.noreply.github.com>` unless `CODEX_GIT_AUTHOR` is set.
