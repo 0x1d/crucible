@@ -4,7 +4,7 @@ title: Open Items
 type: OI
 owner: crucible
 status: Draft
-date: 2026-11-12
+date: 2026-11-13
 depends: []
 related: [crucible/decisions]
 ---
@@ -17,7 +17,7 @@ related: [crucible/decisions]
 | --- | --- | --- | --- |
 | OI-01 | Codex split line: does the whole general function library move to the codex repository, or only agent-written entries (existing plan)? | Whole general library; kernel entries stay | crucible/AD-18, crucible/P-07 |
 | OI-02 | Memory layer as a monorepo package or its own repository? | Monorepo package | crucible/AD-08, crucible/P-04 |
-| OI-09 | Does the ACP backend replace homunculus's deferred OpenCode SDK backend (HOM D-22)? | Yes, if OpenCode over ACP meets the interrupt and streaming needs | crucible/AD-12, crucible/P-05 |
+| OI-09 | Does the ACP backend replace homunculus's deferred OpenCode SDK backend (HOM D-22)? | Deferred by the project owner (2026-11-13): the ACP backend does not replace it for now. Decide once crucible/P-05 has an ACP backend and crucible/V-04 is measured | crucible/AD-12, crucible/P-05 |
 | OI-10 | Pull homunculus's server-initiated speech (HOM OI-14, D-26) forward? crucible/CH-7 and useful delegation depend on it | Yes, before crucible/CH-5 / crucible/CH-7 | crucible/P-08 |
 | OI-11 | May the voice agent `define` codex entries at all? | Off by default; `ask` when enabled | crucible/AD-21 |
 | OI-16 | Package scope and names (`@crucible/agent`, ...); do the applications keep their names? | `@crucible/*`; names kept | crucible/P-03, crucible/P-04 |
